@@ -5,14 +5,13 @@ import random
 import torch
 import torch.nn.functional as F
 import torchaudio
-import yaml
+from models.dvae import DiscreteVAE
+from models.autoregressive import UnifiedVoice
 from tqdm import tqdm
 
 from models.arch_util import TorchMelSpectrogram
 from models.discrete_diffusion_vocoder import DiscreteDiffusionVocoder
-from models.lucidrains_dvae import DiscreteVAE
 from models.text_voice_clip import VoiceCLIP
-from models.unified_voice import UnifiedVoice
 from utils.audio import load_audio
 from utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
 from utils.tokenizer import VoiceBpeTokenizer
