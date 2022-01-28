@@ -1,0 +1,7 @@
+torch
+torchaudio
+rotary_embedding_torch
+transformers
+tokenizers
+pyfastmp3decoder
+inflect
