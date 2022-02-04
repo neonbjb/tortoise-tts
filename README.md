@@ -14,19 +14,25 @@ expect ~5 seconds of speech to take ~30 seconds to produce on the latest hardwar
 
 ## What the heck is this?
 
-Tortoise TTS is inspired by OpenAI's DALLE, applied to speech data. It is made up of 4 separate models that work together:
+Tortoise TTS is inspired by OpenAI's DALLE, applied to speech data. It is made up of 4 separate models that work together.
+These models are all derived from different repositories which are all linked. All the models have been modified
+for this use case (some substantially so).
 
 First, an autoregressive transformer stack predicts discrete speech "tokens" given a text prompt. This model is very
 similar to the GPT model used by DALLE, except it operates on speech data.
+Based on: [GPT2 from Transformers](https://huggingface.co/docs/transformers/model_doc/gpt2)
 
 Next, a CLIP model judges a batch of outputs from the autoregressive transformer against the provided text and stack
 ranks the outputs according to most probable. You could use greedy or beam-search decoding but in my experience CLIP
 decoding creates considerably better results.
+Based on [CLIP from lucidrains](https://github.com/lucidrains/DALLE-pytorch/blob/main/dalle_pytorch/dalle_pytorch.py)
 
 Next, the speech "tokens" are decoded into a low-quality MEL spectrogram using a VQVAE.
+Based on [VQVAE2 by rosinality](https://github.com/rosinality/vq-vae-2-pytorch)
 
 Finally, the output of the VQVAE is further decoded by a UNet diffusion model into raw audio, which can be placed in
 a wav file.
+Based on [ImprovedDiffusion by openai](https://github.com/openai/improved-diffusion)
 
 ## How do I use this?
 
