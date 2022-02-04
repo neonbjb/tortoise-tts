@@ -1,5 +1,7 @@
 import torch
 import torchaudio
+import numpy as np
+from scipy.io.wavfile import read
 
 
 def load_wav_to_torch(full_path):
