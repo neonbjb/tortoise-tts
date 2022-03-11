@@ -51,15 +51,14 @@ python do_tts.py
 I generated ~250 samples from 23 text prompts and 8 voices. The text prompts have never been seen by the model. The
 voices were pulled from the training set.
 
-All of the samples can be found in the results/ folder of this repo.
+All of the samples can be found in the results/ folder of this repo. I handpicked a few to show what the model is capable of:
 
-I handpicked a few to show what the model is capable of:
-[Atkins - Road not taken](results/favorites/atkins_road_not_taken.wav)
-[Dotrice - Rolling Stone interview](results/favorites/dotrice_rollingstone.wav)
-[Dotrice - 'Ornaments' from tacotron test set](results/favorites/dotrice_tacotron_samp1.wav)
-[Kennard - 'Acute emotional intelligence' from tacotron test set](results/favorites/kennard_tacotron_samp2.wav)
-[Mol - Because I could not stop for death](results/favorites/mol_dickenson.wav)
-[Mol - Obama](results/favorites/mol_obama.wav)
+-  [Atkins - Road not taken](results/favorites/atkins_road_not_taken.wav)
+-  [Dotrice - Rolling Stone interview](results/favorites/dotrice_rollingstone.wav)
+-  [Dotrice - 'Ornaments' from tacotron test set](results/favorites/dotrice_tacotron_samp1.wav)
+-  [Kennard - 'Acute emotional intelligence' from tacotron test set](results/favorites/kennard_tacotron_samp2.wav)
+-  [Mol - Because I could not stop for death](results/favorites/mol_dickenson.wav)
+-  [Mol - Obama](results/favorites/mol_obama.wav)
 
 Prosody is remarkably good for poetry, despite the fact that it was never trained on poetry.
 
