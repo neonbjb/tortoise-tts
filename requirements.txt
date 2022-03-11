@@ -5,3 +5,4 @@ transformers
 tokenizers
 pyfastmp3decoder
 inflect
+progressbar
