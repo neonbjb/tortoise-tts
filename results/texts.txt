@@ -1,0 +1,22 @@
+bengio_it_needs_to_know_what_is_bad|and so it needs to know what is bad. what is morally wrong? what is socially acceptable? i think we'll manage to train computers to understand this, but it is going to take awhile.
+gatsby_and_so_we_beat_on|and so we beat on, boats against the current, borne back ceaselessly into the past.
+harrypotter_differences_of_habit_and_language|differences of habit and language are nothing at all, if our aims are identical and our hearts are open.
+i_am_a_language_model|i am a language model that has learned to speak.
+real_courage_is_when_you_know_your_licked|real courage is when you know you are licked before you begin, but you begin anyway and see it through no matter what.
+frost_road_not_taken|then took the other, as just as fair, and having perhaps the better claim, because it was grassy and wanted wear.
+frost_oar_to_oar|cannot be parted nor swept away, for one another once you are agreed, that life is only life forevermore, together wing to wing and oar to oar.
+dickinson_stop_for_death|because i could not stop for death, he kindly stopped for me, the carriage held but just ourselves, and immortality.
+spongebob_stubbed_my_toe|i'll have you know that i stubbed my toe last week and only cried for 20 minutes.
+watts_this_is_the_real_secret_of_life|this is the real secret of life - to be completely engaged with what you are doing in the here and now, and instead of calling it work, realize it is play.
+wilde_nowadays_people_know_the_price|nowadays the people know the price of everything and the value of nothing.
+melodie_kao|instead of molten iron, jupiter and brown dwarfs have hydrogen, which is under so much pressure that it develops metallic properties.
+nyt_covid|the ballooning death toll has defied the hopes of many americans that the less severe omicron variant would spare the country the pain of past waves.
+spacecraft_interview|i cannot provide, unfortunately, really any details whatsoever, which is really frustrating to me in one regard because then i’m not able to accurately communicate the kind of capability this is going to deliver on orbit.
+autoregressive_ml|once you have the first token, you want to predict the second token given the input and the first token using multi-head attention.
+rolling_stone_review|the bleary distortion that opens n d a sets the tone: this is a song about life as a disconnected blur of new-fame isolation.
+espn_basketball|bane picks up his dribble, takes two long strides down the middle of the floor and lofts a pass high over stanley johnson.
+obama_govt|if the people cannot trust their government to do the job for which it exists - to protect them and to promote their common welfare - all else is lost.
+tacotron2_sample1|the essential point, to be remembered, is that the ornament - whatever it is - whether picture or patternwork, should form part of the page.
+tacotron2_sample2|there is a way to measure the acute emotional intelligence that has never gone out of style.
+tacotron2_sample3|president trump met with other leaders at the group of 20 conference.
+tacotron2_sample4|the senates bill to repeal and replace the affordable care act is now imperiled.
