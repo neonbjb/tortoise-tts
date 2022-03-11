@@ -6,7 +6,7 @@ from urllib import request
 import torch
 import torch.nn.functional as F
 import torchaudio
-from progressbar import progressbar
+import progressbar
 
 from models.dvae import DiscreteVAE
 from models.autoregressive import UnifiedVoice
@@ -27,6 +27,7 @@ def download_models():
         'diffusion.pth': 'https://huggingface.co/jbetker/tortoise-tts-diffusion-v1/resolve/main/pytorch-model.bin',
         'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-autoregressive/resolve/main/pytorch-model.bin'
     }
+    os.makedirs('.models', exist_ok=True)
     def show_progress(block_num, block_size, total_size):
         global pbar
         if pbar is None:
