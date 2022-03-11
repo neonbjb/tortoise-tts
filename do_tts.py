@@ -122,14 +122,14 @@ if __name__ == '__main__':
     preselected_cond_voices = {
         # Male voices
         'dotrice': ['voices/dotrice/1.wav', 'voices/dotrice/2.wav'],
-        'harris': ['voices/male_harris1.wav', 'voices/male_harris2.wav'],
-        'lescault': ['voices/male_lescault1.wav', 'voices/male_lescault2.wav'],
-        'otto': ['voices/male_otto1.wav', 'voices/male_otto2.wav'],
+        'harris': ['voices/harris/1.wav', 'voices/harris/2.wav'],
+        'lescault': ['voices/lescault/1.wav', 'voices/lescault/2.wav'],
+        'otto': ['voices/otto/1.wav', 'voices/otto/2.wav'],
         # Female voices
-        'atkins': ['voices/female_atkins1.wav', 'voices/female_atkins2.wav'],
-        'grace': ['voices/female_grace1.wav', 'voices/female_grace2.wav'],
-        'kennard': ['voices/female_kennard1.wav', 'voices/female_kennard2.wav'],
-        'mol': ['voices/female_mol1.wav', 'voices/female_mol2.wav'],
+        'atkins': ['voices/atkins/1.wav', 'voices/atkins/2.wav'],
+        'grace': ['voices/grace/1.wav', 'voices/grace/2.wav'],
+        'kennard': ['voices/kennard/1.wav', 'voices/kennard/2.wav'],
+        'mol': ['voices/mol/1.wav', 'voices/mol/2.wav'],
     }
 
     parser = argparse.ArgumentParser()
@@ -197,7 +197,7 @@ if __name__ == '__main__':
             print("Loading DVAE..")
             dvae = DiscreteVAE(positional_dims=1, channels=80, hidden_dim=512, num_resnet_blocks=3, codebook_dim=512, num_tokens=8192, num_layers=2,
                                record_codes=True, kernel_size=3, use_transposed_convs=False).cuda().eval()
-            dvae.load_state_dict(torch.load('.models/dvae.pth'))
+            dvae.load_state_dict(torch.load('.models/dvae.pth'), strict=False)
             print("Loading Diffusion Model..")
             diffusion = DiscreteDiffusionVocoder(model_channels=128, dvae_dim=80, channel_mult=[1, 1, 1.5, 2, 3, 4, 6, 8, 8, 8, 8], num_res_blocks=[1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],
                                                  spectrogram_conditioning_resolutions=[2,512], attention_resolutions=[512,1024], num_heads=4, kernel_size=3, scale_factor=2,
