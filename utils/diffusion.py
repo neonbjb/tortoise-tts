@@ -197,11 +197,17 @@ class GaussianDiffusion:
         model_var_type,
         loss_type,
         rescale_timesteps=False,
+        conditioning_free=False,
+        conditioning_free_k=1,
+        ramp_conditioning_free=True,
     ):
         self.model_mean_type = ModelMeanType(model_mean_type)
         self.model_var_type = ModelVarType(model_var_type)
         self.loss_type = LossType(loss_type)
         self.rescale_timesteps = rescale_timesteps
+        self.conditioning_free = conditioning_free
+        self.conditioning_free_k = conditioning_free_k
+        self.ramp_conditioning_free = ramp_conditioning_free
 
         # Use float64 for accuracy.
         betas = np.array(betas, dtype=np.float64)
@@ -332,10 +338,14 @@ class GaussianDiffusion:
         B, C = x.shape[:2]
         assert t.shape == (B,)
         model_output = model(x, self._scale_timesteps(t), **model_kwargs)
+        if self.conditioning_free:
+            model_output_no_conditioning = model(x, self._scale_timesteps(t), conditioning_free=True, **model_kwargs)
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
             model_output, model_var_values = th.split(model_output, C, dim=1)
+            if self.conditioning_free:
+                model_output_no_conditioning, _ = th.split(model_output_no_conditioning, C, dim=1)
             if self.model_var_type == ModelVarType.LEARNED:
                 model_log_variance = model_var_values
                 model_variance = th.exp(model_log_variance)
@@ -363,6 +373,14 @@ class GaussianDiffusion:
             }[self.model_var_type]
             model_variance = _extract_into_tensor(model_variance, t, x.shape)
             model_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
+
+        if self.conditioning_free:
+            if self.ramp_conditioning_free:
+                assert t.shape[0] == 1  # This should only be used in inference.
+                cfk = self.conditioning_free_k * (1 - self._scale_timesteps(t)[0].item() / self.num_timesteps)
+            else:
+                cfk = self.conditioning_free_k
+            model_output = (1 + cfk) * model_output - cfk * model_output_no_conditioning
 
         def process_xstart(x):
             if denoised_fn is not None:

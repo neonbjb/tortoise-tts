@@ -7,3 +7,4 @@ inflect
 progressbar
 einops
 unidecode
+x-transformers

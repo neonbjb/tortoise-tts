@@ -192,7 +192,8 @@ class ConditioningEncoder(nn.Module):
                  embedding_dim,
                  attn_blocks=6,
                  num_attn_heads=4,
-                 do_checkpointing=False):
+                 do_checkpointing=False,
+                 mean=False):
         super().__init__()
         attn = []
         self.init = nn.Conv1d(spec_dim, embedding_dim, kernel_size=1)
@@ -201,11 +202,15 @@ class ConditioningEncoder(nn.Module):
         self.attn = nn.Sequential(*attn)
         self.dim = embedding_dim
         self.do_checkpointing = do_checkpointing
+        self.mean = mean
 
     def forward(self, x):
         h = self.init(x)
         h = self.attn(h)
-        return h[:, :, 0]
+        if self.mean:
+            return h.mean(dim=2)
+        else:
+            return h[:, :, 0]
 
 
 class LearnedPositionEmbeddings(nn.Module):
@@ -275,7 +280,7 @@ class UnifiedVoice(nn.Module):
                  mel_length_compression=1024, number_text_tokens=256,
                  start_text_token=255, stop_text_token=0, number_mel_codes=8194, start_mel_token=8192,
                  stop_mel_token=8193, train_solo_embeddings=False, use_mel_codes_as_input=True,
-                 checkpointing=True):
+                 checkpointing=True, average_conditioning_embeddings=False):
         """
         Args:
             layers: Number of layers in transformer stack.
@@ -294,6 +299,7 @@ class UnifiedVoice(nn.Module):
             train_solo_embeddings:
             use_mel_codes_as_input:
             checkpointing:
+            average_conditioning_embeddings: Whether or not conditioning embeddings should be averaged, instead of fed piecewise into the model.
         """
         super().__init__()
 
@@ -311,6 +317,7 @@ class UnifiedVoice(nn.Module):
         self.max_conditioning_inputs = max_conditioning_inputs
         self.mel_length_compression = mel_length_compression
         self.conditioning_encoder = ConditioningEncoder(80, model_dim, num_attn_heads=heads)
+        self.average_conditioning_embeddings = average_conditioning_embeddings
         self.text_embedding = nn.Embedding(self.number_text_tokens, model_dim)
         if use_mel_codes_as_input:
             self.mel_embedding = nn.Embedding(self.number_mel_codes, model_dim)
@@ -408,6 +415,8 @@ class UnifiedVoice(nn.Module):
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
         conds = torch.stack(conds, dim=1)
+        if self.average_conditioning_embeddings:
+            conds = conds.mean(dim=1).unsqueeze(1)
 
         text_inputs, text_targets = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
@@ -446,6 +455,8 @@ class UnifiedVoice(nn.Module):
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
         conds = torch.stack(conds, dim=1)
+        if self.average_conditioning_embeddings:
+            conds = conds.mean(dim=1).unsqueeze(1)
 
         text_inputs, text_targets = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs) + self.text_solo_embedding
@@ -472,6 +483,8 @@ class UnifiedVoice(nn.Module):
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
         conds = torch.stack(conds, dim=1)
+        if self.average_conditioning_embeddings:
+            conds = conds.mean(dim=1).unsqueeze(1)
 
         mel_codes, mel_targets = self.build_aligned_inputs_and_targets(mel_codes, self.start_mel_token, self.stop_mel_token)
         if raw_mels is not None:
@@ -508,6 +521,8 @@ class UnifiedVoice(nn.Module):
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
         conds = torch.stack(conds, dim=1)
+        if self.average_conditioning_embeddings:
+            conds = conds.mean(dim=1).unsqueeze(1)
 
         emb = torch.cat([conds, text_emb], dim=1)
         self.inference_model.store_mel_emb(emb)
