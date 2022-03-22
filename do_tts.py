@@ -8,14 +8,14 @@ import torch.nn.functional as F
 import torchaudio
 import progressbar
 
-from models.dvae import DiscreteVAE
+from models.diffusion_decoder import DiffusionTts
 from models.autoregressive import UnifiedVoice
 from tqdm import tqdm
 
 from models.arch_util import TorchMelSpectrogram
-from models.discrete_diffusion_vocoder import DiscreteDiffusionVocoder
 from models.text_voice_clip import VoiceCLIP
-from utils.audio import load_audio
+from models.vocoder import UnivNetGenerator
+from utils.audio import load_audio, wav_to_univnet_mel, denormalize_tacotron_mel
 from utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
 from utils.tokenizer import VoiceBpeTokenizer
 
@@ -23,7 +23,6 @@ pbar = None
 def download_models():
     MODELS = {
         'clip.pth': 'https://huggingface.co/jbetker/tortoise-tts-clip/resolve/main/pytorch-model.bin',
-        'dvae.pth': 'https://huggingface.co/jbetker/voice-dvae/resolve/main/pytorch_model.bin',
         'diffusion.pth': 'https://huggingface.co/jbetker/tortoise-tts-diffusion-v1/resolve/main/pytorch-model.bin',
         'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-autoregressive/resolve/main/pytorch-model.bin'
     }
@@ -47,12 +46,14 @@ def download_models():
         request.urlretrieve(url, f'.models/{model_name}', show_progress)
         print('Done.')
 
+
 def load_discrete_vocoder_diffuser(trained_diffusion_steps=4000, desired_diffusion_steps=200):
     """
     Helper function to load a GaussianDiffusion instance configured for use as a vocoder.
     """
     return SpacedDiffusion(use_timesteps=space_timesteps(trained_diffusion_steps, [desired_diffusion_steps]), model_mean_type='epsilon',
-                           model_var_type='learned_range', loss_type='mse', betas=get_named_beta_schedule('linear', trained_diffusion_steps))
+                           model_var_type='learned_range', loss_type='mse', betas=get_named_beta_schedule('linear', trained_diffusion_steps),
+                           conditioning_free=True, conditioning_free_k=1)
 
 
 def load_conditioning(path, sample_rate=22050, cond_length=132300):
@@ -94,26 +95,26 @@ def fix_autoregressive_output(codes, stop_token):
     return codes
 
 
-def do_spectrogram_diffusion(diffusion_model, dvae_model, diffuser, mel_codes, conditioning_input, spectrogram_compression_factor=128, mean=False):
+def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_input, mean=False):
     """
     Uses the specified diffusion model and DVAE model to convert the provided MEL & conditioning inputs into an audio clip.
     """
     with torch.no_grad():
-        mel = dvae_model.decode(mel_codes)[0]
-
-        # Pad MEL to multiples of 2048//spectrogram_compression_factor
-        msl = mel.shape[-1]
-        dsl = 2048 // spectrogram_compression_factor
+        cond_mel = wav_to_univnet_mel(conditioning_input.squeeze(1), do_normalization=False)
+        # Pad MEL to multiples of 32
+        msl = mel_codes.shape[-1]
+        dsl = 32
         gap = dsl - (msl % dsl)
         if gap > 0:
-            mel = torch.nn.functional.pad(mel, (0, gap))
+            mel = torch.nn.functional.pad(mel_codes, (0, gap))
 
-        output_shape = (mel.shape[0], 1, mel.shape[-1] * spectrogram_compression_factor)
+        output_shape = (mel.shape[0], 100, mel.shape[-1]*4)
         if mean:
-            return diffuser.p_sample_loop(diffusion_model, output_shape, noise=torch.zeros(output_shape, device=mel_codes.device),
-                                          model_kwargs={'spectrogram': mel, 'conditioning_input': conditioning_input})
+            mel = diffuser.p_sample_loop(diffusion_model, output_shape, noise=torch.zeros(output_shape, device=mel_codes.device),
+                                          model_kwargs={'aligned_conditioning': mel_codes, 'conditioning_input': cond_mel})
         else:
-            return diffuser.p_sample_loop(diffusion_model, output_shape, model_kwargs={'spectrogram': mel, 'conditioning_input': conditioning_input})
+            mel = diffuser.p_sample_loop(diffusion_model, output_shape, model_kwargs={'aligned_conditioning': mel_codes, 'conditioning_input': cond_mel})
+        return denormalize_tacotron_mel(mel)[:,:,:msl*4]
 
 
 if __name__ == '__main__':
@@ -145,12 +146,6 @@ if __name__ == '__main__':
     download_models()
 
     for voice in args.voice.split(','):
-        print("Loading GPT TTS..")
-        autoregressive = UnifiedVoice(max_mel_tokens=300, max_text_tokens=200, max_conditioning_inputs=2, layers=30, model_dim=1024,
-                                      heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False, train_solo_embeddings=False).cuda().eval()
-        autoregressive.load_state_dict(torch.load('.models/autoregressive.pth'))
-        stop_mel_token = autoregressive.stop_mel_token
-
         print("Loading data..")
         tokenizer = VoiceBpeTokenizer()
         text = torch.IntTensor(tokenizer.encode(args.text)).unsqueeze(0).cuda()
@@ -160,7 +155,15 @@ if __name__ == '__main__':
         for cond_path in cond_paths:
             c, cond_wav = load_conditioning(cond_path)
             conds.append(c)
-        conds = torch.stack(conds, dim=1)  # And just use the last cond_wav for the diffusion model.
+        conds = torch.stack(conds, dim=1)
+        cond_diffusion = cond_wav[:, :88200]  # The diffusion model expects <= 88200 conditioning samples.
+
+        print("Loading GPT TTS..")
+        autoregressive = UnifiedVoice(max_mel_tokens=300, max_text_tokens=200, max_conditioning_inputs=2, layers=30, model_dim=1024,
+                                      heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False, train_solo_embeddings=False,
+                                      average_conditioning_embeddings=True).cuda().eval()
+        autoregressive.load_state_dict(torch.load('.models/autoregressive.pth'))
+        stop_mel_token = autoregressive.stop_mel_token
 
         with torch.no_grad():
             print("Performing autoregressive inference..")
@@ -194,20 +197,25 @@ if __name__ == '__main__':
             # Delete the autoregressive and clip models to free up GPU memory
             del samples, clip
 
-            print("Loading DVAE..")
-            dvae = DiscreteVAE(positional_dims=1, channels=80, hidden_dim=512, num_resnet_blocks=3, codebook_dim=512, num_tokens=8192, num_layers=2,
-                               record_codes=True, kernel_size=3, use_transposed_convs=False).cuda().eval()
-            dvae.load_state_dict(torch.load('.models/dvae.pth'), strict=False)
             print("Loading Diffusion Model..")
-            diffusion = DiscreteDiffusionVocoder(model_channels=128, dvae_dim=80, channel_mult=[1, 1, 1.5, 2, 3, 4, 6, 8, 8, 8, 8], num_res_blocks=[1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],
-                                                 spectrogram_conditioning_resolutions=[2,512], attention_resolutions=[512,1024], num_heads=4, kernel_size=3, scale_factor=2,
-                                                 conditioning_inputs_provided=True, time_embed_dim_multiplier=4).cuda().eval()
+            diffusion = DiffusionTts(model_channels=512, in_channels=100, out_channels=200, in_latent_channels=1024,
+                                     channel_mult=[1, 2, 3, 4], num_res_blocks=[3, 3, 3, 3], token_conditioning_resolutions=[1,4,8],
+                                     dropout=0, attention_resolutions=[4,8], num_heads=8, kernel_size=3, scale_factor=2,
+                                     time_embed_dim_multiplier=4, unconditioned_percentage=0, conditioning_dim_factor=2,
+                                     conditioning_expansion=1)
             diffusion.load_state_dict(torch.load('.models/diffusion.pth'))
+            diffusion = diffusion.cuda().eval()
+            print("Loading vocoder..")
+            vocoder = UnivNetGenerator()
+            vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
+            vocoder = vocoder.cuda()
+            vocoder.eval(inference=True)
             diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=100)
 
             print("Performing vocoding..")
             # Perform vocoding on each batch element separately: The diffusion model is very memory (and compute!) intensive.
             for b in range(best_results.shape[0]):
                 code = best_results[b].unsqueeze(0)
-                wav = do_spectrogram_diffusion(diffusion, dvae, diffuser, code, cond_wav, spectrogram_compression_factor=256, mean=True)
-                torchaudio.save(os.path.join(args.output_path, f'{voice}_{b}.wav'), wav.squeeze(0).cpu(), 22050)
+                mel = do_spectrogram_diffusion(diffusion, diffuser, code, cond_diffusion, mean=False)
+                wav = vocoder.inference(mel)
+                torchaudio.save(os.path.join(args.output_path, f'{voice}_{b}.wav'), wav.squeeze(0).cpu(), 24000)
