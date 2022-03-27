@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 import torchaudio
 import progressbar
+import ocotillo
 
 from models.diffusion_decoder import DiffusionTts
 from models.autoregressive import UnifiedVoice
@@ -17,7 +18,7 @@ from models.text_voice_clip import VoiceCLIP
 from models.vocoder import UnivNetGenerator
 from utils.audio import load_audio, wav_to_univnet_mel, denormalize_tacotron_mel
 from utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
-from utils.tokenizer import VoiceBpeTokenizer
+from utils.tokenizer import VoiceBpeTokenizer, lev_distance
 
 pbar = None
 def download_models():
@@ -47,13 +48,13 @@ def download_models():
         print('Done.')
 
 
-def load_discrete_vocoder_diffuser(trained_diffusion_steps=4000, desired_diffusion_steps=200):
+def load_discrete_vocoder_diffuser(trained_diffusion_steps=4000, desired_diffusion_steps=200, cond_free=True):
     """
     Helper function to load a GaussianDiffusion instance configured for use as a vocoder.
     """
     return SpacedDiffusion(use_timesteps=space_timesteps(trained_diffusion_steps, [desired_diffusion_steps]), model_mean_type='epsilon',
                            model_var_type='learned_range', loss_type='mse', betas=get_named_beta_schedule('linear', trained_diffusion_steps),
-                           conditioning_free=True, conditioning_free_k=1)
+                           conditioning_free=cond_free, conditioning_free_k=1)
 
 
 def load_conditioning(path, sample_rate=22050, cond_length=132300):
@@ -109,11 +110,12 @@ def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_
             mel = torch.nn.functional.pad(mel_codes, (0, gap))
 
         output_shape = (mel.shape[0], 100, mel.shape[-1]*4)
+        precomputed_embeddings = diffusion_model.timestep_independent(mel_codes, cond_mel)
         if mean:
             mel = diffuser.p_sample_loop(diffusion_model, output_shape, noise=torch.zeros(output_shape, device=mel_codes.device),
-                                          model_kwargs={'aligned_conditioning': mel_codes, 'conditioning_input': cond_mel})
+                                          model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings})
         else:
-            mel = diffuser.p_sample_loop(diffusion_model, output_shape, model_kwargs={'aligned_conditioning': mel_codes, 'conditioning_input': cond_mel})
+            mel = diffuser.p_sample_loop(diffusion_model, output_shape, model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings})
         return denormalize_tacotron_mel(mel)[:,:,:msl*4]
 
 
@@ -136,9 +138,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-text', type=str, help='Text to speak.', default="I am a language model that has learned to speak.")
     parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='dotrice,harris,lescault,otto,atkins,grace,kennard,mol')
-    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=512)
-    parser.add_argument('-num_batches', type=int, help='How many batches those samples should be produced over.', default=16)
-    parser.add_argument('-num_outputs', type=int, help='Number of outputs to produce.', default=2)
+    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=1024)
+    parser.add_argument('-num_batches', type=int, help='How many batches those samples should be produced over.', default=32)
+    parser.add_argument('-num_diffusion_samples', type=int, help='Number of outputs that progress to the diffusion stage.', default=16)
     parser.add_argument('-output_path', type=str, help='Where to store outputs.', default='results/')
     args = parser.parse_args()
 
@@ -192,7 +194,7 @@ if __name__ == '__main__':
                                     return_loss=False))
             clip_results = torch.cat(clip_results, dim=0)
             samples = torch.cat(samples, dim=0)
-            best_results = samples[torch.topk(clip_results, k=args.num_outputs).indices]
+            best_results = samples[torch.topk(clip_results, k=args.num_diffusion_samples).indices]
 
             # Delete the autoregressive and clip models to free up GPU memory
             del samples, clip
@@ -210,12 +212,32 @@ if __name__ == '__main__':
             vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
             vocoder = vocoder.cuda()
             vocoder.eval(inference=True)
-            diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=100)
+            initial_diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=40, cond_free=False)
+            final_diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=500)
 
             print("Performing vocoding..")
-            # Perform vocoding on each batch element separately: The diffusion model is very memory (and compute!) intensive.
+            wav_candidates = []
             for b in range(best_results.shape[0]):
                 code = best_results[b].unsqueeze(0)
-                mel = do_spectrogram_diffusion(diffusion, diffuser, code, cond_diffusion, mean=False)
+                mel = do_spectrogram_diffusion(diffusion, initial_diffuser, code, cond_diffusion, mean=False)
                 wav = vocoder.inference(mel)
-                torchaudio.save(os.path.join(args.output_path, f'{voice}_{b}.wav'), wav.squeeze(0).cpu(), 24000)
+                wav_candidates.append(wav.cpu())
+
+            # Further refine the remaining candidates using a ASR model to pick out the ones that are the most understandable.
+            transcriber = ocotillo.Transcriber(on_cuda=True)
+            transcriptions = transcriber.transcribe_batch(torch.cat(wav_candidates, dim=0).squeeze(1), 24000)
+            best = 99999999
+            for i, transcription in enumerate(transcriptions):
+                dist = lev_distance(transcription, args.text.lower())
+                if dist < best:
+                    best = dist
+                    best_codes = best_results[i].unsqueeze(0)
+                    best_wav = wav_candidates[i]
+            del transcriber
+            torchaudio.save(os.path.join(args.output_path, f'{voice}_poor.wav'), best_wav.squeeze(0).cpu(), 24000)
+
+            # Perform diffusion again with the high-quality diffuser.
+            mel = do_spectrogram_diffusion(diffusion, final_diffuser, best_codes, cond_diffusion, mean=False)
+            wav = vocoder.inference(mel)
+            torchaudio.save(os.path.join(args.output_path, f'{voice}.wav'), wav.squeeze(0).cpu(), 24000)
+
