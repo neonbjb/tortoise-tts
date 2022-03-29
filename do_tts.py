@@ -138,8 +138,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-text', type=str, help='Text to speak.', default="I am a language model that has learned to speak.")
     parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='dotrice,harris,lescault,otto,atkins,grace,kennard,mol')
-    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=1024)
-    parser.add_argument('-num_batches', type=int, help='How many batches those samples should be produced over.', default=32)
+    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=512)
+    parser.add_argument('-num_batches', type=int, help='How many batches those samples should be produced over.', default=16)
     parser.add_argument('-num_diffusion_samples', type=int, help='Number of outputs that progress to the diffusion stage.', default=16)
     parser.add_argument('-output_path', type=str, help='Where to store outputs.', default='results/')
     args = parser.parse_args()
@@ -179,19 +179,15 @@ if __name__ == '__main__':
             del autoregressive
 
             print("Loading CLIP..")
-            clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=8, text_seq_len=120, text_heads=8,
-                             num_speech_tokens=8192, speech_enc_depth=10, speech_heads=8, speech_seq_len=250).cuda().eval()
+            clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12, text_seq_len=350, text_heads=8,
+                             num_speech_tokens=8192, speech_enc_depth=12, speech_heads=8, speech_seq_len=430, use_xformers=True).cuda().eval()
             clip.load_state_dict(torch.load('.models/clip.pth'))
             print("Performing CLIP filtering..")
             clip_results = []
             for batch in samples:
                 for i in range(batch.shape[0]):
                     batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
-                text = text[:, :120]  # Ugly hack to fix the fact that I didn't train CLIP to handle long enough text.
-                clip_results.append(clip(text.repeat(batch.shape[0], 1),
-                                    torch.full((batch.shape[0],), fill_value=text.shape[1]-1, dtype=torch.long, device='cuda'),
-                                    batch, torch.full((batch.shape[0],), fill_value=batch.shape[1]*1024, dtype=torch.long, device='cuda'),
-                                    return_loss=False))
+                clip_results.append(clip(text.repeat(batch.shape[0], 1), batch, return_loss=False))
             clip_results = torch.cat(clip_results, dim=0)
             samples = torch.cat(samples, dim=0)
             best_results = samples[torch.topk(clip_results, k=args.num_diffusion_samples).indices]

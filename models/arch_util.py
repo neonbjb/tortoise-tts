@@ -1,9 +1,11 @@
+import functools
 import math
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
+from x_transformers import ContinuousTransformerWrapper
 
 
 def zero_module(module):
@@ -317,3 +319,45 @@ class TorchMelSpectrogram(nn.Module):
             self.mel_norms = self.mel_norms.to(mel.device)
             mel = mel / self.mel_norms.unsqueeze(0).unsqueeze(-1)
         return mel
+
+
+class CheckpointedLayer(nn.Module):
+    """
+    Wraps a module. When forward() is called, passes kwargs that require_grad through torch.checkpoint() and bypasses
+    checkpoint for all other args.
+    """
+    def __init__(self, wrap):
+        super().__init__()
+        self.wrap = wrap
+
+    def forward(self, x, *args, **kwargs):
+        for k, v in kwargs.items():
+            assert not (isinstance(v, torch.Tensor) and v.requires_grad)  # This would screw up checkpointing.
+        partial = functools.partial(self.wrap, **kwargs)
+        return torch.utils.checkpoint.checkpoint(partial, x, *args)
+
+
+class CheckpointedXTransformerEncoder(nn.Module):
+    """
+    Wraps a ContinuousTransformerWrapper and applies CheckpointedLayer to each layer and permutes from channels-mid
+    to channels-last that XTransformer expects.
+    """
+    def __init__(self, needs_permute=True, exit_permute=True, checkpoint=True, **xtransformer_kwargs):
+        super().__init__()
+        self.transformer = ContinuousTransformerWrapper(**xtransformer_kwargs)
+        self.needs_permute = needs_permute
+        self.exit_permute = exit_permute
+
+        if not checkpoint:
+            return
+        for i in range(len(self.transformer.attn_layers.layers)):
+            n, b, r = self.transformer.attn_layers.layers[i]
+            self.transformer.attn_layers.layers[i] = nn.ModuleList([n, CheckpointedLayer(b), r])
+
+    def forward(self, x, **kwargs):
+        if self.needs_permute:
+            x = x.permute(0,2,1)
+        h = self.transformer(x, **kwargs)
+        if self.exit_permute:
+            h = h.permute(0,2,1)
+        return h
