@@ -49,13 +49,13 @@ def download_models():
         print('Done.')
 
 
-def load_discrete_vocoder_diffuser(trained_diffusion_steps=4000, desired_diffusion_steps=200, cond_free=True):
+def load_discrete_vocoder_diffuser(trained_diffusion_steps=4000, desired_diffusion_steps=200, cond_free=True, cond_free_k=1):
     """
     Helper function to load a GaussianDiffusion instance configured for use as a vocoder.
     """
     return SpacedDiffusion(use_timesteps=space_timesteps(trained_diffusion_steps, [desired_diffusion_steps]), model_mean_type='epsilon',
                            model_var_type='learned_range', loss_type='mse', betas=get_named_beta_schedule('linear', trained_diffusion_steps),
-                           conditioning_free=cond_free, conditioning_free_k=1)
+                           conditioning_free=cond_free, conditioning_free_k=cond_free_k)
 
 
 def load_conditioning(clip, cond_length=132300):
@@ -96,7 +96,7 @@ def fix_autoregressive_output(codes, stop_token):
     return codes
 
 
-def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_input, mean=False):
+def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_input, temperature=1):
     """
     Uses the specified diffusion model and DVAE model to convert the provided MEL & conditioning inputs into an audio clip.
     """
@@ -111,11 +111,10 @@ def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_
 
         output_shape = (mel.shape[0], 100, mel.shape[-1]*4)
         precomputed_embeddings = diffusion_model.timestep_independent(mel_codes, cond_mel)
-        if mean:
-            mel = diffuser.p_sample_loop(diffusion_model, output_shape, noise=torch.zeros(output_shape, device=mel_codes.device),
-                                          model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings})
-        else:
-            mel = diffuser.p_sample_loop(diffusion_model, output_shape, model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings})
+
+        noise = torch.randn(output_shape, device=mel_codes.device) * temperature
+        mel = diffuser.p_sample_loop(diffusion_model, output_shape, noise=noise,
+                                      model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings})
         return denormalize_tacotron_mel(mel)[:,:,:msl*4]
 
 
@@ -150,7 +149,12 @@ class TextToSpeech:
         self.vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
         self.vocoder.eval(inference=True)
 
-    def tts(self, text, voice_samples, num_autoregressive_samples=512, k=1, diffusion_iterations=100, cond_free=True):
+    def tts(self, text, voice_samples, k=1,
+            # autoregressive generation parameters follow
+            num_autoregressive_samples=512, temperature=.9, length_penalty=1, repetition_penalty=1.0, top_k=50, top_p=.95,
+            typical_sampling=False, typical_mass=.9,
+            # diffusion generation parameters follow
+            diffusion_iterations=100, cond_free=True, cond_free_k=1, diffusion_temperature=1,):
         text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
         text = F.pad(text, (0, 1))  # This may not be necessary.
 
@@ -167,7 +171,7 @@ class TextToSpeech:
         else:
             cond_diffusion = cond_diffusion[:, :88200]
 
-        diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=diffusion_iterations, cond_free=cond_free)
+        diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=diffusion_iterations, cond_free=cond_free, cond_free_k=cond_free_k)
 
         with torch.no_grad():
             samples = []
@@ -175,11 +179,16 @@ class TextToSpeech:
             stop_mel_token = self.autoregressive.stop_mel_token
             self.autoregressive = self.autoregressive.cuda()
             for b in tqdm(range(num_batches)):
-                codes = self.autoregressive.inference_speech(conds, text, num_beams=1, repetition_penalty=1.0, do_sample=True,
-                                                        top_k=50, top_p=.95,
-                                                        temperature=.9,
-                                                        num_return_sequences=self.autoregressive_batch_size,
-                                                        length_penalty=1)
+                codes = self.autoregressive.inference_speech(conds, text,
+                                                             do_sample=True,
+                                                             top_k=top_k,
+                                                             top_p=top_p,
+                                                             temperature=temperature,
+                                                             num_return_sequences=self.autoregressive_batch_size,
+                                                             length_penalty=length_penalty,
+                                                             repetition_penalty=repetition_penalty,
+                                                             typical_sampling=typical_sampling,
+                                                             typical_mass=typical_mass)
                 padding_needed = 250 - codes.shape[1]
                 codes = F.pad(codes, (0, padding_needed), value=stop_mel_token)
                 samples.append(codes)
@@ -203,7 +212,7 @@ class TextToSpeech:
             self.vocoder = self.vocoder.cuda()
             for b in range(best_results.shape[0]):
                 code = best_results[b].unsqueeze(0)
-                mel = do_spectrogram_diffusion(self.diffusion, diffuser, code, cond_diffusion, mean=False)
+                mel = do_spectrogram_diffusion(self.diffusion, diffuser, code, cond_diffusion, temperature=diffusion_temperature)
                 wav = self.vocoder.inference(mel)
                 wav_candidates.append(wav.cpu())
             self.diffusion = self.diffusion.cpu()
