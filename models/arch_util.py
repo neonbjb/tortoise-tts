@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
 from x_transformers import ContinuousTransformerWrapper
+from x_transformers.x_transformers import RelativePositionBias
 
 
 def zero_module(module):
@@ -49,7 +50,7 @@ class QKVAttentionLegacy(nn.Module):
         super().__init__()
         self.n_heads = n_heads
 
-    def forward(self, qkv, mask=None):
+    def forward(self, qkv, mask=None, rel_pos=None):
         """
         Apply QKV attention.
 
@@ -64,6 +65,8 @@ class QKVAttentionLegacy(nn.Module):
         weight = torch.einsum(
             "bct,bcs->bts", q * scale, k * scale
         )  # More stable with f16 than dividing afterwards
+        if rel_pos is not None:
+            weight = rel_pos(weight.reshape(bs, self.n_heads, weight.shape[-2], weight.shape[-1])).reshape(bs * self.n_heads, weight.shape[-2], weight.shape[-1])
         weight = torch.softmax(weight.float(), dim=-1).type(weight.dtype)
         if mask is not None:
             # The proper way to do this is to mask before the softmax using -inf, but that doesn't work properly on CPUs.
@@ -87,9 +90,12 @@ class AttentionBlock(nn.Module):
         channels,
         num_heads=1,
         num_head_channels=-1,
+        do_checkpoint=True,
+        relative_pos_embeddings=False,
     ):
         super().__init__()
         self.channels = channels
+        self.do_checkpoint = do_checkpoint
         if num_head_channels == -1:
             self.num_heads = num_heads
         else:
@@ -99,21 +105,20 @@ class AttentionBlock(nn.Module):
             self.num_heads = channels // num_head_channels
         self.norm = normalization(channels)
         self.qkv = nn.Conv1d(channels, channels * 3, 1)
+        # split heads before split qkv
         self.attention = QKVAttentionLegacy(self.num_heads)
 
         self.proj_out = zero_module(nn.Conv1d(channels, channels, 1))
+        if relative_pos_embeddings:
+            self.relative_pos_embeddings = RelativePositionBias(scale=(channels // self.num_heads) ** .5, causal=False, heads=num_heads, num_buckets=32, max_distance=64)
+        else:
+            self.relative_pos_embeddings = None
 
     def forward(self, x, mask=None):
-        if mask is not None:
-            return self._forward(x, mask)
-        else:
-            return self._forward(x)
-
-    def _forward(self, x, mask=None):
         b, c, *spatial = x.shape
         x = x.reshape(b, c, -1)
         qkv = self.qkv(self.norm(x))
-        h = self.attention(qkv, mask)
+        h = self.attention(qkv, mask, self.relative_pos_embeddings)
         h = self.proj_out(h)
         return (x + h).reshape(b, c, *spatial)
 

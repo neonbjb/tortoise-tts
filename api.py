@@ -49,6 +49,15 @@ def download_models():
         print('Done.')
 
 
+def pad_or_truncate(t, length):
+    if t.shape[-1] == length:
+        return t
+    elif t.shape[-1] < length:
+        return F.pad(t, (0, length-t.shape[-1]))
+    else:
+        return t[..., :length]
+
+
 def load_discrete_vocoder_diffuser(trained_diffusion_steps=4000, desired_diffusion_steps=200, cond_free=True, cond_free_k=1):
     """
     Helper function to load a GaussianDiffusion instance configured for use as a vocoder.
@@ -96,26 +105,25 @@ def fix_autoregressive_output(codes, stop_token):
     return codes
 
 
-def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_input, temperature=1):
+def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_samples, temperature=1):
     """
-    Uses the specified diffusion model and DVAE model to convert the provided MEL & conditioning inputs into an audio clip.
+    Uses the specified diffusion model to convert discrete codes into a spectrogram.
     """
     with torch.no_grad():
-        cond_mel = wav_to_univnet_mel(conditioning_input.squeeze(1), do_normalization=False)
-        # Pad MEL to multiples of 32
-        msl = mel_codes.shape[-1]
-        dsl = 32
-        gap = dsl - (msl % dsl)
-        if gap > 0:
-            mel = torch.nn.functional.pad(mel_codes, (0, gap))
+        cond_mels = []
+        for sample in conditioning_samples:
+            sample = pad_or_truncate(sample, 102400)
+            cond_mel = wav_to_univnet_mel(sample.to(mel_codes.device), do_normalization=False)
+            cond_mels.append(cond_mel)
+        cond_mels = torch.stack(cond_mels, dim=1)
 
-        output_shape = (mel.shape[0], 100, mel.shape[-1]*4)
-        precomputed_embeddings = diffusion_model.timestep_independent(mel_codes, cond_mel)
+        output_shape = (mel_codes.shape[0], 100, mel_codes.shape[-1]*4)
+        precomputed_embeddings = diffusion_model.timestep_independent(mel_codes, cond_mels, False)
 
         noise = torch.randn(output_shape, device=mel_codes.device) * temperature
         mel = diffuser.p_sample_loop(diffusion_model, output_shape, noise=noise,
                                       model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings})
-        return denormalize_tacotron_mel(mel)[:,:,:msl*4]
+        return denormalize_tacotron_mel(mel)[:,:,:mel_codes.shape[-1]*4]
 
 
 class TextToSpeech:
@@ -137,12 +145,9 @@ class TextToSpeech:
                              use_xformers=True).cpu().eval()
         self.clip.load_state_dict(torch.load('.models/clip.pth'))
 
-        self.diffusion = DiffusionTts(model_channels=512, in_channels=100, out_channels=200, in_latent_channels=1024,
-                                 channel_mult=[1, 2, 3, 4], num_res_blocks=[3, 3, 3, 3],
-                                 token_conditioning_resolutions=[1, 4, 8],
-                                 dropout=0, attention_resolutions=[4, 8], num_heads=8, kernel_size=3, scale_factor=2,
-                                 time_embed_dim_multiplier=4, unconditioned_percentage=0, conditioning_dim_factor=2,
-                                 conditioning_expansion=1).cpu().eval()
+        self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
+                                      in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
+                                      layer_drop=0, unconditioned_percentage=0).cpu().eval()
         self.diffusion.load_state_dict(torch.load('.models/diffusion.pth'))
 
         self.vocoder = UnivNetGenerator().cpu()
@@ -164,12 +169,6 @@ class TextToSpeech:
         for vs in voice_samples:
             conds.append(load_conditioning(vs))
         conds = torch.stack(conds, dim=1)
-        cond_diffusion = voice_samples[0].cuda()
-        # The diffusion model expects = 88200 conditioning samples.
-        if cond_diffusion.shape[-1] < 88200:
-            cond_diffusion = F.pad(cond_diffusion, (0, 88200-cond_diffusion.shape[-1]))
-        else:
-            cond_diffusion = cond_diffusion[:, :88200]
 
         diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=diffusion_iterations, cond_free=cond_free, cond_free_k=cond_free_k)
 
@@ -211,7 +210,7 @@ class TextToSpeech:
             self.vocoder = self.vocoder.cuda()
             for b in range(best_results.shape[0]):
                 code = best_results[b].unsqueeze(0)
-                mel = do_spectrogram_diffusion(self.diffusion, diffuser, code, cond_diffusion, temperature=diffusion_temperature)
+                mel = do_spectrogram_diffusion(self.diffusion, diffuser, code, voice_samples, temperature=diffusion_temperature)
                 wav = self.vocoder.inference(mel)
                 wav_candidates.append(wav.cpu())
             self.diffusion = self.diffusion.cpu()
