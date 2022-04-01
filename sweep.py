@@ -25,18 +25,18 @@ def permutations(args):
 
 if __name__ == '__main__':
     fname = 'Y:\\libritts\\test-clean\\transcribed-brief-w2v.tsv'
-    outpath_base = 'D:\\tmp\\tortoise-tts-eval\\std_sweep_diffusion'
+    outpath_base = 'D:\\tmp\\tortoise-tts-eval\\std_sweep3'
     outpath_real = 'D:\\tmp\\tortoise-tts-eval\\real'
 
     arg_ranges = {
-        'diffusion_temperature': [.5, .7, 1],
-        'cond_free_k': [.5, 1, 2],
+        'top_p': [.3,.4,.5,.6],
+        'temperature': [.5, .6],
     }
     cfgs = permutations(arg_ranges)
     shuffle(cfgs)
 
     for cfg in cfgs:
-        outpath = os.path.join(outpath_base, f'{cfg["cond_free_k"]}_{cfg["diffusion_temperature"]}')
+        outpath = os.path.join(outpath_base, f'{cfg["top_p"]}_{cfg["temperature"]}')
         os.makedirs(outpath, exist_ok=True)
         os.makedirs(outpath_real, exist_ok=True)
         with open(fname, 'r', encoding='utf-8') as f:
@@ -51,8 +51,9 @@ if __name__ == '__main__':
             path = os.path.join(os.path.dirname(fname), line[1])
             cond_audio = load_audio(path, 22050)
             torchaudio.save(os.path.join(outpath_real, os.path.basename(line[1])), cond_audio, 22050)
-            sample = tts.tts(transcript, [cond_audio, cond_audio], num_autoregressive_samples=256, k=1, diffusion_iterations=200, cond_free=False,
-                             repetition_penalty=1.5, length_penalty=2, temperature=.9, top_p=.9)
+            sample = tts.tts(transcript, [cond_audio, cond_audio], num_autoregressive_samples=256, k=1, diffusion_iterations=200,
+                             repetition_penalty=2.0, length_penalty=2, temperature=.5, top_p=.5,
+                             diffusion_temperature=.7, cond_free_k=2, **cfg)
             down = torchaudio.functional.resample(sample, 24000, 22050)
             fout_path = os.path.join(outpath, os.path.basename(line[1]))
             torchaudio.save(fout_path, down.squeeze(0), 22050)
