@@ -151,10 +151,10 @@ class TextToSpeech:
 
     def tts(self, text, voice_samples, k=1,
             # autoregressive generation parameters follow
-            num_autoregressive_samples=512, temperature=.9, length_penalty=1, repetition_penalty=1.0, top_k=50, top_p=.95,
+            num_autoregressive_samples=512, temperature=.5, length_penalty=2, repetition_penalty=2.0, top_p=.5,
             typical_sampling=False, typical_mass=.9,
             # diffusion generation parameters follow
-            diffusion_iterations=100, cond_free=True, cond_free_k=1, diffusion_temperature=1,):
+            diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=.7,):
         text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
         text = F.pad(text, (0, 1))  # This may not be necessary.
 
@@ -181,7 +181,6 @@ class TextToSpeech:
             for b in tqdm(range(num_batches)):
                 codes = self.autoregressive.inference_speech(conds, text,
                                                              do_sample=True,
-                                                             top_k=top_k,
                                                              top_p=top_p,
                                                              temperature=temperature,
                                                              num_return_sequences=self.autoregressive_batch_size,
@@ -221,3 +220,27 @@ class TextToSpeech:
             if len(wav_candidates) > 1:
                 return wav_candidates
             return wav_candidates[0]
+
+    def refine_for_intellibility(self, wav_candidates, corresponding_codes, output_path):
+        """
+        Further refine the remaining candidates using a ASR model to pick out the ones that are the most understandable.
+        TODO: finish this function
+        :param wav_candidates:
+        :return:
+        """
+        transcriber = ocotillo.Transcriber(on_cuda=True)
+        transcriptions = transcriber.transcribe_batch(torch.cat(wav_candidates, dim=0).squeeze(1), 24000)
+        best = 99999999
+        for i, transcription in enumerate(transcriptions):
+            dist = lev_distance(transcription, args.text.lower())
+            if dist < best:
+                best = dist
+                best_codes = corresponding_codes[i].unsqueeze(0)
+                best_wav = wav_candidates[i]
+        del transcriber
+        torchaudio.save(os.path.join(output_path, f'{voice}_poor.wav'), best_wav.squeeze(0).cpu(), 24000)
+
+        # Perform diffusion again with the high-quality diffuser.
+        mel = do_spectrogram_diffusion(diffusion, final_diffuser, best_codes, cond_diffusion, mean=False)
+        wav = vocoder.inference(mel)
+        torchaudio.save(os.path.join(args.output_path, f'{voice}.wav'), wav.squeeze(0).cpu(), 24000)
