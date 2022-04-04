@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import torchaudio
 
-from api import TextToSpeech, load_conditioning
+from api_new_autoregressive import TextToSpeech, load_conditioning
 from utils.audio import load_audio
 from utils.tokenizer import VoiceBpeTokenizer
 
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-text', type=str, help='Text to speak.', default="I am a language model that has learned to speak.")
     parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='dotrice,harris,lescault,otto,atkins,grace,kennard,mol')
-    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=512)
+    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=32)
     parser.add_argument('-batch_size', type=int, help='How many samples to process at once in the autoregressive model.', default=16)
     parser.add_argument('-num_diffusion_samples', type=int, help='Number of outputs that progress to the diffusion stage.', default=16)
     parser.add_argument('-output_path', type=str, help='Where to store outputs.', default='results/')

@@ -14,6 +14,7 @@ from models.autoregressive import UnifiedVoice
 from tqdm import tqdm
 
 from models.arch_util import TorchMelSpectrogram
+from models.new_autoregressive import AutoregressiveCodegen
 from models.text_voice_clip import VoiceCLIP
 from models.vocoder import UnivNetGenerator
 from utils.audio import load_audio, wav_to_univnet_mel, denormalize_tacotron_mel
@@ -133,12 +134,8 @@ class TextToSpeech:
         self.tokenizer = VoiceBpeTokenizer()
         download_models()
 
-        self.autoregressive = UnifiedVoice(max_mel_tokens=300, max_text_tokens=200, max_conditioning_inputs=2, layers=30,
-                                      model_dim=1024,
-                                      heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
-                                      train_solo_embeddings=False,
-                                      average_conditioning_embeddings=True).cpu().eval()
-        self.autoregressive.load_state_dict(torch.load('.models/autoregressive.pth'))
+        self.autoregressive = AutoregressiveCodegen(512, 12).cpu().eval()
+        self.autoregressive.load_state_dict(torch.load('D:\\dlas\\experiments\\train_autoregressive_codegen\\models\\23000_codegen_ema.pth'))
 
         self.clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
                              text_seq_len=350, text_heads=8,
@@ -176,28 +173,30 @@ class TextToSpeech:
         with torch.no_grad():
             samples = []
             num_batches = num_autoregressive_samples // self.autoregressive_batch_size
-            stop_mel_token = self.autoregressive.stop_mel_token
+            stop_mel_token = self.autoregressive.STOP_TOKEN
             self.autoregressive = self.autoregressive.cuda()
-            for b in tqdm(range(num_batches)):
-                codes = self.autoregressive.inference_speech(conds, text,
-                                                             do_sample=True,
-                                                             top_p=top_p,
-                                                             temperature=temperature,
-                                                             num_return_sequences=self.autoregressive_batch_size,
-                                                             length_penalty=length_penalty,
-                                                             repetition_penalty=repetition_penalty,
-                                                             typical_sampling=typical_sampling,
-                                                             typical_mass=typical_mass)
+            for _ in tqdm(range(num_batches)):
+                codes = self.autoregressive.generate(conds, text,
+                                                     do_sample=True,
+                                                     top_p=top_p,
+                                                     temperature=temperature,
+                                                     num_return_sequences=self.autoregressive_batch_size,
+                                                     length_penalty=length_penalty,
+                                                     repetition_penalty=repetition_penalty,
+                                                     typical_sampling=typical_sampling,
+                                                     typical_mass=typical_mass)
                 padding_needed = 250 - codes.shape[1]
                 codes = F.pad(codes, (0, padding_needed), value=stop_mel_token)
                 samples.append(codes)
-            self.autoregressive = self.autoregressive.cpu()
+            #self.autoregressive = self.autoregressive.cpu()
 
             clip_results = []
             self.clip = self.clip.cuda()
             for batch in samples:
                 for i in range(batch.shape[0]):
                     batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
+                bad_toks = batch >= 8192
+                batch = batch * bad_toks.logical_not()
                 clip_results.append(self.clip(text.repeat(batch.shape[0], 1), batch, return_loss=False))
             clip_results = torch.cat(clip_results, dim=0)
             samples = torch.cat(samples, dim=0)
