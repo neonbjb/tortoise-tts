@@ -85,7 +85,13 @@ class InferenceModel(GPT2PreTrainedModel):
         assert labels is None  # Training not supported by this inference model.
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        hidden_states = self.transformer.decoder(input_ids, full_context=self.context, return_embeddings=True)
+        out = self.transformer.decoder(input_ids, full_context=self.context, return_embeddings=True, past_key_values=past_key_values,
+                                       use_cache=use_cache, expected_seq_len=100)
+        if use_cache:
+            hidden_states, present_key_values = out
+        else:
+            hidden_states = out
+            present_key_values = None
         logits = self.transformer.decoder.to_logits(hidden_states)
 
         if not return_dict:
@@ -94,7 +100,7 @@ class InferenceModel(GPT2PreTrainedModel):
         return CausalLMOutputWithCrossAttentions(
             loss=None,
             logits=logits,
-            past_key_values=None,
+            past_key_values=present_key_values,
             hidden_states=hidden_states,
             attentions=None,
             cross_attentions=None,
@@ -258,7 +264,7 @@ class AutoregressiveCodegen(nn.Module):
         inference_model.store_context(full_context)
 
         gen = inference_model.generate(bos_token_id=self.START_TOKEN, pad_token_id=self.STOP_TOKEN, eos_token_id=self.STOP_TOKEN,
-                                            max_length=max_tokens, output_attentions=False, return_dict_in_generate=True,
+                                       max_length=max_tokens, output_attentions=False, return_dict_in_generate=True, use_cache=False,
                                             **hf_generate_kwargs)
         return gen.sequences
 
