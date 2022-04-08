@@ -134,8 +134,8 @@ class TextToSpeech:
         self.tokenizer = VoiceBpeTokenizer()
         download_models()
 
-        self.autoregressive = AutoregressiveCodegen(512, 12).cpu().eval()
-        self.autoregressive.load_state_dict(torch.load('D:\\dlas\\experiments\\train_autoregressive_codegen\\models\\23000_codegen_ema.pth'))
+        self.autoregressive = AutoregressiveCodegen(1024, 16).cpu().eval()
+        self.autoregressive.load_state_dict(torch.load('X:\\dlas\\experiments\\train_autoregressive_codegen\\models\\11000_codegen_ema.pth'))
 
         self.clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
                              text_seq_len=350, text_heads=8,
