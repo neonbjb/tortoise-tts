@@ -1,11 +1,9 @@
-import functools
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import GPT2PreTrainedModel, GPT2Config
+from models.xtransformers import TransformerWrapper, Encoder, Decoder
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
-from x_transformers import TransformerWrapper, Encoder, Decoder
 
 from models.arch_util import AttentionBlock
 
@@ -87,8 +85,8 @@ class InferenceModel(GPT2PreTrainedModel):
         assert labels is None  # Training not supported by this inference model.
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        hidden_states = self.transformer.decoder(input_ids, context=self.context, return_embeddings=True)
-        logits = self.transformer.decoder.transformer.to_logits(hidden_states)
+        hidden_states = self.transformer.decoder(input_ids, full_context=self.context, return_embeddings=True)
+        logits = self.transformer.decoder.to_logits(hidden_states)
 
         if not return_dict:
             return (logits, )
@@ -157,54 +155,22 @@ class ConditioningEncoder(nn.Module):
         return h.mean(dim=2)
 
 
-class CheckpointedLayer(nn.Module):
-    """
-    Wraps a module. When forward() is called, passes kwargs that require_grad through torch.checkpoint() and bypasses
-    checkpoint for all other args.
-    """
-    def __init__(self, wrap):
-        super().__init__()
-        self.wrap = wrap
-
-    def forward(self, x, *args, **kwargs):
-        for k, v in kwargs.items():
-            assert not (isinstance(v, torch.Tensor) and v.requires_grad)  # This would screw up checkpointing.
-        partial = functools.partial(self.wrap, **kwargs)
-        return torch.utils.checkpoint.checkpoint(partial, x, *args)
-
-
-class CheckpointedXTransformerWrapper(nn.Module):
-    """
-    Wraps a TransformerWrapper and applies CheckpointedLayer to each layer.
-    """
-    def __init__(self, checkpoint=True, **xtransformer_kwargs):
-        super().__init__()
-        self.transformer = TransformerWrapper(**xtransformer_kwargs)
-
-        if not checkpoint:
-            return
-        for i in range(len(self.transformer.attn_layers.layers)):
-            n, b, r = self.transformer.attn_layers.layers[i]
-            self.transformer.attn_layers.layers[i] = nn.ModuleList([n, CheckpointedLayer(b), r])
-
-    def forward(self, x, **kwargs):
-        return self.transformer(x, **kwargs)
-
-
 class AutoregressiveCodegen(nn.Module):
-    def __init__(self, model_dim, depth, num_text_tokens=256, num_mel_tokens=8194, max_text_tokens=4000,
-                 max_mel_tokens=4000, dropout=.1):
+    def __init__(self, model_dim, depth, num_text_tokens=256, num_mel_tokens=8194, dropout=.1):
         super().__init__()
+        assert depth >= 8  # This is the minimum bound to support the context interleaving that happens later.
 
         self.START_TOKEN=8192
         self.STOP_TOKEN=8193
-        self.max_mel_tokens = max_mel_tokens
-        self.minicoder = ConditioningEncoder(80, model_dim, do_checkpointing=False)
-        self.encoder = CheckpointedXTransformerWrapper(
+        self.max_text_token_id = num_text_tokens
+        self.max_mel_token_id = num_mel_tokens
+        self.mel_embedding = ConditioningEncoder(80, model_dim, do_checkpointing=False)
+        self.encoder = TransformerWrapper(
                                   num_tokens=num_text_tokens,
-                                  max_seq_len=max_text_tokens,
+                                  use_pos_emb=False,
+                                  max_seq_len=-1,
                                   attn_layers = Encoder(
-                                      depth=depth//2,
+                                      depth=depth,
                                       heads=model_dim//64,
                                       dim=model_dim,
                                       attn_dropout=dropout,
@@ -213,11 +179,14 @@ class AutoregressiveCodegen(nn.Module):
                                       ff_glu=True,
                                       ff_mult=1,
                                       rotary_pos_emb=True,
-                                      rel_pos_bias=True,
+                                      attn_rel_pos_bias=True,
                                   ))
-        self.decoder = CheckpointedXTransformerWrapper(
+        self.encoder.norm = nn.Identity()  # This layer and the next are unused.
+        self.encoder.to_logits = nn.Identity()
+        self.decoder = TransformerWrapper(
                                   num_tokens=num_mel_tokens,
-                                  max_seq_len=max_mel_tokens,
+                                  use_pos_emb=False,
+                                  max_seq_len=-1,
                                   attn_layers=Decoder(
                                       depth=depth,
                                       heads=model_dim//64,
@@ -228,18 +197,21 @@ class AutoregressiveCodegen(nn.Module):
                                       ff_glu=True,
                                       ff_mult=1,
                                       rotary_pos_emb=True,
-                                      rel_pos_bias=True,
                                       cross_attend=True,
+                                      attn_rel_pos_bias=True,
                                   ))
 
     def get_grad_norm_parameter_groups(self):
         return {
             'encoder': list(self.encoder.parameters()),
             'decoder': list(self.decoder.parameters()),
-            'minicoder': list(self.minicoder.parameters()),
+            'minicoder': list(self.mel_embedding.parameters()),
         }
 
     def forward(self, text_codes, conditioning_signal, mel_codes, wav_lengths, return_loss=True):
+        assert text_codes.max() < self.max_text_token_id and text_codes.min() >= 0, f'Invalid text code encountered: {text_codes.max()}, {text_codes.min()}'
+        assert mel_codes.max() < self.max_mel_token_id and mel_codes.min() >= 0, f'Invalid mel code encountered: {mel_codes.max()}, {mel_codes.min()}'
+
         # Format mel_codes with a stop token on the end.
         mel_lengths = wav_lengths // 1024 + 1
         for b in range(mel_codes.shape[0]):
@@ -251,42 +223,50 @@ class AutoregressiveCodegen(nn.Module):
             conditioning_signal = conditioning_signal.unsqueeze(1)
         cond_embs = []
         for i in range(conditioning_signal.shape[1]):
-            cond_embs.append(self.minicoder(conditioning_signal[:, i]))
+            cond_embs.append(self.mel_embedding(conditioning_signal[:, i]))
         cond_emb = torch.stack(cond_embs, dim=1).mean(dim=1, keepdim=True)
-        enc_text = self.encoder(text_codes, return_embeddings=True)
-        context = torch.cat([cond_emb, enc_text], dim=1)
+        _, enc_text = self.encoder(text_codes, return_hiddens=True)
+        # Interleave cond_emb into the first few contexts.
+        full_context = enc_text
+        full_context[1] = cond_emb
+        full_context[3] = cond_emb
+        full_context[6] = cond_emb
 
         # Execute the decoder
         dec_inputs = F.pad(mel_codes, (1,0), value=self.START_TOKEN)[:, :-1]
-        dec = self.decoder(dec_inputs, context=context)
+        dec = self.decoder(dec_inputs, full_context=full_context)
         if not return_loss:
             return dec
         loss_mel = F.cross_entropy(dec.permute(0,2,1), mel_codes)
         return loss_mel
 
-    def generate(self, conditioning_signal, text_codes, **hf_generate_kwargs):
-        if not hasattr(self, 'inference_model'):
-            self.inference_model = InferenceModel(self)
-
+    def generate(self, conditioning_signal, text_codes, max_tokens=256, **hf_generate_kwargs):
+        inference_model = InferenceModel(self)
+        # Build the context
         if len(conditioning_signal.shape) != 4:
             conditioning_signal = conditioning_signal.unsqueeze(1)
         cond_embs = []
         for i in range(conditioning_signal.shape[1]):
-            cond_embs.append(self.minicoder(conditioning_signal[:, i]))
+            cond_embs.append(self.mel_embedding(conditioning_signal[:, i]))
         cond_emb = torch.stack(cond_embs, dim=1).mean(dim=1, keepdim=True)
-        enc_text = self.encoder(text_codes, return_embeddings=True)
-        context = torch.cat([cond_emb, enc_text], dim=1)
-        self.inference_model.store_context(context)
+        _, enc_text = self.encoder(text_codes, return_hiddens=True)
+        # Interleave cond_emb into the first few contexts.
+        full_context = enc_text
+        full_context[1] = cond_emb
+        full_context[3] = cond_emb
+        full_context[6] = cond_emb
+        inference_model.store_context(full_context)
 
-        gen = self.inference_model.generate(bos_token_id=self.START_TOKEN, pad_token_id=self.STOP_TOKEN, eos_token_id=self.STOP_TOKEN,
-                                            max_length=250, output_attentions=False, return_dict_in_generate=True,
+        gen = inference_model.generate(bos_token_id=self.START_TOKEN, pad_token_id=self.STOP_TOKEN, eos_token_id=self.STOP_TOKEN,
+                                            max_length=max_tokens, output_attentions=False, return_dict_in_generate=True,
                                             **hf_generate_kwargs)
         return gen.sequences
 
 
 if __name__ == '__main__':
-    codegen = AutoregressiveCodegen(1024, 20)
-    codegen.generate(torch.randn((1,80,120)), torch.randint(0,256,(1,200)))
+    codegen = AutoregressiveCodegen(256, 10)
+    torch.save(codegen.state_dict(), 'sample.pth')
+    #codegen.generate(torch.randn((1,80,120)), torch.randint(0,256,(1,200)))
     codegen(torch.randint(0,256, (2,200)),
             torch.randn(2,80,120),
             torch.randint(0,8192, (2,350)),
