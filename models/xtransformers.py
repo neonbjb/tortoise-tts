@@ -1186,7 +1186,9 @@ class TransformerWrapper(nn.Module):
         if use_cache:
             res.append(intermediates.past_key_values)
 
-        return res
+        if len(res) > 1:
+            return tuple(res)
+        return res[0]
 
 
 class ContinuousTransformerWrapper(nn.Module):
@@ -1247,7 +1249,9 @@ class ContinuousTransformerWrapper(nn.Module):
         if use_cache:
             res.append(intermediates.past_key_values)
 
-        return tuple(res)
+        if len(res) > 1:
+            return tuple(res)
+        return res[0]
 
 
 class XTransformer(nn.Module):

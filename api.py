@@ -133,7 +133,7 @@ class TextToSpeech:
         self.tokenizer = VoiceBpeTokenizer()
         download_models()
 
-        self.autoregressive = UnifiedVoice(max_mel_tokens=300, max_text_tokens=200, max_conditioning_inputs=2, layers=30,
+        self.autoregressive = UnifiedVoice(max_mel_tokens=604, max_text_tokens=402, max_conditioning_inputs=2, layers=30,
                                       model_dim=1024,
                                       heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
                                       train_solo_embeddings=False,
@@ -151,14 +151,18 @@ class TextToSpeech:
                                       layer_drop=0, unconditioned_percentage=0).cpu().eval()
         self.diffusion.load_state_dict(torch.load('.models/diffusion.pth'))
 
+        self.diffusion_next = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
+                                      in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
+                                      layer_drop=0, unconditioned_percentage=0).cpu().eval()
+        self.diffusion_next.load_state_dict(torch.load('.models/diffusion_next.pth'))
+
         self.vocoder = UnivNetGenerator().cpu()
         self.vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
         self.vocoder.eval(inference=True)
 
     def tts(self, text, voice_samples, k=1,
             # autoregressive generation parameters follow
-            num_autoregressive_samples=512, temperature=.5, length_penalty=2, repetition_penalty=2.0, top_p=.5,
-            typical_sampling=False, typical_mass=.9,
+            num_autoregressive_samples=512, temperature=.5, length_penalty=1, repetition_penalty=2.0, top_p=.5,
             # diffusion generation parameters follow
             diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=.7,):
         text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
@@ -185,10 +189,8 @@ class TextToSpeech:
                                                              temperature=temperature,
                                                              num_return_sequences=self.autoregressive_batch_size,
                                                              length_penalty=length_penalty,
-                                                             repetition_penalty=repetition_penalty,
-                                                             typical_sampling=typical_sampling,
-                                                             typical_mass=typical_mass)
-                padding_needed = 250 - codes.shape[1]
+                                                             repetition_penalty=repetition_penalty)
+                padding_needed = self.autoregressive.max_mel_tokens - codes.shape[1]
                 codes = F.pad(codes, (0, padding_needed), value=stop_mel_token)
                 samples.append(codes)
             self.autoregressive = self.autoregressive.cpu()

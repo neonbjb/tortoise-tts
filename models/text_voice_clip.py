@@ -55,7 +55,6 @@ class VoiceCLIP(nn.Module):
                 needs_permute=False,
                 exit_permute=False,
                 max_seq_len=-1,
-                use_pos_emb=False,
                 attn_layers=Encoder(
                     dim=dim_text,
                     depth=text_enc_depth,
@@ -71,7 +70,6 @@ class VoiceCLIP(nn.Module):
                 needs_permute=False,
                 exit_permute=False,
                 max_seq_len=-1,
-                use_pos_emb=False,
                 attn_layers=Encoder(
                     dim=dim_speech,
                     depth=speech_enc_depth,
