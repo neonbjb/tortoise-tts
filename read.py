@@ -48,9 +48,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-textfile', type=str, help='A file containing the text to read.', default="data/riding_hood.txt")
     parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='dotrice')
-    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=256)
+    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=512)
     parser.add_argument('-batch_size', type=int, help='How many samples to process at once in the autoregressive model.', default=16)
     parser.add_argument('-output_path', type=str, help='Where to store outputs.', default='results/longform/')
+    parser.add_argument('-generation_preset', type=str, help='Preset to use for generation', default='intelligible')
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 
@@ -67,7 +68,7 @@ if __name__ == '__main__':
         for cond_path in cond_paths:
             c = load_audio(cond_path, 22050)
             conds.append(c)
-        gen = tts.tts(text, conds, num_autoregressive_samples=args.num_samples, temperature=.7, top_p=.7)
+        gen = tts.tts_with_preset(text, conds, preset=args.generation_preset, num_autoregressive_samples=args.num_samples)
         torchaudio.save(os.path.join(args.output_path, f'{j}.wav'), gen.squeeze(0).cpu(), 24000)
 
         priors.append(torchaudio.functional.resample(gen, 24000, 22050).squeeze(0))
