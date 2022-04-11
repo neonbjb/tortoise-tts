@@ -160,6 +160,21 @@ class TextToSpeech:
         self.vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
         self.vocoder.eval(inference=True)
 
+    def tts_with_preset(self, text, voice_samples, preset='intelligible', **kwargs):
+        """
+        Calls TTS with one of a set of preset generation parameters. Options:
+            'intelligible': Maximizes the probability of understandable words at the cost of diverse voices, intonation and prosody.
+            'realistic': Increases the diversity of spoken voices and improves realism of vocal characteristics at the cost of intelligibility.
+            'mid': Somewhere between 'intelligible' and 'realistic'.
+        """
+        presets = {
+            'intelligible': {'temperature': .5, 'length_penalty': 2.0, 'repetition_penalty': 2.0, 'top_p': .5, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': .7, 'diffusion_temperature': .7},
+            'mid': {'temperature': .7, 'length_penalty': 1.0, 'repetition_penalty': 2.0, 'top_p': .7, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': 1.5, 'diffusion_temperature': .8},
+            'realistic': {'temperature': .9, 'length_penalty': 1.0, 'repetition_penalty': 1.3, 'top_p': .9, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': 2, 'diffusion_temperature': 1},
+        }
+        kwargs.update(presets[preset])
+        return self.tts(text, voice_samples, **kwargs)
+
     def tts(self, text, voice_samples, k=1,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.5, length_penalty=1, repetition_penalty=2.0, top_p=.5,
