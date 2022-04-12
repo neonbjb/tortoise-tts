@@ -138,7 +138,7 @@ class TextToSpeech:
                                       heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
                                       train_solo_embeddings=False,
                                       average_conditioning_embeddings=True).cpu().eval()
-        self.autoregressive.load_state_dict(torch.load('.models/autoregressive.pth'))
+        self.autoregressive.load_state_dict(torch.load('.models/autoregressive_diverse.pth'))
 
         self.clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
                              text_seq_len=350, text_heads=8,
