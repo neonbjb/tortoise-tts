@@ -117,7 +117,7 @@ def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_
             cond_mels.append(cond_mel)
         cond_mels = torch.stack(cond_mels, dim=1)
 
-        output_seq_len = mel_codes.shape[-1]*4*24000//22050  # This diffusion model converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
+        output_seq_len = mel_codes.shape[1]*4*24000//22050  # This diffusion model converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
         output_shape = (mel_codes.shape[0], 100, output_seq_len)
         precomputed_embeddings = diffusion_model.timestep_independent(mel_codes, cond_mels, output_seq_len, False)
 
@@ -150,11 +150,6 @@ class TextToSpeech:
                                       in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
                                       layer_drop=0, unconditioned_percentage=0).cpu().eval()
         self.diffusion.load_state_dict(torch.load('.models/diffusion.pth'))
-
-        self.diffusion_next = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
-                                      in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
-                                      layer_drop=0, unconditioned_percentage=0).cpu().eval()
-        self.diffusion_next.load_state_dict(torch.load('.models/diffusion_next.pth'))
 
         self.vocoder = UnivNetGenerator().cpu()
         self.vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
@@ -223,12 +218,22 @@ class TextToSpeech:
             self.clip = self.clip.cpu()
             del samples
 
+            # The diffusion model actually wants the last hidden layer from the autoregressive model as conditioning
+            # inputs. Re-produce those for the top results. This could be made more efficient by storing all of these
+            # results, but will increase memory usage.
+            self.autoregressive = self.autoregressive.cuda()
+            best_latents = self.autoregressive(conds, text, torch.tensor([text.shape[-1]], device=conds.device), best_results,
+                                               torch.tensor([best_results.shape[-1]*self.autoregressive.mel_length_compression], device=conds.device),
+                                               return_latent=True, clip_inputs=False)
+            self.autoregressive = self.autoregressive.cpu()
+
             print("Performing vocoding..")
             wav_candidates = []
             self.diffusion = self.diffusion.cuda()
             self.vocoder = self.vocoder.cuda()
             for b in range(best_results.shape[0]):
                 codes = best_results[b].unsqueeze(0)
+                latents = best_latents[b].unsqueeze(0)
 
                 # Find the first occurrence of the "calm" token and trim the codes to that.
                 ctokens = 0
@@ -238,10 +243,10 @@ class TextToSpeech:
                     else:
                         ctokens = 0
                     if ctokens > 8:  # 8 tokens gives the diffusion model some "breathing room" to terminate speech.
-                        codes = codes[:, :k]
+                        latents = latents[:, :k]
                         break
 
-                mel = do_spectrogram_diffusion(self.diffusion, diffuser, codes, voice_samples, temperature=diffusion_temperature)
+                mel = do_spectrogram_diffusion(self.diffusion, diffuser, latents, voice_samples, temperature=diffusion_temperature)
                 wav = self.vocoder.inference(mel)
                 wav_candidates.append(wav.cpu())
             self.diffusion = self.diffusion.cpu()

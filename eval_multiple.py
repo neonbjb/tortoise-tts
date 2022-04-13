@@ -7,7 +7,7 @@ from utils.audio import load_audio
 
 if __name__ == '__main__':
     fname = 'Y:\\libritts\\test-clean\\transcribed-brief-w2v.tsv'
-    outpath = 'D:\\tmp\\tortoise-tts-eval\\diverse_auto_256_samp_100_di_4'
+    outpath = 'D:\\tmp\\tortoise-tts-eval\\diverse_new_decoder_1'
     outpath_real = 'D:\\tmp\\tortoise-tts-eval\\real'
 
     os.makedirs(outpath, exist_ok=True)
