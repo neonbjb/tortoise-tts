@@ -30,24 +30,13 @@ if __name__ == '__main__':
     # These are voices drawn randomly from the training set. You are free to substitute your own voices in, but testing
     # has shown that the model does not generalize to new voices very well.
     preselected_cond_voices = {
-        # Male voices
-        'dotrice': ['voices/dotrice/1.wav', 'voices/dotrice/2.wav'],
-        'harris': ['voices/harris/1.wav', 'voices/harris/2.wav'],
-        'lescault': ['voices/lescault/1.wav', 'voices/lescault/2.wav'],
-        'otto': ['voices/otto/1.wav', 'voices/otto/2.wav'],
-        'obama': ['voices/obama/1.wav', 'voices/obama/2.wav'],
-        'carlin': ['voices/carlin/1.wav', 'voices/carlin/2.wav'],
-        # Female voices
-        'atkins': ['voices/atkins/1.wav', 'voices/atkins/2.wav'],
-        'grace': ['voices/grace/1.wav', 'voices/grace/2.wav'],
-        'kennard': ['voices/kennard/1.wav', 'voices/kennard/2.wav'],
-        'mol': ['voices/mol/1.wav', 'voices/mol/2.wav'],
-        'lj': ['voices/lj/1.wav', 'voices/lj/2.wav'],
+        'emma_stone': ['voices/emma_stone/1.wav','voices/emma_stone/2.wav','voices/emma_stone/3.wav'],
+        'tom_hanks': ['voices/tom_hanks/1.wav','voices/tom_hanks/2.wav','voices/tom_hanks/3.wav'],
     }
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-textfile', type=str, help='A file containing the text to read.', default="data/riding_hood.txt")
-    parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='dotrice')
+    parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='emma_stone')
     parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=512)
     parser.add_argument('-batch_size', type=int, help='How many samples to process at once in the autoregressive model.', default=16)
     parser.add_argument('-output_path', type=str, help='Where to store outputs.', default='results/longform/')

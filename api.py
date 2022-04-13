@@ -140,6 +140,13 @@ class TextToSpeech:
                                       average_conditioning_embeddings=True).cpu().eval()
         self.autoregressive.load_state_dict(torch.load('.models/autoregressive_diverse.pth'))
 
+        self.autoregressive_for_latents = UnifiedVoice(max_mel_tokens=604, max_text_tokens=402, max_conditioning_inputs=2, layers=30,
+                                      model_dim=1024,
+                                      heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
+                                      train_solo_embeddings=False,
+                                      average_conditioning_embeddings=True).cpu().eval()
+        self.autoregressive_for_latents.load_state_dict(torch.load('.models/autoregressive_diverse.pth'))
+
         self.clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
                              text_seq_len=350, text_heads=8,
                              num_speech_tokens=8192, speech_enc_depth=12, speech_heads=8, speech_seq_len=430,
@@ -221,11 +228,11 @@ class TextToSpeech:
             # The diffusion model actually wants the last hidden layer from the autoregressive model as conditioning
             # inputs. Re-produce those for the top results. This could be made more efficient by storing all of these
             # results, but will increase memory usage.
-            self.autoregressive = self.autoregressive.cuda()
-            best_latents = self.autoregressive(conds, text, torch.tensor([text.shape[-1]], device=conds.device), best_results,
+            self.autoregressive_for_latents = self.autoregressive_for_latents.cuda()
+            best_latents = self.autoregressive_for_latents(conds, text, torch.tensor([text.shape[-1]], device=conds.device), best_results,
                                                torch.tensor([best_results.shape[-1]*self.autoregressive.mel_length_compression], device=conds.device),
                                                return_latent=True, clip_inputs=False)
-            self.autoregressive = self.autoregressive.cpu()
+            self.autoregressive_for_latents = self.autoregressive_for_latents.cpu()
 
             print("Performing vocoding..")
             wav_candidates = []
