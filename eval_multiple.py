@@ -8,7 +8,7 @@ from utils.audio import load_audio
 if __name__ == '__main__':
     fname = 'Y:\\clips\\books2\\subset512-oco.tsv'
     stop_after = 128
-    outpath_base = 'D:\\tmp\\tortoise-tts-eval\\diverse'
+    outpath_base = 'D:\\tmp\\tortoise-tts-eval\\audiobooks'
     outpath_real = 'D:\\tmp\\tortoise-tts-eval\\real'
 
     os.makedirs(outpath_real, exist_ok=True)

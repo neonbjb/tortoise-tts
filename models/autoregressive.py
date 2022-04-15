@@ -511,7 +511,8 @@ class UnifiedVoice(nn.Module):
         loss_mel = F.cross_entropy(mel_logits, mel_targets.long())
         return loss_mel.mean()
 
-    def inference_speech(self, speech_conditioning_input, text_inputs, typical_sampling=False, typical_mass=.9, **hf_generate_kwargs):
+    def inference_speech(self, speech_conditioning_input, text_inputs, input_tokens=None, num_return_sequences=1,
+                         max_generate_length=None, typical_sampling=False, typical_mass=.9, **hf_generate_kwargs):
         seq_length = self.max_mel_tokens + self.max_text_tokens + 2
         if not hasattr(self, 'inference_model'):
             # TODO: Decouple gpt_config from this inference model.
@@ -541,13 +542,23 @@ class UnifiedVoice(nn.Module):
         emb = torch.cat([conds, text_emb], dim=1)
         self.inference_model.store_mel_emb(emb)
 
-        fake_inputs = torch.full((emb.shape[0], conds.shape[1]+emb.shape[1],), fill_value=1, dtype=torch.long, device=text_inputs.device)
-        fake_inputs[:,-1] = self.start_mel_token
+        fake_inputs = torch.full((emb.shape[0], conds.shape[1] + emb.shape[1],), fill_value=1, dtype=torch.long,
+                                 device=text_inputs.device)
+        fake_inputs[:, -1] = self.start_mel_token
+        trunc_index = fake_inputs.shape[1]
+        if input_tokens is None:
+            inputs = fake_inputs
+        else:
+            assert num_return_sequences % input_tokens.shape[0] == 0, "The number of return sequences must be divisible by the number of input sequences"
+            fake_inputs = fake_inputs.repeat(num_return_sequences, 1)
+            input_tokens = input_tokens.repeat(num_return_sequences // input_tokens.shape[0], 1)
+            inputs = torch.cat([fake_inputs, input_tokens], dim=1)
 
         logits_processor = LogitsProcessorList([TypicalLogitsWarper(mass=typical_mass)]) if typical_sampling else LogitsProcessorList()
-        gen = self.inference_model.generate(fake_inputs, bos_token_id=self.start_mel_token, pad_token_id=self.stop_mel_token, eos_token_id=self.stop_mel_token,
-                                            max_length=fake_inputs.shape[-1] + self.max_mel_tokens - 1, logits_processor=logits_processor, **hf_generate_kwargs)
-        return gen[:, fake_inputs.shape[1]:]
+        max_length = trunc_index + self.max_mel_tokens - 1  if max_generate_length is None else trunc_index + max_generate_length
+        gen = self.inference_model.generate(inputs, bos_token_id=self.start_mel_token, pad_token_id=self.stop_mel_token, eos_token_id=self.stop_mel_token,
+                                            max_length=max_length, logits_processor=logits_processor, **hf_generate_kwargs)
+        return gen[:, trunc_index:]
 
 
 if __name__ == '__main__':
