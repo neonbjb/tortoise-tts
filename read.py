@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torchaudio
 
 from api import TextToSpeech, load_conditioning
-from utils.audio import load_audio
+from utils.audio import load_audio, get_voices
 from utils.tokenizer import VoiceBpeTokenizer
 
 def split_and_recombine_text(texts, desired_length=200, max_len=300):
@@ -27,41 +27,49 @@ def split_and_recombine_text(texts, desired_length=200, max_len=300):
     return texts
 
 if __name__ == '__main__':
-    # These are voices drawn randomly from the training set. You are free to substitute your own voices in, but testing
-    # has shown that the model does not generalize to new voices very well.
-    preselected_cond_voices = {
-        'emma_stone': ['voices/emma_stone/1.wav','voices/emma_stone/2.wav','voices/emma_stone/3.wav'],
-        'tom_hanks': ['voices/tom_hanks/1.wav','voices/tom_hanks/2.wav','voices/tom_hanks/3.wav'],
-        'patrick_stewart': ['voices/patrick_stewart/1.wav','voices/patrick_stewart/2.wav','voices/patrick_stewart/3.wav','voices/patrick_stewart/4.wav'],
-    }
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('-textfile', type=str, help='A file containing the text to read.', default="data/riding_hood.txt")
-    parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='patrick_stewart')
-    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=128)
-    parser.add_argument('-batch_size', type=int, help='How many samples to process at once in the autoregressive model.', default=16)
-    parser.add_argument('-output_path', type=str, help='Where to store outputs.', default='results/longform/')
-    parser.add_argument('-generation_preset', type=str, help='Preset to use for generation', default='realistic')
+    parser.add_argument('--textfile', type=str, help='A file containing the text to read.', default="data/riding_hood.txt")
+    parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
+                                                 'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='patrick_stewart')
+    parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/longform/')
+    parser.add_argument('--generation_preset', type=str, help='Preset to use for generation', default='standard')
     args = parser.parse_args()
-    os.makedirs(args.output_path, exist_ok=True)
 
-    with open(args.textfile, 'r', encoding='utf-8') as f:
-        text = ''.join([l for l in f.readlines()])
-    texts = split_and_recombine_text(text)
+    outpath = args.output_path
+    voices = get_voices()
+    selected_voices = args.voice.split(',')
+    for selected_voice in selected_voices:
+        voice_outpath = os.path.join(outpath, selected_voice)
+        os.makedirs(voice_outpath, exist_ok=True)
 
-    tts = TextToSpeech(autoregressive_batch_size=args.batch_size)
+        with open(args.textfile, 'r', encoding='utf-8') as f:
+            text = ''.join([l for l in f.readlines()])
+        texts = split_and_recombine_text(text)
+        tts = TextToSpeech()
 
-    priors = []
-    for j, text in enumerate(texts):
-        cond_paths = preselected_cond_voices[args.voice]
-        conds = priors.copy()
-        for cond_path in cond_paths:
-            c = load_audio(cond_path, 22050)
-            conds.append(c)
-        gen = tts.tts_with_preset(text, conds, preset=args.generation_preset, num_autoregressive_samples=args.num_samples)
-        torchaudio.save(os.path.join(args.output_path, f'{j}.wav'), gen.squeeze(0).cpu(), 24000)
+        if '&' in selected_voice:
+            voice_sel = selected_voice.split('&')
+        else:
+            voice_sel = [selected_voice]
+        cond_paths = []
+        for vsel in voice_sel:
+            if vsel not in voices.keys():
+                print(f'Error: voice {vsel} not available. Skipping.')
+                continue
+            cond_paths.extend(voices[vsel])
+        if not cond_paths:
+            print('Error: no valid voices specified. Try again.')
 
-        priors.append(torchaudio.functional.resample(gen, 24000, 22050).squeeze(0))
-        while len(priors) > 2:
-            priors.pop(0)
+        priors = []
+        for j, text in enumerate(texts):
+            conds = priors.copy()
+            for cond_path in cond_paths:
+                c = load_audio(cond_path, 22050)
+                conds.append(c)
+            gen = tts.tts_with_preset(text, conds, preset=args.generation_preset)
+            torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen.squeeze(0).cpu(), 24000)
+
+            priors.append(torchaudio.functional.resample(gen, 24000, 22050).squeeze(0))
+            while len(priors) > 2:
+                priors.pop(0)
 
