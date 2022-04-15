@@ -32,15 +32,16 @@ if __name__ == '__main__':
     preselected_cond_voices = {
         'emma_stone': ['voices/emma_stone/1.wav','voices/emma_stone/2.wav','voices/emma_stone/3.wav'],
         'tom_hanks': ['voices/tom_hanks/1.wav','voices/tom_hanks/2.wav','voices/tom_hanks/3.wav'],
+        'patrick_stewart': ['voices/patrick_stewart/1.wav','voices/patrick_stewart/2.wav','voices/patrick_stewart/3.wav','voices/patrick_stewart/4.wav'],
     }
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-textfile', type=str, help='A file containing the text to read.', default="data/riding_hood.txt")
-    parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='emma_stone')
-    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=512)
+    parser.add_argument('-voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='patrick_stewart')
+    parser.add_argument('-num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=128)
     parser.add_argument('-batch_size', type=int, help='How many samples to process at once in the autoregressive model.', default=16)
     parser.add_argument('-output_path', type=str, help='Where to store outputs.', default='results/longform/')
-    parser.add_argument('-generation_preset', type=str, help='Preset to use for generation', default='intelligible')
+    parser.add_argument('-generation_preset', type=str, help='Preset to use for generation', default='realistic')
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 

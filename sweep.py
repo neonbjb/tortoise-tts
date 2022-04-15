@@ -25,16 +25,15 @@ def permutations(args):
 
 if __name__ == '__main__':
     fname = 'Y:\\clips\\books2\\subset512-oco.tsv'
-    stop_after = 128
-    outpath_base = 'D:\\tmp\\tortoise-tts-eval\\sweep'
+    stop_after = 512
+    outpath_base = 'D:\\tmp\\tortoise-tts-eval\\sweep-2'
     outpath_real = 'D:\\tmp\\tortoise-tts-eval\\real'
 
     arg_ranges = {
-        'top_p': [.5, 1],
-        'temperature': [.5, 1],
-        'diffusion_temperature': [.6, 1],
-        'cond_free_k': [0, 1, 4],
-        'repetition_penalty': [1.0, 2.0]
+        'top_p': [.8,1],
+        'temperature': [.8,.9,1],
+        'diffusion_temperature': [.8,1],
+        'cond_free_k': [1,2,5,10],
     }
     cfgs = permutations(arg_ranges)
     shuffle(cfgs)
@@ -56,8 +55,8 @@ if __name__ == '__main__':
             path = os.path.join(os.path.dirname(fname), line[1])
             cond_audio = load_audio(path, 22050)
             torchaudio.save(os.path.join(outpath_real, os.path.basename(line[1])), cond_audio, 22050)
-            sample = tts.tts(transcript, [cond_audio, cond_audio], num_autoregressive_samples=256,
-                             k=1, diffusion_iterations=70, length_penalty=1.0, **cfg)
+            sample = tts.tts(transcript, [cond_audio, cond_audio], num_autoregressive_samples=32, repetition_penalty=2.0,
+                             k=1, diffusion_iterations=32, length_penalty=1.0, **cfg)
             down = torchaudio.functional.resample(sample, 24000, 22050)
             fout_path = os.path.join(outpath, os.path.basename(line[1]))
             torchaudio.save(fout_path, down.squeeze(0), 22050)

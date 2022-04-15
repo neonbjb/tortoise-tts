@@ -76,7 +76,30 @@ def load_conditioning(clip, cond_length=132300):
     return mel_clip.unsqueeze(0).cuda()
 
 
-def fix_autoregressive_output(codes, stop_token):
+def clip_guided_generation(autoregressive_model, clip_model, conditioning_input, text_input, num_batches, stop_mel_token,
+                           tokens_per_clip_inference=10, clip_results_to_reduce_to=8, **generation_kwargs):
+    """
+    Uses a CLVP model trained to associate full text with **partial** audio clips to pick the best generation candidates
+    every few iterations. The top results are then propagated forward through the generation process. Rinse and repeat.
+    This is a hybrid between beam search and sampling.
+    """
+    token_goal = tokens_per_clip_inference
+    finished = False
+    while not finished and token_goal < autoregressive_model.max_mel_tokens:
+        samples = []
+        for b in tqdm(range(num_batches)):
+            codes = autoregressive_model.inference_speech(conditioning_input, text_input, **generation_kwargs)
+            samples.append(codes)
+        for batch in samples:
+            for i in range(batch.shape[0]):
+                batch[i] = fix_autoregressive_output(batch[i], stop_mel_token, complain=False)
+            clip_results.append(clip_model(text_input.repeat(batch.shape[0], 1), batch, return_loss=False))
+        clip_results = torch.cat(clip_results, dim=0)
+        samples = torch.cat(samples, dim=0)
+        best_results = samples[torch.topk(clip_results, k=clip_results_to_reduce_to).indices]
+
+
+def fix_autoregressive_output(codes, stop_token, complain=True):
     """
     This function performs some padding on coded audio that fixes a mismatch issue between what the diffusion model was
     trained on and what the autoregressive code generator creates (which has no padding or end).
@@ -89,7 +112,8 @@ def fix_autoregressive_output(codes, stop_token):
     # Strip off the autoregressive stop token and add padding.
     stop_token_indices = (codes == stop_token).nonzero()
     if len(stop_token_indices) == 0:
-        print("No stop tokens found, enjoy that output of yours!")
+        if complain:
+            print("No stop tokens found, enjoy that output of yours!")
         return codes
     else:
         codes[stop_token_indices] = 83
@@ -136,14 +160,14 @@ class TextToSpeech:
                                       heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
                                       train_solo_embeddings=False,
                                       average_conditioning_embeddings=True).cpu().eval()
-        self.autoregressive.load_state_dict(torch.load('.models/autoregressive_diverse.pth'))
+        self.autoregressive.load_state_dict(torch.load('.models/autoregressive_audiobooks.pth'))
 
         self.autoregressive_for_latents = UnifiedVoice(max_mel_tokens=604, max_text_tokens=402, max_conditioning_inputs=2, layers=30,
                                       model_dim=1024,
                                       heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
                                       train_solo_embeddings=False,
                                       average_conditioning_embeddings=True).cpu().eval()
-        self.autoregressive_for_latents.load_state_dict(torch.load('.models/autoregressive_diverse.pth'))
+        self.autoregressive_for_latents.load_state_dict(torch.load('.models/autoregressive_audiobooks.pth'))
 
         self.clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
                              text_seq_len=350, text_heads=8,
@@ -154,7 +178,7 @@ class TextToSpeech:
         self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
                                       in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
                                       layer_drop=0, unconditioned_percentage=0).cpu().eval()
-        self.diffusion.load_state_dict(torch.load('.models/diffusion.pth'))
+        self.diffusion.load_state_dict(torch.load('.models/diffusion_decoder_audiobooks.pth'))
 
         self.vocoder = UnivNetGenerator().cpu()
         self.vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
@@ -170,7 +194,7 @@ class TextToSpeech:
         presets = {
             'intelligible': {'temperature': .5, 'length_penalty': 2.0, 'repetition_penalty': 2.0, 'top_p': .5, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': .7, 'diffusion_temperature': .7},
             'mid': {'temperature': .7, 'length_penalty': 1.0, 'repetition_penalty': 2.0, 'top_p': .7, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': 1.5, 'diffusion_temperature': .8},
-            'realistic': {'temperature': .9, 'length_penalty': 1.0, 'repetition_penalty': 1.3, 'top_p': .9, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': 2, 'diffusion_temperature': 1},
+            'realistic': {'temperature': 1.0, 'length_penalty': 1.0, 'repetition_penalty': 2.0, 'top_p': .9, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': 2, 'diffusion_temperature': 1},
         }
         kwargs.update(presets[preset])
         return self.tts(text, voice_samples, **kwargs)
