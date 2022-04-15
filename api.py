@@ -150,7 +150,7 @@ def do_spectrogram_diffusion(diffusion_model, diffuser, mel_codes, conditioning_
 
 
 class TextToSpeech:
-    def __init__(self, autoregressive_batch_size=32):
+    def __init__(self, autoregressive_batch_size=16):
         self.autoregressive_batch_size = autoregressive_batch_size
         self.tokenizer = VoiceBpeTokenizer()
         download_models()
@@ -160,14 +160,7 @@ class TextToSpeech:
                                       heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
                                       train_solo_embeddings=False,
                                       average_conditioning_embeddings=True).cpu().eval()
-        self.autoregressive.load_state_dict(torch.load('.models/autoregressive_audiobooks.pth'))
-
-        self.autoregressive_for_latents = UnifiedVoice(max_mel_tokens=604, max_text_tokens=402, max_conditioning_inputs=2, layers=30,
-                                      model_dim=1024,
-                                      heads=16, number_text_tokens=256, start_text_token=255, checkpointing=False,
-                                      train_solo_embeddings=False,
-                                      average_conditioning_embeddings=True).cpu().eval()
-        self.autoregressive_for_latents.load_state_dict(torch.load('.models/autoregressive_audiobooks.pth'))
+        self.autoregressive.load_state_dict(torch.load('.models/autoregressive.pth'))
 
         self.clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
                              text_seq_len=350, text_heads=8,
@@ -178,32 +171,38 @@ class TextToSpeech:
         self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
                                       in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
                                       layer_drop=0, unconditioned_percentage=0).cpu().eval()
-        self.diffusion.load_state_dict(torch.load('.models/diffusion_decoder_audiobooks.pth'))
+        self.diffusion.load_state_dict(torch.load('.models/diffusion_decoder.pth'))
 
         self.vocoder = UnivNetGenerator().cpu()
         self.vocoder.load_state_dict(torch.load('.models/vocoder.pth')['model_g'])
         self.vocoder.eval(inference=True)
 
-    def tts_with_preset(self, text, voice_samples, preset='intelligible', **kwargs):
+    def tts_with_preset(self, text, voice_samples, preset='fast', **kwargs):
         """
         Calls TTS with one of a set of preset generation parameters. Options:
-            'intelligible': Maximizes the probability of understandable words at the cost of diverse voices, intonation and prosody.
-            'realistic': Increases the diversity of spoken voices and improves realism of vocal characteristics at the cost of intelligibility.
-            'mid': Somewhere between 'intelligible' and 'realistic'.
+            'ultra_fast': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
+            'fast': Decent quality speech at a decent inference rate. A good choice for mass inference.
+            'standard': Very good quality. This is generally about as good as you are going to get.
+            'high_quality': Use if you want the absolute best. This is not really worth the compute, though.
         """
+        # Use generally found best tuning knobs for generation.
+        kwargs.update({'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0, 'top_p': .8,
+                       'cond_free_k': 2.0, 'diffusion_temperature': 1.0})
+        # Presets are defined here.
         presets = {
-            'intelligible': {'temperature': .5, 'length_penalty': 2.0, 'repetition_penalty': 2.0, 'top_p': .5, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': .7, 'diffusion_temperature': .7},
-            'mid': {'temperature': .7, 'length_penalty': 1.0, 'repetition_penalty': 2.0, 'top_p': .7, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': 1.5, 'diffusion_temperature': .8},
-            'realistic': {'temperature': 1.0, 'length_penalty': 1.0, 'repetition_penalty': 2.0, 'top_p': .9, 'diffusion_iterations': 100, 'cond_free': True, 'cond_free_k': 2, 'diffusion_temperature': 1},
+            'ultra_fast': {'num_autoregressive_samples': 32, 'diffusion_iterations': 16, 'cond_free': False},
+            'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 32},
+            'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 128},
+            'high_quality': {'num_autoregressive_samples': 512, 'diffusion_iterations': 2048},
         }
         kwargs.update(presets[preset])
         return self.tts(text, voice_samples, **kwargs)
 
     def tts(self, text, voice_samples, k=1,
             # autoregressive generation parameters follow
-            num_autoregressive_samples=512, temperature=.5, length_penalty=1, repetition_penalty=2.0, top_p=.5,
+            num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8,
             # diffusion generation parameters follow
-            diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=.7,):
+            diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,):
         text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
         text = F.pad(text, (0, 1))  # This may not be necessary.
 
@@ -250,11 +249,11 @@ class TextToSpeech:
             # The diffusion model actually wants the last hidden layer from the autoregressive model as conditioning
             # inputs. Re-produce those for the top results. This could be made more efficient by storing all of these
             # results, but will increase memory usage.
-            self.autoregressive_for_latents = self.autoregressive_for_latents.cuda()
-            best_latents = self.autoregressive_for_latents(conds, text, torch.tensor([text.shape[-1]], device=conds.device), best_results,
+            self.autoregressive = self.autoregressive.cuda()
+            best_latents = self.autoregressive(conds, text, torch.tensor([text.shape[-1]], device=conds.device), best_results,
                                                torch.tensor([best_results.shape[-1]*self.autoregressive.mel_length_compression], device=conds.device),
                                                return_latent=True, clip_inputs=False)
-            self.autoregressive_for_latents = self.autoregressive_for_latents.cpu()
+            self.autoregressive = self.autoregressive.cpu()
 
             print("Performing vocoding..")
             wav_candidates = []

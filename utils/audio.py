@@ -1,3 +1,6 @@
+import os
+from glob import glob
+
 import torch
 import torchaudio
 import numpy as np
@@ -76,6 +79,16 @@ def dynamic_range_decompression(x, C=1):
     C: compression factor used to compress
     """
     return torch.exp(x) / C
+
+
+def get_voices():
+    subs = os.listdir('voices')
+    voices = {}
+    for sub in subs:
+        subj = os.path.join('voices', sub)
+        if os.path.isdir(subj):
+            voices[sub] = glob(f'{subj}/*.wav')
+    return voices
 
 
 class TacotronSTFT(torch.nn.Module):
