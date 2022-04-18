@@ -562,7 +562,8 @@ class UnifiedVoice(nn.Module):
         logits_processor = LogitsProcessorList([TypicalLogitsWarper(mass=typical_mass)]) if typical_sampling else LogitsProcessorList()
         max_length = trunc_index + self.max_mel_tokens - 1  if max_generate_length is None else trunc_index + max_generate_length
         gen = self.inference_model.generate(inputs, bos_token_id=self.start_mel_token, pad_token_id=self.stop_mel_token, eos_token_id=self.stop_mel_token,
-                                            max_length=max_length, logits_processor=logits_processor, **hf_generate_kwargs)
+                                            max_length=max_length, logits_processor=logits_processor,
+                                            num_return_sequences=num_return_sequences, **hf_generate_kwargs)
         return gen[:, trunc_index:]
 
 

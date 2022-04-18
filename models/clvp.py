@@ -16,7 +16,7 @@ def masked_mean(t, mask, dim = 1):
     t = t.masked_fill(~mask[:, :, None], 0.)
     return t.sum(dim = 1) / mask.sum(dim = 1)[..., None]
 
-class VoiceCLIP(nn.Module):
+class CLVP(nn.Module):
     """
     CLIP model retrofitted for performing contrastive evaluation between tokenized audio data and the corresponding
     transcribed text.
@@ -141,7 +141,7 @@ class VoiceCLIP(nn.Module):
 
 
 if __name__ == '__main__':
-    clip = VoiceCLIP(text_mask_percentage=.2, voice_mask_percentage=.2)
+    clip = CLVP(text_mask_percentage=.2, voice_mask_percentage=.2)
     clip(torch.randint(0,256,(2,120)),
          torch.tensor([50,100]),
          torch.randint(0,8192,(2,250)),
