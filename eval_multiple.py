@@ -16,7 +16,7 @@ if __name__ == '__main__':
         lines = [l.strip().split('\t') for l in f.readlines()]
 
     tts = TextToSpeech()
-    for k in range(4):
+    for k in range(3):
         outpath = f'{outpath_base}_{k}'
         os.makedirs(outpath, exist_ok=True)
         recorder = open(os.path.join(outpath, 'transcript.tsv'), 'w', encoding='utf-8')
@@ -27,9 +27,7 @@ if __name__ == '__main__':
             path = os.path.join(os.path.dirname(fname), line[1])
             cond_audio = load_audio(path, 22050)
             torchaudio.save(os.path.join(outpath_real, os.path.basename(line[1])), cond_audio, 22050)
-            sample = tts.tts(transcript, [cond_audio, cond_audio], num_autoregressive_samples=128, k=1,
-                                 repetition_penalty=2.0, length_penalty=2, temperature=.5, top_p=.5,
-                                 diffusion_temperature=.7, cond_free_k=2, diffusion_iterations=70)
+            sample = tts.tts_with_preset(transcript, [cond_audio, cond_audio], preset='standard')
 
             down = torchaudio.functional.resample(sample, 24000, 22050)
             fout_path = os.path.join(outpath, os.path.basename(line[1]))

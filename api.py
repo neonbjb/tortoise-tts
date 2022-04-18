@@ -186,7 +186,9 @@ class TextToSpeech:
             'high_quality': Use if you want the absolute best. This is not really worth the compute, though.
         """
         # Use generally found best tuning knobs for generation.
-        kwargs.update({'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0, 'top_p': .8,
+        kwargs.update({'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0,
+                       #'typical_sampling': True,
+                       'top_p': .8,
                        'cond_free_k': 2.0, 'diffusion_temperature': 1.0})
         # Presets are defined here.
         presets = {
@@ -202,7 +204,8 @@ class TextToSpeech:
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8,
             # diffusion generation parameters follow
-            diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,):
+            diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,
+            **hf_generate_kwargs):
         text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
         text = F.pad(text, (0, 1))  # This may not be necessary.
 
@@ -228,7 +231,8 @@ class TextToSpeech:
                                                              temperature=temperature,
                                                              num_return_sequences=self.autoregressive_batch_size,
                                                              length_penalty=length_penalty,
-                                                             repetition_penalty=repetition_penalty)
+                                                             repetition_penalty=repetition_penalty,
+                                                             **hf_generate_kwargs)
                 padding_needed = self.autoregressive.max_mel_tokens - codes.shape[1]
                 codes = F.pad(codes, (0, padding_needed), value=stop_mel_token)
                 samples.append(codes)
