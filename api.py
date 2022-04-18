@@ -7,12 +7,13 @@ import torch
 import torch.nn.functional as F
 import progressbar
 
+from models.cvvp import CVVP
 from models.diffusion_decoder import DiffusionTts
 from models.autoregressive import UnifiedVoice
 from tqdm import tqdm
 
 from models.arch_util import TorchMelSpectrogram
-from models.text_voice_clip import VoiceCLIP
+from models.clvp import CLVP
 from models.vocoder import UnivNetGenerator
 from utils.audio import load_audio, wav_to_univnet_mel, denormalize_tacotron_mel
 from utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
@@ -175,11 +176,15 @@ class TextToSpeech:
                                       average_conditioning_embeddings=True).cpu().eval()
         self.autoregressive_for_diffusion.load_state_dict(torch.load('.models/autoregressive.pth'))
 
-        self.clip = VoiceCLIP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
-                             text_seq_len=350, text_heads=8,
-                             num_speech_tokens=8192, speech_enc_depth=12, speech_heads=8, speech_seq_len=430,
-                             use_xformers=True).cpu().eval()
-        self.clip.load_state_dict(torch.load('.models/clip.pth'))
+        self.clvp = CLVP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
+                         text_seq_len=350, text_heads=8,
+                         num_speech_tokens=8192, speech_enc_depth=12, speech_heads=8, speech_seq_len=430,
+                         use_xformers=True).cpu().eval()
+        self.clvp.load_state_dict(torch.load('.models/clip.pth'))
+
+        self.cvvp = CVVP(model_dim=512, transformer_heads=8, dropout=0, mel_codes=8192, conditioning_enc_depth=8, cond_mask_percentage=0,
+                         speech_enc_depth=8, speech_mask_percentage=0, latent_multiplier=1).cpu().eval()
+        self.cvvp.load_state_dict(torch.load('.models/cvvp.pth'))
 
         self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
                                       in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
@@ -216,6 +221,8 @@ class TextToSpeech:
     def tts(self, text, voice_samples, k=1,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8, max_mel_tokens=500,
+            # CLVP & CVVP parameters
+            clvp_cvvp_slider=.5,
             # diffusion generation parameters follow
             diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,
             **hf_generate_kwargs):
@@ -253,15 +260,22 @@ class TextToSpeech:
             self.autoregressive = self.autoregressive.cpu()
 
             clip_results = []
-            self.clip = self.clip.cuda()
+            self.clvp = self.clvp.cuda()
+            self.cvvp = self.cvvp.cuda()
             for batch in samples:
                 for i in range(batch.shape[0]):
                     batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
-                clip_results.append(self.clip(text.repeat(batch.shape[0], 1), batch, return_loss=False))
+                clvp = self.clvp(text.repeat(batch.shape[0], 1), batch, return_loss=False)
+                cvvp_accumulator = 0
+                for cl in range(conds.shape[1]):
+                    cvvp_accumulator = cvvp_accumulator + self.cvvp(conds[:, cl].repeat(batch.shape[0], 1, 1), batch, return_loss=False )
+                cvvp = cvvp_accumulator / conds.shape[1]
+                clip_results.append(clvp * clvp_cvvp_slider + cvvp * (1-clvp_cvvp_slider))
             clip_results = torch.cat(clip_results, dim=0)
             samples = torch.cat(samples, dim=0)
             best_results = samples[torch.topk(clip_results, k=k).indices]
-            self.clip = self.clip.cpu()
+            self.clvp = self.clvp.cpu()
+            self.cvvp = self.cvvp.cpu()
             del samples
 
             # The diffusion model actually wants the last hidden layer from the autoregressive model as conditioning
