@@ -1,35 +1,17 @@
 import argparse
 import os
 
-import torch
-import torch.nn.functional as F
 import torchaudio
 
-from api import TextToSpeech, load_conditioning
-from utils.audio import load_audio
-from utils.tokenizer import VoiceBpeTokenizer
+from api import TextToSpeech
+from utils.audio import load_audio, get_voices
 
 if __name__ == '__main__':
-    # These are voices drawn randomly from the training set. You are free to substitute your own voices in, but testing
-    # has shown that the model does not generalize to new voices very well.
-    preselected_cond_voices = {
-        # Male voices
-        'dotrice': ['voices/dotrice/1.wav', 'voices/dotrice/2.wav'],
-        'harris': ['voices/harris/1.wav', 'voices/harris/2.wav'],
-        'lescault': ['voices/lescault/1.wav', 'voices/lescault/2.wav'],
-        'otto': ['voices/otto/1.wav', 'voices/otto/2.wav'],
-        'obama': ['voices/obama/1.wav', 'voices/obama/2.wav'],
-        # Female voices
-        'atkins': ['voices/atkins/1.wav', 'voices/atkins/2.wav'],
-        'grace': ['voices/grace/1.wav', 'voices/grace/2.wav'],
-        'kennard': ['voices/kennard/1.wav', 'voices/kennard/2.wav'],
-        'mol': ['voices/mol/1.wav', 'voices/mol/2.wav'],
-    }
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--text', type=str, help='Text to speak.', default="I am a language model that has learned to speak.")
-    parser.add_argument('--voice', type=str, help='Use a preset conditioning voice (defined above). Overrides cond_path.', default='obama,dotrice,harris,lescault,otto,atkins,grace,kennard,mol')
-    parser.add_argument('--num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=128)
+    parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
+                                                 'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='patrick_stewart')
+    parser.add_argument('--num_samples', type=int, help='How many total outputs the autoregressive transformer should produce.', default=256)
     parser.add_argument('--batch_size', type=int, help='How many samples to process at once in the autoregressive model.', default=16)
     parser.add_argument('--num_diffusion_samples', type=int, help='Number of outputs that progress to the diffusion stage.', default=16)
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
@@ -38,8 +20,10 @@ if __name__ == '__main__':
 
     tts = TextToSpeech(autoregressive_batch_size=args.batch_size)
 
-    for voice in args.voice.split(','):
-        cond_paths = preselected_cond_voices[voice]
+    voices = get_voices()
+    selected_voices = args.voice.split(',')
+    for voice in selected_voices:
+        cond_paths = voices[voice]
         conds = []
         for cond_path in cond_paths:
             c = load_audio(cond_path, 22050)
