@@ -5,8 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
-from x_transformers import ContinuousTransformerWrapper
-from x_transformers.x_transformers import RelativePositionBias
+from models.xtransformers import ContinuousTransformerWrapper, RelativePositionBias
 
 
 def zero_module(module):
