@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import einsum
-from x_transformers import Encoder
 
 from models.arch_util import CheckpointedXTransformerEncoder
 from models.transformer import Transformer
+from models.xtransformers import Encoder
 
 
 def exists(val):
