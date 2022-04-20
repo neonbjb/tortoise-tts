@@ -202,7 +202,7 @@ class TextToSpeech:
             'ultra_fast': {'num_autoregressive_samples': 32, 'diffusion_iterations': 16, 'cond_free': False},
             'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 32},
             'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 128},
-            'high_quality': {'num_autoregressive_samples': 512, 'diffusion_iterations': 2048},
+            'high_quality': {'num_autoregressive_samples': 512, 'diffusion_iterations': 1024},
         }
         kwargs.update(presets[preset])
         return self.tts(text, voice_samples, **kwargs)
