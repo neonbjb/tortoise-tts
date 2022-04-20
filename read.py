@@ -28,11 +28,14 @@ def split_and_recombine_text(texts, desired_length=200, max_len=300):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--textfile', type=str, help='A file containing the text to read.', default="data/riding_hood2.txt")
+    parser.add_argument('--textfile', type=str, help='A file containing the text to read.', default="data/riding_hood.txt")
     parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
                                                  'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='patrick_stewart')
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/longform/')
-    parser.add_argument('--generation_preset', type=str, help='Preset to use for generation', default='standard')
+    parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='standard')
+    parser.add_argument('--voice_diversity_intelligibility_slider', type=float,
+                        help='How to balance vocal diversity with the quality/intelligibility of the spoken text. 0 means highly diverse voice (not recommended), 1 means maximize intellibility',
+                        default=.5)
     args = parser.parse_args()
 
     outpath = args.output_path
@@ -60,16 +63,11 @@ if __name__ == '__main__':
         if not cond_paths:
             print('Error: no valid voices specified. Try again.')
 
-        priors = []
+        conds = []
+        for cond_path in cond_paths:
+            c = load_audio(cond_path, 22050)
+            conds.append(c)
         for j, text in enumerate(texts):
-            conds = priors.copy()
-            for cond_path in cond_paths:
-                c = load_audio(cond_path, 22050)
-                conds.append(c)
-            gen = tts.tts_with_preset(text, conds, preset=args.generation_preset)
+            gen = tts.tts_with_preset(text, conds, preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider)
             torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen.squeeze(0).cpu(), 24000)
-
-            priors.append(torchaudio.functional.resample(gen, 24000, 22050).squeeze(0))
-            while len(priors) > 2:
-                priors.pop(0)
 
