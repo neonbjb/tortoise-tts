@@ -5,9 +5,10 @@ import torch
 import torch.nn.functional as F
 import torchaudio
 
-from api import TextToSpeech, load_conditioning
+from api import TextToSpeech, format_conditioning
 from utils.audio import load_audio, get_voices
 from utils.tokenizer import VoiceBpeTokenizer
+
 
 def split_and_recombine_text(texts, desired_length=200, max_len=300):
     # TODO: also split across '!' and '?'. Attempt to keep quotations together.
@@ -25,6 +26,7 @@ def split_and_recombine_text(texts, desired_length=200, max_len=300):
         texts[i] = f'{ltxt} {texts[i+1]}'
         texts.pop(i+1)
     return texts
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
