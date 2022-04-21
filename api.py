@@ -23,11 +23,11 @@ from utils.tokenizer import VoiceBpeTokenizer, lev_distance
 pbar = None
 def download_models():
     MODELS = {
-        'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/autoregressive.pth',
-        'clvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/clvp.pth',
-        'cvvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/cvvp.pth',
-        'diffusion_decoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/diffusion_decoder.pth',
-        'vocoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/vocoder.pth',
+        'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/autoregressive.pth',
+        'clvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/clvp.pth',
+        'cvvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/cvvp.pth',
+        'diffusion_decoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/diffusion_decoder.pth',
+        'vocoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/vocoder.pth',
     }
     os.makedirs('.models', exist_ok=True)
     def show_progress(block_num, block_size, total_size):
