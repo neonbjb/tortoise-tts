@@ -67,7 +67,12 @@ if __name__ == '__main__':
         for cond_path in cond_paths:
             c = load_audio(cond_path, 22050)
             conds.append(c)
+        all_parts = []
         for j, text in enumerate(texts):
             gen = tts.tts_with_preset(text, conds, preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider)
-            torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen.squeeze(0).cpu(), 24000)
+            gen = gen.squeeze(0).cpu()
+            torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen, 24000)
+            all_parts.append(gen)
+        full_audio = torch.cat(all_parts, dim=-1)
+        torchaudio.save(os.path.join(voice_outpath, 'combined.wav'), full_audio, 24000)
 
