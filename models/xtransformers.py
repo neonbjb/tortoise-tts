@@ -13,8 +13,6 @@ from einops.layers.torch import Rearrange
 from entmax import entmax15
 from torch.utils.checkpoint import checkpoint
 
-from x_transformers.autoregressive_wrapper import AutoregressiveWrapper
-
 DEFAULT_DIM_HEAD = 64
 
 Intermediates = namedtuple('Intermediates', [
