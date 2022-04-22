@@ -356,7 +356,7 @@ class UnifiedVoice(nn.Module):
         preformatting to create a working TTS model.
         """
         # Set padding areas within MEL (currently it is coded with the MEL code for <zero>).
-        mel_lengths = wav_lengths // self.mel_length_compression
+        mel_lengths = torch.div(wav_lengths, self.mel_length_compression, rounding_mode='trunc')
         for b in range(len(mel_lengths)):
             actual_end = mel_lengths[b] + 1  # Due to the convolutional nature of how these tokens are generated, it would be best if the model predicts a token past the actual last token.
             if actual_end < mel_input_tokens.shape[-1]:
