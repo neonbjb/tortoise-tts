@@ -175,6 +175,9 @@ to believe that the same is not true of TTS.
 The largest model in Tortoise v2 is considerably smaller than GPT-2 large. It is 20x smaller that the original DALLE transformer.
 Imagine what a TTS model trained at or near GPT-3 or DALLE scale could achieve.
 
+If you are an ethical organization with computational resources to spare interested in seeing what this model could do 
+if properly scaled out, please reach out to me! I would love to collaborate on this.
+
 ## Notice
 
 Tortoise was built entirely by me using my own hardware. My employer was not involved in any facet of Tortoise's development.
