@@ -119,7 +119,7 @@ def fix_autoregressive_output(codes, stop_token, complain=True):
     return codes
 
 
-def do_spectrogram_diffusion(diffusion_model, diffuser, latents, conditioning_samples, temperature=1):
+def do_spectrogram_diffusion(diffusion_model, diffuser, latents, conditioning_samples, temperature=1, verbose=True):
     """
     Uses the specified diffusion model to convert discrete codes into a spectrogram.
     """
@@ -139,7 +139,8 @@ def do_spectrogram_diffusion(diffusion_model, diffuser, latents, conditioning_sa
 
         noise = torch.randn(output_shape, device=latents.device) * temperature
         mel = diffuser.p_sample_loop(diffusion_model, output_shape, noise=noise,
-                                      model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings})
+                                      model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings},
+                                     progress=verbose)
         return denormalize_tacotron_mel(mel)[:,:,:output_seq_len]
 
 
@@ -203,14 +204,59 @@ class TextToSpeech:
         kwargs.update(presets[preset])
         return self.tts(text, voice_samples, **kwargs)
 
-    def tts(self, text, voice_samples, k=1,
+    def tts(self, text, voice_samples, k=1, verbose=True,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8, max_mel_tokens=500,
+            typical_sampling=False, typical_mass=.9,
             # CLVP & CVVP parameters
             clvp_cvvp_slider=.5,
             # diffusion generation parameters follow
             diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,
             **hf_generate_kwargs):
+        """
+        Produces an audio clip of the given text being spoken with the given reference voice.
+        :param text: Text to be spoken.
+        :param voice_samples: List of 2 or more ~10 second reference clips which should be torch tensors containing 22.05kHz waveform data.
+        :param k: The number of returned clips. The most likely (as determined by Tortoises' CLVP and CVVP models) clips are returned.
+        :param verbose: Whether or not to print log messages indicating the progress of creating a clip. Default=true.
+        ~~AUTOREGRESSIVE KNOBS~~
+        :param num_autoregressive_samples: Number of samples taken from the autoregressive model, all of which are filtered using CLVP+CVVP.
+               As Tortoise is a probabilistic model, more samples means a higher probability of creating something "great".
+        :param temperature: The softmax temperature of the autoregressive model.
+        :param length_penalty: A length penalty applied to the autoregressive decoder. Higher settings causes the model to produce more terse outputs.
+        :param repetition_penalty: A penalty that prevents the autoregressive decoder from repeating itself during decoding. Can be used to reduce the incidence
+                                   of long silences or "uhhhhhhs", etc.
+        :param top_p: P value used in nucleus sampling. (0,1]. Lower values mean the decoder produces more "likely" (aka boring) outputs.
+        :param max_mel_tokens: Restricts the output length. (0,600] integer. Each unit is 1/20 of a second.
+        :param typical_sampling: Turns typical sampling on or off. This sampling mode is discussed in this paper: https://arxiv.org/abs/2202.00666
+                                 I was interested in the premise, but the results were not as good as I was hoping. This is off by default, but
+                                 could use some tuning.
+        :param typical_mass: The typical_mass parameter from the typical_sampling algorithm.
+        ~~CLVP-CVVP KNOBS~~
+        :param clvp_cvvp_slider: Controls the influence of the CLVP and CVVP models in selecting the best output from the autoregressive model.
+                                [0,1]. Values closer to 1 will cause Tortoise to emit clips that follow the text more. Values closer to
+                                0 will cause Tortoise to emit clips that more closely follow the reference clip (e.g. the voice sounds more
+                                similar).
+        ~~DIFFUSION KNOBS~~
+        :param diffusion_iterations: Number of diffusion steps to perform. [0,4000]. More steps means the network has more chances to iteratively refine
+                                     the output, which should theoretically mean a higher quality output. Generally a value above 250 is not noticeably better,
+                                     however.
+        :param cond_free: Whether or not to perform conditioning-free diffusion. Conditioning-free diffusion performs two forward passes for
+                          each diffusion step: one with the outputs of the autoregressive model and one with no conditioning priors. The output
+                          of the two is blended according to the cond_free_k value below. Conditioning-free diffusion is the real deal, and
+                          dramatically improves realism.
+        :param cond_free_k: Knob that determines how to balance the conditioning free signal with the conditioning-present signal. [0,inf].
+                            As cond_free_k increases, the output becomes dominated by the conditioning-free signal.
+                            Formula is: output=cond_present_output*(cond_free_k+1)-cond_absenct_output*cond_free_k
+        :param diffusion_temperature: Controls the variance of the noise fed into the diffusion model. [0,1]. Values at 0
+                                      are the "mean" prediction of the diffusion network and will sound bland and smeared.
+        ~~OTHER STUFF~~
+        :param hf_generate_kwargs: The huggingface Transformers generate API is used for the autoregressive transformer.
+                                   Extra keyword args fed to this function get forwarded directly to that API. Documentation
+                                   here: https://huggingface.co/docs/transformers/internal/generation_utils
+        :return: Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
+                 Sample rate is 24kHz.
+        """
         text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
         text = F.pad(text, (0, 1))  # This may not be necessary.
 
@@ -229,7 +275,9 @@ class TextToSpeech:
             stop_mel_token = self.autoregressive.stop_mel_token
             calm_token = 83  # This is the token for coding silence, which is fixed in place with "fix_autoregressive_output"
             self.autoregressive = self.autoregressive.cuda()
-            for b in tqdm(range(num_batches)):
+            if verbose:
+                print("Generating autoregressive samples..")
+            for b in tqdm(range(num_batches), disable=not verbose):
                 codes = self.autoregressive.inference_speech(conds, text,
                                                              do_sample=True,
                                                              top_p=top_p,
@@ -247,7 +295,9 @@ class TextToSpeech:
             clip_results = []
             self.clvp = self.clvp.cuda()
             self.cvvp = self.cvvp.cuda()
-            for batch in samples:
+            if verbose:
+                print("Computing best candidates using CLVP and CVVP")
+            for batch in tqdm(samples, disable=not verbose):
                 for i in range(batch.shape[0]):
                     batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
                 clvp = self.clvp(text.repeat(batch.shape[0], 1), batch, return_loss=False)
@@ -272,7 +322,8 @@ class TextToSpeech:
                                                return_latent=True, clip_inputs=False)
             self.autoregressive = self.autoregressive.cpu()
 
-            print("Performing vocoding..")
+            if verbose:
+                print("Transforming autoregressive outputs into audio..")
             wav_candidates = []
             self.diffusion = self.diffusion.cuda()
             self.vocoder = self.vocoder.cuda()
@@ -291,7 +342,7 @@ class TextToSpeech:
                         latents = latents[:, :k]
                         break
 
-                mel = do_spectrogram_diffusion(self.diffusion, diffuser, latents, voice_samples, temperature=diffusion_temperature)
+                mel = do_spectrogram_diffusion(self.diffusion, diffuser, latents, voice_samples, temperature=diffusion_temperature, verbose=verbose)
                 wav = self.vocoder.inference(mel)
                 wav_candidates.append(wav.cpu())
             self.diffusion = self.diffusion.cpu()
