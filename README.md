@@ -44,9 +44,17 @@ python do_tts.py --text "I'm going to speak this" --voice dotrice --preset fast
 ### read.py
 
 This script provides tools for reading large amounts of text.
+
 ```shell
 python read.py --textfile <your text to be read> --voice dotrice
 ```
+
+This will break up the textfile into sentences, and then convert them to speech one at a time. It will output a series 
+of spoken clips as they are generated. Once all the clips are generated, it will combine them into a single file and
+output that as well.
+
+Sometimes Tortoise screws up an output. You can re-generate any bad clips by re-running `read.py` with the --regenerate
+argument.
 
 ### API
 
