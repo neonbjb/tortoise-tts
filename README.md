@@ -77,8 +77,8 @@ These reference clips are recordings of a speaker that you provide to guide spee
 This repo comes with several pre-packaged voices. You will be familiar with many of them. :)
 
 Most of the provided voices were not found in the training set. Experimentally, it seems that voices from the training set
-produce more realistic outputs then those outside of the training set. The following voices come from the training set:
- atkins, dotrice, grace, harris, kennard, lescault, mol, otto.
+produce more realistic outputs then those outside of the training set. Any voice prepended with "train" came from the
+training set.
 
 ### Adding a new voice
 
