@@ -1,4 +1,9 @@
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
+
+from models.arch_util import Upsample, Downsample, normalization, zero_module, AttentionBlock
 
 
 class ResBlock(nn.Module):
@@ -27,7 +32,7 @@ class ResBlock(nn.Module):
         self.in_layers = nn.Sequential(
             normalization(channels),
             nn.SiLU(),
-            conv_nd(dims, channels, self.out_channels, kernel_size, padding=padding),
+            nn.Conv1d(channels, self.out_channels, kernel_size, padding=padding),
         )
 
         self.updown = up or down
@@ -46,18 +51,18 @@ class ResBlock(nn.Module):
             nn.SiLU(),
             nn.Dropout(p=dropout),
             zero_module(
-                conv_nd(dims, self.out_channels, self.out_channels, kernel_size, padding=padding)
+                nn.Conv1d(self.out_channels, self.out_channels, kernel_size, padding=padding)
             ),
         )
 
         if self.out_channels == channels:
             self.skip_connection = nn.Identity()
         elif use_conv:
-            self.skip_connection = conv_nd(
+            self.skip_connection = nn.Conv1d(
                 dims, channels, self.out_channels, kernel_size, padding=padding
             )
         else:
-            self.skip_connection = conv_nd(dims, channels, self.out_channels, 1)
+            self.skip_connection = nn.Conv1d(dims, channels, self.out_channels, 1)
 
     def forward(self, x):
         if self.do_checkpoint:
@@ -94,21 +99,21 @@ class AudioMiniEncoder(nn.Module):
                  kernel_size=3):
         super().__init__()
         self.init = nn.Sequential(
-            conv_nd(1, spec_dim, base_channels, 3, padding=1)
+            nn.Conv1d(spec_dim, base_channels, 3, padding=1)
         )
         ch = base_channels
         res = []
         self.layers = depth
         for l in range(depth):
             for r in range(resnet_blocks):
-                res.append(ResBlock(ch, dropout, dims=1, do_checkpoint=False, kernel_size=kernel_size))
-            res.append(Downsample(ch, use_conv=True, dims=1, out_channels=ch*2, factor=downsample_factor))
+                res.append(ResBlock(ch, dropout, do_checkpoint=False, kernel_size=kernel_size))
+            res.append(Downsample(ch, use_conv=True, out_channels=ch*2, factor=downsample_factor))
             ch *= 2
         self.res = nn.Sequential(*res)
         self.final = nn.Sequential(
             normalization(ch),
             nn.SiLU(),
-            conv_nd(1, ch, embedding_dim, 1)
+            nn.Conv1d(ch, embedding_dim, 1)
         )
         attn = []
         for a in range(attn_blocks):
@@ -118,7 +123,7 @@ class AudioMiniEncoder(nn.Module):
 
     def forward(self, x):
         h = self.init(x)
-        h = sequential_checkpoint(self.res, self.layers, h)
+        h = self.res(h)
         h = self.final(h)
         for blk in self.attn:
             h = checkpoint(blk, h)
