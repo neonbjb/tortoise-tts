@@ -152,7 +152,7 @@ Tortoise v2 works considerably better than I had planned. When I began hearing s
 wondering whether or not I had an ethically unsound project on my hands. The ways in which a voice-cloning text-to-speech system
 could be misused are many. It doesn't take much creativity to think up how.
 
-After consulting with friends and family, I have decided to go forward with releasing this. Following are the reasons for this choice:
+After some thought, I have decided to go forward with releasing this. Following are the reasons for this choice:
 
 1. It is primarily good at reading books and speaking poetry. Other forms of speech do not work well.
 2. It was trained on a dataset which does not have the voices of public figures. While it will attempt to mimic these voices if they are provided as references, it does not do so in such a way that most humans would be fooled.
