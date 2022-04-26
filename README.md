@@ -132,6 +132,21 @@ utterances of a specific string of text. The impact of community involvement in 
 GPT-3 or CLIP) has really surprised me. If you find something neat that you can do with Tortoise that isn't documented here,
 please report it to me! I would be glad to publish it to this page.
 
+## Tortoise-detect
+
+Out of concerns that this model might be misused, I've built a classifier that tells the likelihood that an audio clip
+came from Tortoise.
+
+This classifier can be run on any computer, usage is as follows:
+
+```commandline
+python is_this_from_tortoise.py --clip=<path_to_suspicious_audio_file>
+```
+
+This model has 100% accuracy on the contents of the results/ and voices/ folders in this repo. Still, treat this classifier
+as a "strong signal". Classifiers can be fooled and it is likewise not impossible for this classifier to exhibit false
+positives.
+
 ## Model architecture
 
 Tortoise TTS is inspired by OpenAI's DALLE, applied to speech data and using a better decoder. It is made up of 5 separate 
