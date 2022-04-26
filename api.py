@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import progressbar
 import torchaudio
 
+from models.classifier import AudioMiniEncoderWithClassifierHead
 from models.cvvp import CVVP
 from models.diffusion_decoder import DiffusionTts
 from models.autoregressive import UnifiedVoice
@@ -24,7 +25,7 @@ from utils.tokenizer import VoiceBpeTokenizer, lev_distance
 pbar = None
 
 
-def download_models():
+def download_models(specific_models=None):
     """
     Call to download all the models that Tortoise uses.
     """
@@ -49,6 +50,8 @@ def download_models():
             pbar.finish()
             pbar = None
     for model_name, url in MODELS.items():
+        if specific_models is not None and model_name not in specific_models:
+            continue
         if os.path.exists(f'.models/{model_name}'):
             continue
         print(f'Downloading {model_name} from {url}...')
@@ -142,6 +145,22 @@ def do_spectrogram_diffusion(diffusion_model, diffuser, latents, conditioning_sa
                                       model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings},
                                      progress=verbose)
         return denormalize_tacotron_mel(mel)[:,:,:output_seq_len]
+
+
+def classify_audio_clip(clip):
+    """
+    Returns whether or not Tortoises' classifier thinks the given clip came from Tortoise.
+    :param clip: torch tensor containing audio waveform data (get it from load_audio)
+    :return: True if the clip was classified as coming from Tortoise and false if it was classified as real.
+    """
+    download_models(['classifier'])
+    classifier = AudioMiniEncoderWithClassifierHead(2, spec_dim=1, embedding_dim=512, depth=5, downsample_factor=4,
+                                                    resnet_blocks=2, attn_blocks=4, num_attn_heads=4, base_channels=32,
+                                                    dropout=0, kernel_size=5, distribute_zero_label=False)
+    classifier.load_state_dict(torch.load('.models/classifier.pth', map_location=torch.device('cpu')))
+    clip = clip.cpu().unsqueeze(0)
+    results = F.softmax(classifier(clip), dim=-1)
+    return results[0][0]
 
 
 class TextToSpeech:
