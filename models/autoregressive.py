@@ -6,8 +6,8 @@ import torch.nn.functional as F
 from transformers import GPT2Config, GPT2PreTrainedModel, LogitsProcessorList
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 from transformers.utils.model_parallel_utils import get_device_map, assert_device_map
-from tortoise_tts.models.arch_util import AttentionBlock
-from tortoise_tts.utils.typical_sampling import TypicalLogitsWarper
+from models.arch_util import AttentionBlock
+from utils.typical_sampling import TypicalLogitsWarper
 
 
 def null_position_embeddings(range, dim):

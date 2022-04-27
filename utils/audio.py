@@ -6,7 +6,7 @@ import torchaudio
 import numpy as np
 from scipy.io.wavfile import read
 
-from tortoise_tts.utils.stft import STFT
+from utils.stft import STFT
 
 
 def load_wav_to_torch(full_path):

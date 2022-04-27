@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch import einsum
 from torch.utils.checkpoint import checkpoint
 
-from tortoise_tts.models.arch_util import AttentionBlock
-from tortoise_tts.models.xtransformers import ContinuousTransformerWrapper, Encoder
+from models.arch_util import AttentionBlock
+from models.xtransformers import ContinuousTransformerWrapper, Encoder
 
 
 def exists(val):

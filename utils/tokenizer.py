@@ -3,7 +3,6 @@ import re
 import inflect
 import torch
 from tokenizers import Tokenizer
-from pathlib import Path
 
 
 # Regular expression matching whitespace:
@@ -166,8 +165,6 @@ def lev_distance(s1, s2):
 
 class VoiceBpeTokenizer:
     def __init__(self, vocab_file='data/tokenizer.json'):
-        vocab_file = str(Path(__file__).parent.parent / Path(vocab_file))
-        print(vocab_file)
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
 

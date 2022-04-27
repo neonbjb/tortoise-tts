@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-from tortoise_tts.models.arch_util import Upsample, Downsample, normalization, zero_module, AttentionBlock
+from models.arch_util import Upsample, Downsample, normalization, zero_module, AttentionBlock
 
 
 class ResBlock(nn.Module):
