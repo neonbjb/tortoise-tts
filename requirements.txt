@@ -8,3 +8,5 @@ progressbar
 einops
 unidecode
 entmax
+scipy
+librosa
