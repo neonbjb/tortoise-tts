@@ -1,5 +1,0 @@
-favorite_riding_hood.mp3 filter=lfs diff=lfs merge=lfs -text
-favorites filter=lfs diff=lfs merge=lfs -text
-riding_hood filter=lfs diff=lfs merge=lfs -text
-tacotron_comparison filter=lfs diff=lfs merge=lfs -text
-various filter=lfs diff=lfs merge=lfs -text
