@@ -10,7 +10,6 @@ install_requires = [
     "progressbar",
     "einops",
     "unidecode",
-    "entmax",
     "scipy",
     "librosa"
 ]
