@@ -8,18 +8,18 @@ import torch.nn.functional as F
 import progressbar
 import torchaudio
 
-from models.classifier import AudioMiniEncoderWithClassifierHead
-from models.cvvp import CVVP
-from models.diffusion_decoder import DiffusionTts
-from models.autoregressive import UnifiedVoice
+from tortoise_tts.models.classifier import AudioMiniEncoderWithClassifierHead
+from tortoise_tts.models.cvvp import CVVP
+from tortoise_tts.models.diffusion_decoder import DiffusionTts
+from tortoise_tts.models.autoregressive import UnifiedVoice
 from tqdm import tqdm
 
-from models.arch_util import TorchMelSpectrogram
-from models.clvp import CLVP
-from models.vocoder import UnivNetGenerator
-from utils.audio import load_audio, wav_to_univnet_mel, denormalize_tacotron_mel
-from utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
-from utils.tokenizer import VoiceBpeTokenizer, lev_distance
+from tortoise_tts.models.arch_util import TorchMelSpectrogram
+from tortoise_tts.models.clvp import CLVP
+from tortoise_tts.models.vocoder import UnivNetGenerator
+from tortoise_tts.utils.audio import load_audio, wav_to_univnet_mel, denormalize_tacotron_mel
+from tortoise_tts.utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
+from tortoise_tts.utils.tokenizer import VoiceBpeTokenizer, lev_distance
 
 
 pbar = None
