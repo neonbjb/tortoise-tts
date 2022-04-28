@@ -87,7 +87,7 @@ def get_voices():
     for sub in subs:
         subj = os.path.join('voices', sub)
         if os.path.isdir(subj):
-            voices[sub] = glob(f'{subj}/*.wav')
+            voices[sub] = list(glob(f'{subj}/*.wav')) + list(glob(f'{subj}/*.mp3'))
     return voices
 
 
