@@ -201,6 +201,18 @@ Imagine what a TTS model trained at or near GPT-3 or DALLE scale could achieve.
 If you are an ethical organization with computational resources to spare interested in seeing what this model could do 
 if properly scaled out, please reach out to me! I would love to collaborate on this.
 
+## Acknowledgements
+
+This project has garnered more praise than I expected. I am standing on the shoulders of giants, though, and I want to
+credit a few of the amazing folks in the community that have helped make this happen:
+
+- Hugging Face, who wrote the GPT model and the generate API used by Tortoise, and who hosts the model weights.
+- [Ramesh et al](https://arxiv.org/pdf/2102.12092.pdf) who authored the DALLE paper, which is the inspiration behind Tortoise.
+- [Nichol and Dhariwal](https://arxiv.org/pdf/2102.09672.pdf) who authored the (revision of) the code that drives the diffusion model.
+- [Jang et al](https://arxiv.org/pdf/2106.07889.pdf) who developed and open-sourced univnet, the vocoder this repo uses.
+- [lucidrains](https://github.com/lucidrains) who writes awesome open source pytorch models, many of which are used here.
+- [Patrick von Platen](https://huggingface.co/patrickvonplaten) whose guides on setting up wav2vec were invaluable to building my dataset.
+
 ## Notice
 
 Tortoise was built entirely by me using my own hardware. My employer was not involved in any facet of Tortoise's development.
