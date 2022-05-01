@@ -107,7 +107,9 @@ def fix_autoregressive_output(codes, stop_token, complain=True):
     stop_token_indices = (codes == stop_token).nonzero()
     if len(stop_token_indices) == 0:
         if complain:
-            print("No stop tokens found, enjoy that output of yours!")
+            print("No stop tokens found. This typically means the spoken audio is too long. In some cases, the output "
+                  "will still be good, though. Listen to it and if it is missing words, try breaking up your input "
+                  "text.")
         return codes
     else:
         codes[stop_token_indices] = 83
@@ -310,6 +312,7 @@ class TextToSpeech:
         """
         text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
         text = F.pad(text, (0, 1))  # This may not be necessary.
+        assert text.shape[-1] < 400, 'Too much text provided. Break the text up into separate segments and re-try inference.'
 
         if voice_samples is not None:
             auto_conditioning, diffusion_conditioning = self.get_conditioning_latents(voice_samples)
