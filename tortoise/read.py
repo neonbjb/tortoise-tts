@@ -37,13 +37,17 @@ if __name__ == '__main__':
     parser.add_argument('--voice_diversity_intelligibility_slider', type=float,
                         help='How to balance vocal diversity with the quality/intelligibility of the spoken text. 0 means highly diverse voice (not recommended), 1 means maximize intellibility',
                         default=.5)
+    parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
+                                                      'should only be specified if you have custom checkpoints.', default='.models')
     args = parser.parse_args()
+    tts = TextToSpeech(models_dir=args.model_dir)
 
     outpath = args.output_path
     selected_voices = args.voice.split(',')
     regenerate = args.regenerate
     if regenerate is not None:
         regenerate = [int(e) for e in regenerate.split(',')]
+
     for selected_voice in selected_voices:
         voice_outpath = os.path.join(outpath, selected_voice)
         os.makedirs(voice_outpath, exist_ok=True)
@@ -51,7 +55,6 @@ if __name__ == '__main__':
         with open(args.textfile, 'r', encoding='utf-8') as f:
             text = ''.join([l for l in f.readlines()])
         texts = split_and_recombine_text(text)
-        tts = TextToSpeech()
 
         if '&' in selected_voice:
             voice_sel = selected_voice.split('&')
