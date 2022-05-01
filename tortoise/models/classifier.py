@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-from models.arch_util import Upsample, Downsample, normalization, zero_module, AttentionBlock
+from tortoise.models.arch_util import Upsample, Downsample, normalization, zero_module, AttentionBlock
 
 
 class ResBlock(nn.Module):

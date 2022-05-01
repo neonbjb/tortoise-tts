@@ -4,7 +4,7 @@ import os
 import torchaudio
 
 from api import TextToSpeech
-from utils.audio import load_audio, get_voices
+from tortoise.utils.audio import load_audio, get_voices
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

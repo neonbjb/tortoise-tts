@@ -1,4 +1,3 @@
-import argparse
 import os
 import random
 from urllib import request
@@ -8,19 +7,18 @@ import torch.nn.functional as F
 import progressbar
 import torchaudio
 
-from models.classifier import AudioMiniEncoderWithClassifierHead
-from models.cvvp import CVVP
-from models.diffusion_decoder import DiffusionTts
-from models.autoregressive import UnifiedVoice
+from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
+from tortoise.models.cvvp import CVVP
+from tortoise.models.diffusion_decoder import DiffusionTts
+from tortoise.models.autoregressive import UnifiedVoice
 from tqdm import tqdm
 
-from models.arch_util import TorchMelSpectrogram
-from models.clvp import CLVP
-from models.vocoder import UnivNetGenerator
-from utils.audio import load_audio, wav_to_univnet_mel, denormalize_tacotron_mel
-from utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
-from utils.tokenizer import VoiceBpeTokenizer, lev_distance
-
+from tortoise.models.arch_util import TorchMelSpectrogram
+from tortoise.models.clvp import CLVP
+from tortoise.models.vocoder import UnivNetGenerator
+from tortoise.utils.audio import wav_to_univnet_mel, denormalize_tacotron_mel
+from tortoise.utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
+from tortoise.utils.tokenizer import VoiceBpeTokenizer
 
 pbar = None
 

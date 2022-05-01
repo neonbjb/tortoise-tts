@@ -4,7 +4,7 @@ from random import shuffle
 import torchaudio
 
 from api import TextToSpeech
-from utils.audio import load_audio
+from tortoise.utils.audio import load_audio
 
 
 def permutations(args):

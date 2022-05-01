@@ -4,7 +4,7 @@ import os
 
 if __name__ == '__main__':
     result = "<html><head><title>These words were never spoken.</title></head><body><h1>Handpicked results</h1>"
-    for fv in os.listdir('results/favorites'):
+    for fv in os.listdir('../results/favorites'):
         url = f'https://github.com/neonbjb/tortoise-tts/raw/main/results/favorites/{fv}'
         result = result + f'<audio controls="" style="width: 600px;"><source src="{url}" type="audio/mp3"></audio><br>\n'
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
         line = line + f'<td><audio controls="" style="width: 150px;"><source src="{url}" type="audio/mp3"></audio></td>'
     line = line + "</tr>"
     lines.append(line)
-    for txt in os.listdir('results/various/'):
+    for txt in os.listdir('../results/various/'):
         if 'desktop' in txt:
             continue
         line = f'<tr><td>{txt}</td>'
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     result = result + '\n'.join(lines) + "</table>"
 
     result = result + "<h1>Longform result for all voices:</h1>"
-    for lf in os.listdir('results/riding_hood'):
+    for lf in os.listdir('../results/riding_hood'):
         url = f'https://github.com/neonbjb/tortoise-tts/raw/main/results/riding_hood/{lf}'
         result = result + f'<audio controls="" style="width: 600px;"><source src="{url}" type="audio/mp3"></audio><br>\n'
 

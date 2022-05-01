@@ -2,12 +2,10 @@ import argparse
 import os
 
 import torch
-import torch.nn.functional as F
 import torchaudio
 
-from api import TextToSpeech, format_conditioning
-from utils.audio import load_audio, get_voices
-from utils.tokenizer import VoiceBpeTokenizer
+from api import TextToSpeech
+from tortoise.utils.audio import load_audio, get_voices
 
 
 def split_and_recombine_text(texts, desired_length=200, max_len=300):

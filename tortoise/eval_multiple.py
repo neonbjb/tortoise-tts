@@ -3,7 +3,7 @@ import os
 import torchaudio
 
 from api import TextToSpeech
-from utils.audio import load_audio
+from tortoise.utils.audio import load_audio
 
 if __name__ == '__main__':
     fname = 'Y:\\clips\\books2\\subset512-oco.tsv'

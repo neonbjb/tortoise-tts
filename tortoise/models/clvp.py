@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import einsum
 
-from models.arch_util import CheckpointedXTransformerEncoder
-from models.transformer import Transformer
-from models.xtransformers import Encoder
+from tortoise.models.arch_util import CheckpointedXTransformerEncoder
+from tortoise.models.transformer import Transformer
+from tortoise.models.xtransformers import Encoder
 
 
 def exists(val):
