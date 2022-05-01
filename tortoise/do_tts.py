@@ -4,7 +4,7 @@ import os
 import torchaudio
 
 from api import TextToSpeech
-from tortoise.utils.audio import load_audio, get_voices
+from tortoise.utils.audio import load_audio, get_voices, load_voice
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -21,14 +21,10 @@ if __name__ == '__main__':
 
     tts = TextToSpeech()
 
-    voices = get_voices()
     selected_voices = args.voice.split(',')
     for voice in selected_voices:
-        cond_paths = voices[voice]
-        conds = []
-        for cond_path in cond_paths:
-            c = load_audio(cond_path, 22050)
-            conds.append(c)
-        gen = tts.tts_with_preset(args.text, conds, preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider)
+        voice_samples, conditioning_latents = load_voice(voice)
+        gen = tts.tts_with_preset(args.text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
+                                  preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider)
         torchaudio.save(os.path.join(args.output_path, f'{voice}.wav'), gen.squeeze(0).cpu(), 24000)
 

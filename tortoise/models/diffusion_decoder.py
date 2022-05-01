@@ -219,18 +219,21 @@ class DiffusionTts(nn.Module):
         }
         return groups
 
-    def timestep_independent(self, aligned_conditioning, conditioning_input, expected_seq_len, return_code_pred):
-        # Shuffle aligned_latent to BxCxS format
-        if is_latent(aligned_conditioning):
-            aligned_conditioning = aligned_conditioning.permute(0, 2, 1)
-
-        # Note: this block does not need to repeated on inference, since it is not timestep-dependent or x-dependent.
+    def get_conditioning(self, conditioning_input):
         speech_conditioning_input = conditioning_input.unsqueeze(1) if len(
             conditioning_input.shape) == 3 else conditioning_input
         conds = []
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.contextual_embedder(speech_conditioning_input[:, j]))
         conds = torch.cat(conds, dim=-1)
+        return conds
+
+    def timestep_independent(self, aligned_conditioning, conditioning_latent, expected_seq_len, return_code_pred):
+        # Shuffle aligned_latent to BxCxS format
+        if is_latent(aligned_conditioning):
+            aligned_conditioning = aligned_conditioning.permute(0, 2, 1)
+
+        conds = conditioning_latent
         cond_emb = conds.mean(dim=-1)
         cond_scale, cond_shift = torch.chunk(cond_emb, 2, dim=1)
         if is_latent(aligned_conditioning):
@@ -257,19 +260,19 @@ class DiffusionTts(nn.Module):
             mel_pred = mel_pred * unconditioned_batches.logical_not()
             return expanded_code_emb, mel_pred
 
-    def forward(self, x, timesteps, aligned_conditioning=None, conditioning_input=None, precomputed_aligned_embeddings=None, conditioning_free=False, return_code_pred=False):
+    def forward(self, x, timesteps, aligned_conditioning=None, conditioning_latent=None, precomputed_aligned_embeddings=None, conditioning_free=False, return_code_pred=False):
         """
         Apply the model to an input batch.
 
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
         :param aligned_conditioning: an aligned latent or sequence of tokens providing useful data about the sample to be produced.
-        :param conditioning_input: a full-resolution audio clip that is used as a reference to the style you want decoded.
+        :param conditioning_latent: a pre-computed conditioning latent; see get_conditioning().
         :param precomputed_aligned_embeddings: Embeddings returned from self.timestep_independent()
         :param conditioning_free: When set, all conditioning inputs (including tokens and conditioning_input) will not be considered.
         :return: an [N x C x ...] Tensor of outputs.
         """
-        assert precomputed_aligned_embeddings is not None or (aligned_conditioning is not None and conditioning_input is not None)
+        assert precomputed_aligned_embeddings is not None or (aligned_conditioning is not None and conditioning_latent is not None)
         assert not (return_code_pred and precomputed_aligned_embeddings is not None)  # These two are mutually exclusive.
 
         unused_params = []
@@ -281,7 +284,7 @@ class DiffusionTts(nn.Module):
             if precomputed_aligned_embeddings is not None:
                 code_emb = precomputed_aligned_embeddings
             else:
-                code_emb, mel_pred = self.timestep_independent(aligned_conditioning, conditioning_input, x.shape[-1], True)
+                code_emb, mel_pred = self.timestep_independent(aligned_conditioning, conditioning_latent, x.shape[-1], True)
                 if is_latent(aligned_conditioning):
                     unused_params.extend(list(self.code_converter.parameters()) + list(self.code_embedding.parameters()))
                 else:

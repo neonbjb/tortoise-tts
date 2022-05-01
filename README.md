@@ -118,12 +118,24 @@ These settings are not available in the normal scripts packaged with Tortoise. T
 
 ### Playing with the voice latent
 
-Tortoise ingests reference clips by feeding them through individually through a small submodel that produces a point latent, then taking the mean of all of the produced latents. The experimentation I have done has indicated that these point latents are quite expressive, affecting
-everything from tone to speaking rate to speech abnormalities.
+Tortoise ingests reference clips by feeding them through individually through a small submodel that produces a point latent, 
+then taking the mean of all of the produced latents. The experimentation I have done has indicated that these point latents 
+are quite expressive, affecting everything from tone to speaking rate to speech abnormalities.
 
-This lends itself to some neat tricks. For example, you can combine feed two different voices to tortoise and it will output what it thinks the "average" of those two voices sounds like. You could also theoretically build a small extension to Tortoise that gradually shifts the 
-latent from one speaker to another, then apply it across a bit of spoken text (something I havent implemented yet, but might
-get to soon!) I am sure there are other interesting things that can be done here. Please let me know what you find!
+This lends itself to some neat tricks. For example, you can combine feed two different voices to tortoise and it will output 
+what it thinks the "average" of those two voices sounds like.
+
+#### Generating conditioning latents from voices
+
+Use the script `get_conditioning_latents.py` to extract conditioning latents for a voice you have installed. This script
+will dump the latents to a .pth pickle file. The file will contain a single tuple, (autoregressive_latent, diffusion_latent).
+
+Alternatively, use the api.TextToSpeech.get_conditioning_latents() to fetch the latents.
+
+#### Using raw conditioning latents to generate speech
+
+After you've played with them, you can use them to generate speech by creating a subdirectory in voices/ with a single
+".pth" file containing the pickled conditioning latents as a tuple (autoregressive_latent, diffusion_latent).
 
 ### Send me feedback!
 

@@ -5,7 +5,7 @@ import torch
 import torchaudio
 
 from api import TextToSpeech
-from tortoise.utils.audio import load_audio, get_voices
+from tortoise.utils.audio import load_audio, get_voices, load_voices
 
 
 def split_and_recombine_text(texts, desired_length=200, max_len=300):
@@ -40,7 +40,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     outpath = args.output_path
-    voices = get_voices()
     selected_voices = args.voice.split(',')
     regenerate = args.regenerate
     if regenerate is not None:
@@ -58,25 +57,15 @@ if __name__ == '__main__':
             voice_sel = selected_voice.split('&')
         else:
             voice_sel = [selected_voice]
-        cond_paths = []
-        for vsel in voice_sel:
-            if vsel not in voices.keys():
-                print(f'Error: voice {vsel} not available. Skipping.')
-                continue
-            cond_paths.extend(voices[vsel])
-        if not cond_paths:
-            print('Error: no valid voices specified. Try again.')
 
-        conds = []
-        for cond_path in cond_paths:
-            c = load_audio(cond_path, 22050)
-            conds.append(c)
+        voice_samples, conditioning_latents = load_voices(voice_sel)
         all_parts = []
         for j, text in enumerate(texts):
             if regenerate is not None and j not in regenerate:
                 all_parts.append(load_audio(os.path.join(voice_outpath, f'{j}.wav'), 24000))
                 continue
-            gen = tts.tts_with_preset(text, conds, preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider)
+            gen = tts.tts_with_preset(text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
+                                      preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider)
             gen = gen.squeeze(0).cpu()
             torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen, 24000)
             all_parts.append(gen)

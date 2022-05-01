@@ -91,6 +91,37 @@ def get_voices():
     return voices
 
 
+def load_voice(voice):
+    voices = get_voices()
+    paths = voices[voice]
+    if len(paths) == 1 and paths[0].endswith('.pth'):
+        return None, torch.load(paths[0])
+    else:
+        conds = []
+        for cond_path in paths:
+            c = load_audio(cond_path, 22050)
+            conds.append(c)
+        return conds, None
+
+
+def load_voices(voices):
+    latents = []
+    clips = []
+    for voice in voices:
+        latent, clip = load_voice(voice)
+        if latent is None:
+            assert len(latents) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
+            clips.extend(clip)
+        elif voice is None:
+            assert len(voices) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
+            latents.append(latent)
+    if len(latents) == 0:
+        return clips
+    else:
+        latents = torch.stack(latents, dim=0)
+        return latents.mean(dim=0)
+
+
 class TacotronSTFT(torch.nn.Module):
     def __init__(self, filter_length=1024, hop_length=256, win_length=1024,
                  n_mel_channels=80, sampling_rate=22050, mel_fmin=0.0,
