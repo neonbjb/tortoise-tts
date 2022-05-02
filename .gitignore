@@ -130,3 +130,5 @@ dmypy.json
 
 .idea/*
 .models/*
+.custom/*
+results/*
