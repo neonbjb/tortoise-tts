@@ -1,5 +1,6 @@
 import os
 import random
+import uuid
 from urllib import request
 
 import torch
@@ -15,6 +16,7 @@ from tqdm import tqdm
 
 from tortoise.models.arch_util import TorchMelSpectrogram
 from tortoise.models.clvp import CLVP
+from tortoise.models.random_latent_generator import RandomLatentConverter
 from tortoise.models.vocoder import UnivNetGenerator
 from tortoise.utils.audio import wav_to_univnet_mel, denormalize_tacotron_mel
 from tortoise.utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
@@ -161,7 +163,8 @@ class TextToSpeech:
     Main entry point into Tortoise.
     """
 
-    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=True):
+    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=True,
+                 save_random_voices=False):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -170,11 +173,15 @@ class TextToSpeech:
                            models, otherwise use the defaults.
         :param enable_redaction: When true, text enclosed in brackets are automatically redacted from the spoken output
                                  (but are still rendered by the model). This can be used for prompt engineering.
+                                 Default is true.
+        :param save_random_voices: When true, voices that are randomly generated are saved to the `random_voices`
+                                   directory. Default is false.
         """
         self.autoregressive_batch_size = autoregressive_batch_size
         self.enable_redaction = enable_redaction
         if self.enable_redaction:
             self.aligner = Wav2VecAlignment()
+        self.save_random_voices = save_random_voices
 
         self.tokenizer = VoiceBpeTokenizer()
         download_models()
@@ -209,6 +216,10 @@ class TextToSpeech:
         self.vocoder = UnivNetGenerator().cpu()
         self.vocoder.load_state_dict(torch.load(f'{models_dir}/vocoder.pth')['model_g'])
         self.vocoder.eval(inference=True)
+
+        # Random latent generators (RLGs) are loaded lazily.
+        self.rlg_auto = None
+        self.rlg_diffusion = None
 
     def tts_with_preset(self, text, preset='fast', **kwargs):
         """
@@ -265,7 +276,21 @@ class TextToSpeech:
         diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
         self.diffusion = self.diffusion.cpu()
 
-        return auto_latent, diffusion_latent
+        return auto_latent, diffusion_latent, auto_conds
+
+    def get_random_conditioning_latents(self):
+        # Lazy-load the RLG models.
+        if self.rlg_auto is None:
+            self.rlg_auto = RandomLatentConverter(1024).eval()
+            self.rlg_auto.load_state_dict(torch.load('.models/rlg_auto.pth', map_location=torch.device('cpu')))
+            self.rlg_diffusion = RandomLatentConverter(2048).eval()
+            self.rlg_diffusion.load_state_dict(torch.load('.models/rlg_diffuser.pth', map_location=torch.device('cpu')))
+        with torch.no_grad():
+            latents = self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
+            if self.save_random_voices:
+                os.makedirs('random_voices', exist_ok=True)
+                torch.save(latents, f'random_voices/{str(uuid.uuid4())}.pth')
+            return latents
 
     def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True,
             # autoregressive generation parameters follow
@@ -323,14 +348,19 @@ class TextToSpeech:
         :return: Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
                  Sample rate is 24kHz.
         """
-        text = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
-        text = F.pad(text, (0, 1))  # This may not be necessary.
-        assert text.shape[-1] < 400, 'Too much text provided. Break the text up into separate segments and re-try inference.'
+        text_tokens = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
+        text_tokens = F.pad(text_tokens, (0, 1))  # This may not be necessary.
+        assert text_tokens.shape[-1] < 400, 'Too much text provided. Break the text up into separate segments and re-try inference.'
 
+        auto_conds = None
         if voice_samples is not None:
-            auto_conditioning, diffusion_conditioning = self.get_conditioning_latents(voice_samples)
-        else:
+            auto_conditioning, diffusion_conditioning, auto_conds = self.get_conditioning_latents(voice_samples)
+        elif conditioning_latents is not None:
             auto_conditioning, diffusion_conditioning = conditioning_latents
+        else:
+            auto_conditioning, diffusion_conditioning = self.get_random_conditioning_latents()
+            auto_conditioning = auto_conditioning.cuda()
+            diffusion_conditioning = diffusion_conditioning.cuda()
 
         diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=diffusion_iterations, cond_free=cond_free, cond_free_k=cond_free_k)
 
@@ -343,7 +373,7 @@ class TextToSpeech:
             if verbose:
                 print("Generating autoregressive samples..")
             for b in tqdm(range(num_batches), disable=not verbose):
-                codes = self.autoregressive.inference_speech(auto_conditioning, text,
+                codes = self.autoregressive.inference_speech(auto_conditioning, text_tokens,
                                                              do_sample=True,
                                                              top_p=top_p,
                                                              temperature=temperature,
@@ -365,12 +395,15 @@ class TextToSpeech:
             for batch in tqdm(samples, disable=not verbose):
                 for i in range(batch.shape[0]):
                     batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
-                clvp = self.clvp(text.repeat(batch.shape[0], 1), batch, return_loss=False)
-                cvvp_accumulator = 0
-                for cl in range(conds.shape[1]):
-                    cvvp_accumulator = cvvp_accumulator + self.cvvp(conds[:, cl].repeat(batch.shape[0], 1, 1), batch, return_loss=False )
-                cvvp = cvvp_accumulator / conds.shape[1]
-                clip_results.append(clvp * clvp_cvvp_slider + cvvp * (1-clvp_cvvp_slider))
+                clvp = self.clvp(text_tokens.repeat(batch.shape[0], 1), batch, return_loss=False)
+                if auto_conds is not None:
+                    cvvp_accumulator = 0
+                    for cl in range(auto_conds.shape[1]):
+                        cvvp_accumulator = cvvp_accumulator + self.cvvp(auto_conds[:, cl].repeat(batch.shape[0], 1, 1), batch, return_loss=False)
+                    cvvp = cvvp_accumulator / auto_conds.shape[1]
+                    clip_results.append(clvp * clvp_cvvp_slider + cvvp * (1-clvp_cvvp_slider))
+                else:
+                    clip_results.append(clvp)
             clip_results = torch.cat(clip_results, dim=0)
             samples = torch.cat(samples, dim=0)
             best_results = samples[torch.topk(clip_results, k=k).indices]
@@ -382,8 +415,8 @@ class TextToSpeech:
             # inputs. Re-produce those for the top results. This could be made more efficient by storing all of these
             # results, but will increase memory usage.
             self.autoregressive = self.autoregressive.cuda()
-            best_latents = self.autoregressive(auto_conditioning, text, torch.tensor([text.shape[-1]], device=conds.device), best_results,
-                                               torch.tensor([best_results.shape[-1]*self.autoregressive.mel_length_compression], device=conds.device),
+            best_latents = self.autoregressive(auto_conditioning, text_tokens, torch.tensor([text_tokens.shape[-1]], device=text_tokens.device), best_results,
+                                               torch.tensor([best_results.shape[-1]*self.autoregressive.mel_length_compression], device=text_tokens.device),
                                                return_latent=True, clip_inputs=False)
             self.autoregressive = self.autoregressive.cpu()
             del auto_conditioning
@@ -415,7 +448,7 @@ class TextToSpeech:
             self.diffusion = self.diffusion.cpu()
             self.vocoder = self.vocoder.cpu()
 
-            def potentially_redact(self, clip, text):
+            def potentially_redact(clip, text):
                 if self.enable_redaction:
                     return self.aligner.redact(clip, text)
                 return clip

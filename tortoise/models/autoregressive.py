@@ -401,13 +401,13 @@ class UnifiedVoice(nn.Module):
             conds = conds.mean(dim=1).unsqueeze(1)
         return conds
 
-    def forward(self, speech_conditioning_input, text_inputs, text_lengths, mel_codes, wav_lengths, types=None, text_first=True, raw_mels=None, return_attentions=False,
+    def forward(self, speech_conditioning_latent, text_inputs, text_lengths, mel_codes, wav_lengths, types=None, text_first=True, raw_mels=None, return_attentions=False,
                 return_latent=False, clip_inputs=True):
         """
         Forward pass that uses both text and voice in either text conditioning mode or voice conditioning mode
         (actuated by `text_first`).
 
-        speech_conditioning_input: MEL float tensor, (b,80,s)
+        speech_conditioning_input: MEL float tensor, (b,1024)
         text_inputs: long tensor, (b,t)
         text_lengths: long tensor, (b,)
         mel_inputs:  long tensor, (b,m)
@@ -421,7 +421,7 @@ class UnifiedVoice(nn.Module):
         # Types are expressed by expanding the text embedding space.
         if types is not None:
             text_inputs = text_inputs * (1+types).unsqueeze(-1)
-			
+
         if clip_inputs:
             # This model will receive micro-batches with a ton of padding for both the text and MELs. Ameliorate this by
             # chopping the inputs by the maximum actual length.
@@ -435,7 +435,7 @@ class UnifiedVoice(nn.Module):
         text_inputs = F.pad(text_inputs, (0,1), value=self.stop_text_token)
         mel_codes = F.pad(mel_codes, (0,1), value=self.stop_mel_token)
 
-        conds = self.get_conditioning(speech_conditioning_input)
+        conds = speech_conditioning_latent.unsqueeze(1)
         text_inputs, text_targets = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
         mel_codes, mel_targets = self.build_aligned_inputs_and_targets(mel_codes, self.start_mel_token, self.stop_mel_token)
@@ -540,7 +540,7 @@ class UnifiedVoice(nn.Module):
         text_inputs, text_targets = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
 
-        conds = speech_conditioning_latent
+        conds = speech_conditioning_latent.unsqueeze(1)
         emb = torch.cat([conds, text_emb], dim=1)
         self.inference_model.store_mel_emb(emb)
 

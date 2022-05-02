@@ -92,6 +92,9 @@ def get_voices():
 
 
 def load_voice(voice):
+    if voice == 'random':
+        return None, None
+
     voices = get_voices()
     paths = voices[voice]
     if len(paths) == 1 and paths[0].endswith('.pth'):

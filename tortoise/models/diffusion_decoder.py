@@ -226,6 +226,7 @@ class DiffusionTts(nn.Module):
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.contextual_embedder(speech_conditioning_input[:, j]))
         conds = torch.cat(conds, dim=-1)
+        conds = conds.mean(dim=-1)
         return conds
 
     def timestep_independent(self, aligned_conditioning, conditioning_latent, expected_seq_len, return_code_pred):
@@ -233,9 +234,7 @@ class DiffusionTts(nn.Module):
         if is_latent(aligned_conditioning):
             aligned_conditioning = aligned_conditioning.permute(0, 2, 1)
 
-        conds = conditioning_latent
-        cond_emb = conds.mean(dim=-1)
-        cond_scale, cond_shift = torch.chunk(cond_emb, 2, dim=1)
+        cond_scale, cond_shift = torch.chunk(conditioning_latent, 2, dim=1)
         if is_latent(aligned_conditioning):
             code_emb = self.latent_conditioner(aligned_conditioning)
         else:
