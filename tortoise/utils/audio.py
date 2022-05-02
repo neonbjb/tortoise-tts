@@ -87,7 +87,7 @@ def get_voices():
     for sub in subs:
         subj = os.path.join('voices', sub)
         if os.path.isdir(subj):
-            voices[sub] = list(glob(f'{subj}/*.wav')) + list(glob(f'{subj}/*.mp3'))
+            voices[sub] = list(glob(f'{subj}/*.wav')) + list(glob(f'{subj}/*.mp3')) + list(glob(f'{subj}/*.pth'))
     return voices
 
 
@@ -111,6 +111,9 @@ def load_voices(voices):
     latents = []
     clips = []
     for voice in voices:
+        if voice == 'random':
+            print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
+            return None, None
         latent, clip = load_voice(voice)
         if latent is None:
             assert len(latents) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
@@ -119,10 +122,10 @@ def load_voices(voices):
             assert len(voices) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
             latents.append(latent)
     if len(latents) == 0:
-        return clips
+        return clips, None
     else:
         latents = torch.stack(latents, dim=0)
-        return latents.mean(dim=0)
+        return None, latents.mean(dim=0)
 
 
 class TacotronSTFT(torch.nn.Module):

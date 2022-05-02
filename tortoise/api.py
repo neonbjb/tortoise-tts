@@ -194,8 +194,7 @@ class TextToSpeech:
             self.autoregressive = UnifiedVoice(max_mel_tokens=604, max_text_tokens=402, max_conditioning_inputs=2, layers=30,
                                           model_dim=1024,
                                           heads=16, number_text_tokens=255, start_text_token=255, checkpointing=False,
-                                          train_solo_embeddings=False,
-                                          average_conditioning_embeddings=True).cpu().eval()
+                                          train_solo_embeddings=False).cpu().eval()
             self.autoregressive.load_state_dict(torch.load(f'{models_dir}/autoregressive.pth'))
 
             self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
@@ -244,7 +243,7 @@ class TextToSpeech:
         kwargs.update(presets[preset])
         return self.tts(text, **kwargs)
 
-    def get_conditioning_latents(self, voice_samples):
+    def get_conditioning_latents(self, voice_samples, return_mels=False):
         """
         Transforms one or more voice_samples into a tuple (autoregressive_conditioning_latent, diffusion_conditioning_latent).
         These are expressive learned latents that encode aspects of the provided clips like voice, intonation, and acoustic
@@ -268,7 +267,7 @@ class TextToSpeech:
             # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
             sample = torchaudio.functional.resample(sample, 22050, 24000)
             sample = pad_or_truncate(sample, 102400)
-            cond_mel = wav_to_univnet_mel(sample.to(voice_samples.device), do_normalization=False)
+            cond_mel = wav_to_univnet_mel(sample.to('cuda'), do_normalization=False)
             diffusion_conds.append(cond_mel)
         diffusion_conds = torch.stack(diffusion_conds, dim=1)
 
@@ -276,7 +275,10 @@ class TextToSpeech:
         diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
         self.diffusion = self.diffusion.cpu()
 
-        return auto_latent, diffusion_latent, auto_conds
+        if return_mels:
+            return auto_latent, diffusion_latent, auto_conds, diffusion_conds
+        else:
+            return auto_latent, diffusion_latent
 
     def get_random_conditioning_latents(self):
         # Lazy-load the RLG models.
@@ -295,7 +297,6 @@ class TextToSpeech:
     def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8, max_mel_tokens=500,
-            typical_sampling=False, typical_mass=.9,
             # CLVP & CVVP parameters
             clvp_cvvp_slider=.5,
             # diffusion generation parameters follow
@@ -354,13 +355,13 @@ class TextToSpeech:
 
         auto_conds = None
         if voice_samples is not None:
-            auto_conditioning, diffusion_conditioning, auto_conds = self.get_conditioning_latents(voice_samples)
+            auto_conditioning, diffusion_conditioning, auto_conds, _ = self.get_conditioning_latents(voice_samples, return_mels=True)
         elif conditioning_latents is not None:
             auto_conditioning, diffusion_conditioning = conditioning_latents
         else:
             auto_conditioning, diffusion_conditioning = self.get_random_conditioning_latents()
-            auto_conditioning = auto_conditioning.cuda()
-            diffusion_conditioning = diffusion_conditioning.cuda()
+        auto_conditioning = auto_conditioning.cuda()
+        diffusion_conditioning = diffusion_conditioning.cuda()
 
         diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=diffusion_iterations, cond_free=cond_free, cond_free_k=cond_free_k)
 

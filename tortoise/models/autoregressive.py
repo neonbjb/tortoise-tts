@@ -280,8 +280,7 @@ class UnifiedVoice(nn.Module):
                  mel_length_compression=1024, number_text_tokens=256,
                  start_text_token=None, number_mel_codes=8194, start_mel_token=8192,
                  stop_mel_token=8193, train_solo_embeddings=False, use_mel_codes_as_input=True,
-                 checkpointing=True, average_conditioning_embeddings=False,
-                 types=1):
+                 checkpointing=True, types=1):
         """
         Args:
             layers: Number of layers in transformer stack.
@@ -300,7 +299,6 @@ class UnifiedVoice(nn.Module):
             train_solo_embeddings:
             use_mel_codes_as_input:
             checkpointing:
-            average_conditioning_embeddings: Whether or not conditioning embeddings should be averaged, instead of fed piecewise into the model.
         """
         super().__init__()
 
@@ -318,7 +316,6 @@ class UnifiedVoice(nn.Module):
         self.max_conditioning_inputs = max_conditioning_inputs
         self.mel_length_compression = mel_length_compression
         self.conditioning_encoder = ConditioningEncoder(80, model_dim, num_attn_heads=heads)
-        self.average_conditioning_embeddings = average_conditioning_embeddings
         self.text_embedding = nn.Embedding(self.number_text_tokens*types+1, model_dim)
         if use_mel_codes_as_input:
             self.mel_embedding = nn.Embedding(self.number_mel_codes, model_dim)
@@ -397,8 +394,7 @@ class UnifiedVoice(nn.Module):
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
         conds = torch.stack(conds, dim=1)
-        if self.average_conditioning_embeddings:
-            conds = conds.mean(dim=1).unsqueeze(1)
+        conds = conds.mean(dim=1)
         return conds
 
     def forward(self, speech_conditioning_latent, text_inputs, text_lengths, mel_codes, wav_lengths, types=None, text_first=True, raw_mels=None, return_attentions=False,
@@ -460,65 +456,6 @@ class UnifiedVoice(nn.Module):
         loss_text = F.cross_entropy(text_logits, text_targets.long())
         loss_mel = F.cross_entropy(mel_logits, mel_targets.long())
         return loss_text.mean(), loss_mel.mean(), mel_logits
-
-    def text_forward(self, speech_conditioning_input, text_inputs, text_lengths):
-        """
-        Performs autoregressive modeling on only text. Still requires a speech_conditioning_input due to the way the
-        model inputs are formatted. Just provide any audio clip (arguably, zeros could be provided).
-        """
-        assert self.max_text_tokens >= text_inputs.shape[1], f'{text_inputs.shape[1]}'
-
-        # This model will receive micro-batches with a ton of padding for both the text and MELs. Ameliorate this by
-        # chopping the inputs by the maximum actual length.
-        max_text_len = text_lengths.max()
-        text_inputs = F.pad(text_inputs[:, :max_text_len], (0,1), value=self.stop_text_token)
-
-        speech_conditioning_input = speech_conditioning_input.unsqueeze(1) if len(speech_conditioning_input.shape) == 3 else speech_conditioning_input
-        conds = []
-        for j in range(speech_conditioning_input.shape[1]):
-            conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
-        conds = torch.stack(conds, dim=1)
-        if self.average_conditioning_embeddings:
-            conds = conds.mean(dim=1).unsqueeze(1)
-
-        text_inputs, text_targets = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
-        text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs) + self.text_solo_embedding
-        text_logits = self.get_logits(conds, text_emb, self.text_head)
-        loss_text = F.cross_entropy(text_logits, text_targets.long())
-        return loss_text.mean()
-
-    def speech_forward(self, speech_conditioning_input, mel_codes, wav_lengths, raw_mels=None):
-        """
-        Performs autoregressive modeling on only speech data.
-        """
-        assert self.max_mel_tokens >= mel_codes.shape[1], f'{mel_codes.shape[1]}'
-
-        # This model will receive micro-batches with a ton of padding for both the text and MELs. Ameliorate this by
-        # chopping the inputs by the maximum actual length.
-        max_mel_len = wav_lengths.max() // self.mel_length_compression
-        mel_codes = F.pad(mel_codes[:, :max_mel_len], (0,1), value=self.stop_mel_token)
-        mel_codes = self.set_mel_padding(mel_codes, wav_lengths)
-        if raw_mels is not None:
-            raw_mels = raw_mels[:, :, :max_mel_len*4]
-
-        speech_conditioning_input = speech_conditioning_input.unsqueeze(1) if len(speech_conditioning_input.shape) == 3 else speech_conditioning_input
-        conds = []
-        for j in range(speech_conditioning_input.shape[1]):
-            conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
-        conds = torch.stack(conds, dim=1)
-        if self.average_conditioning_embeddings:
-            conds = conds.mean(dim=1).unsqueeze(1)
-
-        mel_codes, mel_targets = self.build_aligned_inputs_and_targets(mel_codes, self.start_mel_token, self.stop_mel_token)
-        if raw_mels is not None:
-            mel_inp = F.pad(raw_mels, (0, 4))
-        else:
-            mel_inp = mel_codes
-        mel_emb = self.mel_embedding(mel_inp)
-        mel_emb = mel_emb + self.mel_pos_embedding(mel_codes) + self.mel_solo_embedding
-        mel_logits = self.get_logits(conds, mel_emb, self.mel_head)
-        loss_mel = F.cross_entropy(mel_logits, mel_targets.long())
-        return loss_mel.mean()
 
     def inference_speech(self, speech_conditioning_latent, text_inputs, input_tokens=None, num_return_sequences=1,
                          max_generate_length=None, typical_sampling=False, typical_mass=.9, **hf_generate_kwargs):

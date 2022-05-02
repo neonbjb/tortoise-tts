@@ -11,8 +11,8 @@ other ML models, or can be augmented manually and fed back into Tortoise to affe
 """
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--voice', type=str, help='Selects the voice to convert to conditioning latents', default='pat')
-    parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/conditioning_latents')
+    parser.add_argument('--voice', type=str, help='Selects the voice to convert to conditioning latents', default='pat2')
+    parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='../results/conditioning_latents')
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 
