@@ -19,6 +19,7 @@ from tortoise.models.vocoder import UnivNetGenerator
 from tortoise.utils.audio import wav_to_univnet_mel, denormalize_tacotron_mel
 from tortoise.utils.diffusion import SpacedDiffusion, space_timesteps, get_named_beta_schedule
 from tortoise.utils.tokenizer import VoiceBpeTokenizer
+from tortoise.utils.wav2vec_alignment import Wav2VecAlignment
 
 pbar = None
 
@@ -158,11 +159,23 @@ def classify_audio_clip(clip):
 class TextToSpeech:
     """
     Main entry point into Tortoise.
-    :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
-                                      GPU OOM errors. Larger numbers generates slightly faster.
     """
-    def __init__(self, autoregressive_batch_size=16, models_dir='.models'):
+
+    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=True):
+        """
+        Constructor
+        :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
+                                          GPU OOM errors. Larger numbers generates slightly faster.
+        :param models_dir: Where model weights are stored. This should only be specified if you are providing your own
+                           models, otherwise use the defaults.
+        :param enable_redaction: When true, text enclosed in brackets are automatically redacted from the spoken output
+                                 (but are still rendered by the model). This can be used for prompt engineering.
+        """
         self.autoregressive_batch_size = autoregressive_batch_size
+        self.enable_redaction = enable_redaction
+        if self.enable_redaction:
+            self.aligner = Wav2VecAlignment()
+
         self.tokenizer = VoiceBpeTokenizer()
         download_models()
 
@@ -380,7 +393,6 @@ class TextToSpeech:
             wav_candidates = []
             self.diffusion = self.diffusion.cuda()
             self.vocoder = self.vocoder.cuda()
-            diffusion_conds =
             for b in range(best_results.shape[0]):
                 codes = best_results[b].unsqueeze(0)
                 latents = best_latents[b].unsqueeze(0)
@@ -403,6 +415,12 @@ class TextToSpeech:
             self.diffusion = self.diffusion.cpu()
             self.vocoder = self.vocoder.cpu()
 
+            def potentially_redact(self, clip, text):
+                if self.enable_redaction:
+                    return self.aligner.redact(clip, text)
+                return clip
+            wav_candidates = [potentially_redact(wav_candidate, text) for wav_candidate in wav_candidates]
             if len(wav_candidates) > 1:
                 return wav_candidates
             return wav_candidates[0]
+
