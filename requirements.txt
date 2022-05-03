@@ -1,5 +1,4 @@
-torch
-torchaudio
+tqdm
 rotary_embedding_torch
 transformers
 tokenizers

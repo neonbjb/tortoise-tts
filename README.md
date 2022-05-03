@@ -35,12 +35,15 @@ https://colab.research.google.com/drive/1wVVqUPqwiDBUVeWWOUNglpGhU3hg_cbR?usp=sh
 
 ### Installation
 
-If you want to use this on your own computer, you must have an NVIDIA GPU. Installation:
+If you want to use this on your own computer, you must have an NVIDIA GPU. First, install pytorch using these
+instructions: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/)
+
+Then:
 
 ```shell
 git clone https://github.com/neonbjb/tortoise-tts.git
 cd tortoise-tts
-pip install -r requirements.txt
+python setup.py install
 ```
 
 ### do_tts.py
