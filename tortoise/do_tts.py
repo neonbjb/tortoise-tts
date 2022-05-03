@@ -8,7 +8,7 @@ from tortoise.utils.audio import load_audio, get_voices, load_voice
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--text', type=str, help='Text to speak.', default="I am a language model that has learned to speak.")
+    parser.add_argument('--text', type=str, help='Text to speak.', default="The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them.")
     parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
                                                  'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='random')
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='fast')
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 
-    tts = TextToSpeech(models_dir=args.model_dir, save_random_voices=True)
+    tts = TextToSpeech(models_dir=args.model_dir)
 
     selected_voices = args.voice.split(',')
     for k, voice in enumerate(selected_voices):

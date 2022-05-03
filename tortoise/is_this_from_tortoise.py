@@ -5,7 +5,7 @@ from tortoise.utils.audio import load_audio
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--clip', type=str, help='Path to an audio clip to classify.', default="results/favorite_riding_hood.mp3")
+    parser.add_argument('--clip', type=str, help='Path to an audio clip to classify.', default="../examples/favorite_riding_hood.mp3")
     args = parser.parse_args()
 
     clip = load_audio(args.clip, 24000)

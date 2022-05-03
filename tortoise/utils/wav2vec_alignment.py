@@ -1,3 +1,5 @@
+import re
+
 import torch
 import torchaudio
 from transformers import Wav2Vec2ForCTC, Wav2Vec2FeatureExtractor, Wav2Vec2CTCTokenizer, Wav2Vec2Processor
@@ -11,7 +13,7 @@ class Wav2VecAlignment:
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(f"facebook/wav2vec2-large-960h")
         self.tokenizer = Wav2Vec2CTCTokenizer.from_pretrained('jbetker/tacotron_symbols')
 
-    def align(self, audio, expected_text, audio_sample_rate=24000, topk=3):
+    def align(self, audio, expected_text, audio_sample_rate=24000, topk=3, return_partial=False):
         orig_len = audio.shape[-1]
 
         with torch.no_grad():
@@ -41,8 +43,10 @@ class Wav2VecAlignment:
 
         if len(expected_tokens) > 0:
             print(f"Alignment did not work. {len(expected_tokens)} were not found, with the following string un-aligned:"
-                  f" {self.tokenizer.decode(expected_tokens)}")
-            return None
+                  f" `{self.tokenizer.decode(expected_tokens)}`. Here's what wav2vec thought it heard:"
+                  f"`{self.tokenizer.decode(logits.argmax(-1).tolist())}`")
+            if not return_partial:
+                return None
 
         return alignments
 
@@ -54,6 +58,8 @@ class Wav2VecAlignment:
         for spl in splitted[1:]:
             assert ']' in spl, 'Every "[" character must be paired with a "]" with no nesting.'
             fully_split.extend(spl.split(']'))
+        # Remove any non-alphabetic character in the input text. This makes matching more likely.
+        fully_split = [re.sub(r'[^a-zA-Z ]', '', s) for s in fully_split]
         # At this point, fully_split is a list of strings, with every other string being something that should be redacted.
         non_redacted_intervals = []
         last_point = 0
@@ -63,20 +69,22 @@ class Wav2VecAlignment:
             last_point += len(fully_split[i])
 
         bare_text = ''.join(fully_split)
-        alignments = self.align(audio, bare_text, audio_sample_rate, topk)
-        if alignments is None:
-            return audio  # Cannot redact because alignment did not succeed.
+        alignments = self.align(audio, bare_text, audio_sample_rate, topk, return_partial=True)
+        # If alignment fails, we will attempt to recover by assuming the remaining alignments consume the rest of the string.
+        def get_alignment(i):
+            if i >= len(alignments):
+                return audio.shape[-1]
 
         output_audio = []
         for nri in non_redacted_intervals:
             start, stop = nri
-            output_audio.append(audio[:, alignments[start]:alignments[stop]])
+            output_audio.append(audio[:, get_alignment(start):get_alignment(stop)])
         return torch.cat(output_audio, dim=-1)
 
 
 if __name__ == '__main__':
-    some_audio = load_audio('../../results/favorites/morgan_freeman_metallic_hydrogen.mp3', 24000)
+    some_audio = load_audio('../../results/train_dotrice_0.wav', 24000)
     aligner = Wav2VecAlignment()
-    text = "instead of molten iron, jupiter [and brown dwaves] have hydrogen, which [is under so much pressure that it] develops metallic properties"
+    text = "[God fucking damn it I'm so angry] The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them."
     redact = aligner.redact(some_audio, text)
     torchaudio.save(f'test_output.wav', redact, 24000)

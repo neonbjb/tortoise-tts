@@ -37,6 +37,8 @@ def download_models(specific_models=None):
         'cvvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/cvvp.pth',
         'diffusion_decoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/diffusion_decoder.pth',
         'vocoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/vocoder.pth',
+        'rlg_auto.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/rlg_auto.pth',
+        'rlg_diffuser.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/rlg_diffuser.pth',
     }
     os.makedirs('.models', exist_ok=True)
     def show_progress(block_num, block_size, total_size):
@@ -110,9 +112,9 @@ def fix_autoregressive_output(codes, stop_token, complain=True):
     stop_token_indices = (codes == stop_token).nonzero()
     if len(stop_token_indices) == 0:
         if complain:
-            print("No stop tokens found. This typically means the spoken audio is too long. In some cases, the output "
-                  "will still be good, though. Listen to it and if it is missing words, try breaking up your input "
-                  "text.")
+            print("No stop tokens found in one of the generated voice clips. This typically means the spoken audio is "
+                  "too long. In some cases, the output will still be good, though. Listen to it and if it is missing words, "
+                  "try breaking up your input text.")
         return codes
     else:
         codes[stop_token_indices] = 83
@@ -163,8 +165,7 @@ class TextToSpeech:
     Main entry point into Tortoise.
     """
 
-    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=True,
-                 save_random_voices=False):
+    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=True):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -174,14 +175,11 @@ class TextToSpeech:
         :param enable_redaction: When true, text enclosed in brackets are automatically redacted from the spoken output
                                  (but are still rendered by the model). This can be used for prompt engineering.
                                  Default is true.
-        :param save_random_voices: When true, voices that are randomly generated are saved to the `random_voices`
-                                   directory. Default is false.
         """
         self.autoregressive_batch_size = autoregressive_batch_size
         self.enable_redaction = enable_redaction
         if self.enable_redaction:
             self.aligner = Wav2VecAlignment()
-        self.save_random_voices = save_random_voices
 
         self.tokenizer = VoiceBpeTokenizer()
         download_models()
@@ -219,29 +217,6 @@ class TextToSpeech:
         # Random latent generators (RLGs) are loaded lazily.
         self.rlg_auto = None
         self.rlg_diffusion = None
-
-    def tts_with_preset(self, text, preset='fast', **kwargs):
-        """
-        Calls TTS with one of a set of preset generation parameters. Options:
-            'ultra_fast': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
-            'fast': Decent quality speech at a decent inference rate. A good choice for mass inference.
-            'standard': Very good quality. This is generally about as good as you are going to get.
-            'high_quality': Use if you want the absolute best. This is not really worth the compute, though.
-        """
-        # Use generally found best tuning knobs for generation.
-        kwargs.update({'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0,
-                       #'typical_sampling': True,
-                       'top_p': .8,
-                       'cond_free_k': 2.0, 'diffusion_temperature': 1.0})
-        # Presets are defined here.
-        presets = {
-            'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 32, 'cond_free': False},
-            'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 32},
-            'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 128},
-            'high_quality': {'num_autoregressive_samples': 512, 'diffusion_iterations': 1024},
-        }
-        kwargs.update(presets[preset])
-        return self.tts(text, **kwargs)
 
     def get_conditioning_latents(self, voice_samples, return_mels=False):
         """
@@ -288,11 +263,30 @@ class TextToSpeech:
             self.rlg_diffusion = RandomLatentConverter(2048).eval()
             self.rlg_diffusion.load_state_dict(torch.load('.models/rlg_diffuser.pth', map_location=torch.device('cpu')))
         with torch.no_grad():
-            latents = self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
-            if self.save_random_voices:
-                os.makedirs('random_voices', exist_ok=True)
-                torch.save(latents, f'random_voices/{str(uuid.uuid4())}.pth')
-            return latents
+            return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
+
+    def tts_with_preset(self, text, preset='fast', **kwargs):
+        """
+        Calls TTS with one of a set of preset generation parameters. Options:
+            'ultra_fast': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
+            'fast': Decent quality speech at a decent inference rate. A good choice for mass inference.
+            'standard': Very good quality. This is generally about as good as you are going to get.
+            'high_quality': Use if you want the absolute best. This is not really worth the compute, though.
+        """
+        # Use generally found best tuning knobs for generation.
+        kwargs.update({'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0,
+                       #'typical_sampling': True,
+                       'top_p': .8,
+                       'cond_free_k': 2.0, 'diffusion_temperature': 1.0})
+        # Presets are defined here.
+        presets = {
+            'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 32, 'cond_free': False},
+            'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 32},
+            'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 128},
+            'high_quality': {'num_autoregressive_samples': 512, 'diffusion_iterations': 1024},
+        }
+        kwargs.update(presets[preset])
+        return self.tts(text, **kwargs)
 
     def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True,
             # autoregressive generation parameters follow
@@ -452,7 +446,7 @@ class TextToSpeech:
 
             def potentially_redact(clip, text):
                 if self.enable_redaction:
-                    return self.aligner.redact(clip, text)
+                    return self.aligner.redact(clip.squeeze(1), text).unsqueeze(1)
                 return clip
             wav_candidates = [potentially_redact(wav_candidate, text) for wav_candidate in wav_candidates]
             if len(wav_candidates) > 1:

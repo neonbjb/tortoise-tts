@@ -40,7 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
                                                       'should only be specified if you have custom checkpoints.', default='.models')
     args = parser.parse_args()
-    tts = TextToSpeech(models_dir=args.model_dir, save_random_voices=True)
+    tts = TextToSpeech(models_dir=args.model_dir)
 
     outpath = args.output_path
     selected_voices = args.voice.split(',')

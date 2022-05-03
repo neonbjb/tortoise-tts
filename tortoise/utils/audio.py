@@ -114,7 +114,7 @@ def load_voices(voices):
         if voice == 'random':
             print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
             return None, None
-        latent, clip = load_voice(voice)
+        clip, latent = load_voice(voice)
         if latent is None:
             assert len(latents) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
             clips.extend(clip)
