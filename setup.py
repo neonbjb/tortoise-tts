@@ -21,7 +21,6 @@ setuptools.setup(
         'progressbar',
         'einops',
         'unidecode',
-        'entmax',
         'scipy',
         'librosa',
         'transformers',

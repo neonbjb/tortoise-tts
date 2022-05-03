@@ -10,7 +10,6 @@ from collections import namedtuple
 from einops import rearrange, repeat, reduce
 from einops.layers.torch import Rearrange
 
-from entmax import entmax15
 from torch.utils.checkpoint import checkpoint
 
 DEFAULT_DIM_HEAD = 64
@@ -556,7 +555,7 @@ class Attention(nn.Module):
         self.sparse_topk = sparse_topk
 
         # entmax
-        self.attn_fn = entmax15 if use_entmax15 else F.softmax
+        self.attn_fn = F.softmax
 
         # add memory key / values
         self.num_mem_kv = num_mem_kv
