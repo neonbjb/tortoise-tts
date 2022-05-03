@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--voice_diversity_intelligibility_slider', type=float,
                         help='How to balance vocal diversity with the quality/intelligibility of the spoken text. 0 means highly diverse voice (not recommended), 1 means maximize intellibility',
                         default=.5)
-    parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='../results/')
+    parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
                                                       'should only be specified if you have custom checkpoints.', default='.models')
     args = parser.parse_args()
