@@ -129,7 +129,6 @@ dmypy.json
 .pyre/
 
 .idea/*
-tortoise/.models/*
-tortoise/random_voices/*
+.models/*
 .custom/*
 results/*

@@ -82,10 +82,10 @@ def dynamic_range_decompression(x, C=1):
 
 
 def get_voices():
-    subs = os.listdir('voices')
+    subs = os.listdir('tortoise/voices')
     voices = {}
     for sub in subs:
-        subj = os.path.join('voices', sub)
+        subj = os.path.join('tortoise/voices', sub)
         if os.path.isdir(subj):
             voices[sub] = list(glob(f'{subj}/*.wav')) + list(glob(f'{subj}/*.mp3')) + list(glob(f'{subj}/*.pth'))
     return voices

@@ -290,7 +290,7 @@ class AudioMiniEncoder(nn.Module):
 
 class TorchMelSpectrogram(nn.Module):
     def __init__(self, filter_length=1024, hop_length=256, win_length=1024, n_mel_channels=80, mel_fmin=0, mel_fmax=8000,
-                 sampling_rate=22050, normalize=False, mel_norm_file='data/mel_norms.pth'):
+                 sampling_rate=22050, normalize=False, mel_norm_file='tortoise/data/mel_norms.pth'):
         super().__init__()
         # These are the default tacotron values for the MEL spectrogram.
         self.filter_length = filter_length

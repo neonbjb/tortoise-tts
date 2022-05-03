@@ -164,7 +164,7 @@ def lev_distance(s1, s2):
   return distances[-1]
 
 class VoiceBpeTokenizer:
-    def __init__(self, vocab_file='data/tokenizer.json'):
+    def __init__(self, vocab_file='tortoise/data/tokenizer.json'):
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
 
