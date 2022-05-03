@@ -7,6 +7,15 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
+### New features
+
+#### v2.1; 2022/5/2
+- Added ability to produce totally random voices.
+- Added ability to download voice conditioning latent via a script, and then use a user-provided conditioning latent.
+- Added ability to use your own pretrained models.
+- Refactored directory structures.
+- Performance improvements & bug fixes.
+
 ## What's in a name?
 
 I'm naming my speech-related repos after Mojave desert flora and fauna. Tortoise is a bit tongue in cheek: this model
@@ -38,7 +47,7 @@ pip install -r requirements.txt
 
 This script allows you to speak a single phrase with one or more voices.
 ```shell
-python do_tts.py --text "I'm going to speak this" --voice dotrice --preset fast
+python do_tts.py --text "I'm going to speak this" --voice random --preset fast
 ```
 
 ### read.py
@@ -46,7 +55,7 @@ python do_tts.py --text "I'm going to speak this" --voice dotrice --preset fast
 This script provides tools for reading large amounts of text.
 
 ```shell
-python read.py --textfile <your text to be read> --voice dotrice
+python read.py --textfile <your text to be read> --voice random
 ```
 
 This will break up the textfile into sentences, and then convert them to speech one at a time. It will output a series 
@@ -71,6 +80,15 @@ pcm_audio = tts.tts_with_preset("your text here", reference_clips, preset='fast'
 Tortoise was specifically trained to be a multi-speaker model. It accomplishes this by consulting reference clips.
 
 These reference clips are recordings of a speaker that you provide to guide speech generation. These clips are used to determine many properties of the output, such as the pitch and tone of the voice, speaking speed, and even speaking defects like a lisp or stuttering. The reference clip is also used to determine non-voice related aspects of the audio output like volume, background noise, recording quality and reverb.
+
+### Random voice
+
+I've included a feature which randomly generates a voice. These voices don't actually exist and will be random every time you run 
+it. The results are quite fascinating and I recommend you play around with it!
+
+You can use the random voice by passing in 'random' as the voice name. Tortoise will take care of the rest.
+
+For the those in the ML space: this is created by projecting a random vector onto the voice conditioning latent space.
 
 ### Provided voices
 

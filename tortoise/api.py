@@ -165,7 +165,7 @@ class TextToSpeech:
     Main entry point into Tortoise.
     """
 
-    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=True):
+    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=False):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
