@@ -47,7 +47,7 @@ pip install -r requirements.txt
 
 This script allows you to speak a single phrase with one or more voices.
 ```shell
-python do_tts.py --text "I'm going to speak this" --voice random --preset fast
+python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast
 ```
 
 ### read.py
@@ -55,7 +55,7 @@ python do_tts.py --text "I'm going to speak this" --voice random --preset fast
 This script provides tools for reading large amounts of text.
 
 ```shell
-python read.py --textfile <your text to be read> --voice random
+python tortoise/read.py --textfile <your text to be read> --voice random
 ```
 
 This will break up the textfile into sentences, and then convert them to speech one at a time. It will output a series 
@@ -170,7 +170,7 @@ came from Tortoise.
 This classifier can be run on any computer, usage is as follows:
 
 ```commandline
-python is_this_from_tortoise.py --clip=<path_to_suspicious_audio_file>
+python tortoise/is_this_from_tortoise.py --clip=<path_to_suspicious_audio_file>
 ```
 
 This model has 100% accuracy on the contents of the results/ and voices/ folders in this repo. Still, treat this classifier
