@@ -137,6 +137,13 @@ these settings (and it's very likely that I missed something!)
 These settings are not available in the normal scripts packaged with Tortoise. They are available, however, in the API. See
 ```api.tts``` for a full list.
 
+### Prompt engineering
+
+Some people have discovered that it is possible to do prompt engineering with Tortoise! For example, you can evoke emotion
+by including things like "I am really sad," before your text. I've built an automated redaction system that you can use to
+take advantage of this. It works by attempting to redact any text in the prompt surrounded by brackets. For example, the
+prompt "\[I am really sad,\] Please feed me." will only speak the words "Please feed me" (with a sad tonality).
+
 ### Playing with the voice latent
 
 Tortoise ingests reference clips by feeding them through individually through a small submodel that produces a point latent, 
