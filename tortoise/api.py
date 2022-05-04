@@ -165,7 +165,7 @@ class TextToSpeech:
     Main entry point into Tortoise.
     """
 
-    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=False):
+    def __init__(self, autoregressive_batch_size=16, models_dir='.models', enable_redaction=True):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -275,7 +275,6 @@ class TextToSpeech:
         """
         # Use generally found best tuning knobs for generation.
         kwargs.update({'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0,
-                       #'typical_sampling': True,
                        'top_p': .8,
                        'cond_free_k': 2.0, 'diffusion_temperature': 1.0})
         # Presets are defined here.
