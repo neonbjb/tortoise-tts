@@ -1,6 +1,7 @@
 import os
 from glob import glob
 
+import librosa
 import torch
 import torchaudio
 import numpy as np
@@ -26,9 +27,7 @@ def load_audio(audiopath, sampling_rate):
     if audiopath[-4:] == '.wav':
         audio, lsr = load_wav_to_torch(audiopath)
     elif audiopath[-4:] == '.mp3':
-        # https://github.com/neonbjb/pyfastmp3decoder  - Definitely worth it.
-        from pyfastmp3decoder.mp3decoder import load_mp3
-        audio, lsr = load_mp3(audiopath, sampling_rate)
+        audio, lsr = librosa.load(audiopath, sr=sampling_rate)
         audio = torch.FloatTensor(audio)
 
     # Remove any channel data.
