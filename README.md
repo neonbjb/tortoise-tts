@@ -9,6 +9,11 @@ This repo contains all the code needed to run Tortoise TTS in inference mode.
 
 ### New features
 
+#### v2.2; 2022/5/5
+- Added several new voices from the training set.
+- Automated redaction. Wrap the text you want to use to prompt the model but not be spoken in brackets.
+- Bug fixes
+
 #### v2.1; 2022/5/2
 - Added ability to produce totally random voices.
 - Added ability to download voice conditioning latent via a script, and then use a user-provided conditioning latent.
@@ -95,11 +100,9 @@ For the those in the ML space: this is created by projecting a random vector ont
 
 ### Provided voices
 
-This repo comes with several pre-packaged voices. You will be familiar with many of them. :)
-
-Most of the provided voices were not found in the training set. Experimentally, it seems that voices from the training set
-produce more realistic outputs then those outside of the training set. Any voice prepended with "train" came from the
-training set.
+This repo comes with several pre-packaged voices. Voices prepended with "train_" came from the training set and perform
+far better than the others. If your goal is high quality speech, I recommend you pick one of them. If you want to see
+what Tortoise can do for zero-shot mimicing, take a look at the others.
 
 ### Adding a new voice
 

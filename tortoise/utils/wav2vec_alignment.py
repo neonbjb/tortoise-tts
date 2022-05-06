@@ -66,7 +66,7 @@ class Wav2VecAlignment:
         logits = logits[0]
         pred_string = self.tokenizer.decode(logits.argmax(-1).tolist())
 
-        fixed_expectation = max_alignment(expected_text, pred_string)
+        fixed_expectation = max_alignment(expected_text.lower(), pred_string)
         w2v_compression = orig_len // logits.shape[0]
         expected_tokens = self.tokenizer.encode(fixed_expectation)
         expected_chars = list(fixed_expectation)
@@ -100,7 +100,10 @@ class Wav2VecAlignment:
                     break
 
         pop_till_you_win()
-        assert len(expected_tokens) == 0, "This shouldn't happen. My coding sucks."
+        if not (len(expected_tokens) == 0 and len(alignments) == len(expected_text)):
+            torch.save([audio, expected_text], 'alignment_debug.pth')
+            assert False, "Something went wrong with the alignment algorithm. I've dumped a file, 'alignment_debug.pth' to" \
+                          "your current working directory. Please report this along with the file so it can get fixed."
 
         # Now fix up alignments. Anything with -1 should be interpolated.
         alignments.append(orig_len)  # This'll get removed but makes the algorithm below more readable.

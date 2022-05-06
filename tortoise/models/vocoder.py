@@ -284,8 +284,6 @@ class UnivNetGenerator(nn.Module):
             self.remove_weight_norm()
 
     def remove_weight_norm(self):
-        print('Removing weight norm...')
-
         nn.utils.remove_weight_norm(self.conv_pre)
 
         for layer in self.conv_post:
