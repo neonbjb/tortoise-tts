@@ -38,18 +38,23 @@ See [this page](http://nonint.com/static/tortoise_v2_examples.html) for a large 
 Colab is the easiest way to try this out. I've put together a notebook you can use here:
 https://colab.research.google.com/drive/1wVVqUPqwiDBUVeWWOUNglpGhU3hg_cbR?usp=sharing
 
-### Installation
+### Local Installation
 
-If you want to use this on your own computer, you must have an NVIDIA GPU. First, install pytorch using these
-instructions: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/)
+If you want to use this on your own computer, you must have an NVIDIA GPU. 
 
-Then:
+First, install pytorch using these instructions: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/).
+On Windows, I **highly** recommend using the Conda installation path. I have been told that if you do not do this, you
+will spend a lot of time chasing dependency problems.
+
+Next, install TorToiSe and it's dependencies:
 
 ```shell
 git clone https://github.com/neonbjb/tortoise-tts.git
 cd tortoise-tts
 python setup.py install
 ```
+
+If you are on windows, you will also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
 
 ### do_tts.py
 
