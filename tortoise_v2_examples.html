@@ -36,13 +36,20 @@ available at <a href="https://github.com/neonbjb/tortoise-tts">https://github.co
 <p>LJSpeech is a popular dataset used to train small-scale TTS models. TorToiSe is a multi-voice model, following is how
 it renders the LJSpeech voice with no fine-tuning, compared with results for the same text from the popular Tacotron2
 model paired with the Waveglow transformer:</p>
-<table><th>Tacotron2+Waveglow</th><th>TorToiSe</th><tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/2-tacotron2.mp3" type="audio/mp3"></audio><br>
-</td><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/2-tortoise.mp3" type="audio/mp3"></audio><br>
-</td></tr><tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/3-tacotron2.mp3" type="audio/mp3"></audio><br>
-</td><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/3-tortoise.mp3" type="audio/mp3"></audio><br>
-</td></tr><tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/4-tacotron2.mp3" type="audio/mp3"></audio><br>
-</td><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/4-tortoise.mp3" type="audio/mp3"></audio><br>
-</td></tr></table>
+<table><th>Tacotron2+Waveglow</th><th>TorToiSe</th><th>TorToiSe Finetuned</th><tr>
+    <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/2-tacotron2.mp3" type="audio/mp3"></audio><br>
+</td>
+    <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/2-tortoise.mp3" type="audio/mp3"></audio><br></td>
+    <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/finetuned/lj/2.mp3" type="audio/mp3"></audio><br></td>
+</tr><tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/3-tacotron2.mp3" type="audio/mp3"></audio><br></td>
+    <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/3-tortoise.mp3" type="audio/mp3"></audio><br></td>
+
+    <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/finetuned/lj/3.mp3" type="audio/mp3"></audio><br></td>
+</tr><tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/4-tacotron2.mp3" type="audio/mp3"></audio><br>
+</td><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/4-tortoise.mp3" type="audio/mp3"></audio><br></td>
+
+    <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/finetuned/lj/4.mp3" type="audio/mp3"></audio><br></td>
+</tr></table>
 
 <h1>All Results 🐢</h1>
 <p>    Following are all the results from which the hand-picked results were drawn from. Also included is the reference
