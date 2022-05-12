@@ -48,13 +48,19 @@ if __name__ == '__main__':
     if regenerate is not None:
         regenerate = [int(e) for e in regenerate.split(',')]
 
+    # Process text
+    with open(args.textfile, 'r', encoding='utf-8') as f:
+        text = ' '.join([l for l in f.readlines()])
+    if '|' in text:
+        print("Found the '|' character in your text, which I will use as a cue for where to split it up. If this was not"
+              "your intent, please remove all '|' characters from the input.")
+        texts = text.split('|')
+    else:
+        texts = split_and_recombine_text(text)
+
     for selected_voice in selected_voices:
         voice_outpath = os.path.join(outpath, selected_voice)
         os.makedirs(voice_outpath, exist_ok=True)
-
-        with open(args.textfile, 'r', encoding='utf-8') as f:
-            text = ''.join([l for l in f.readlines()])
-        texts = split_and_recombine_text(text)
 
         if '&' in selected_voice:
             voice_sel = selected_voice.split('&')
