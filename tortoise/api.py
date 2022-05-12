@@ -200,11 +200,11 @@ class TextToSpeech:
                                           layer_drop=0, unconditioned_percentage=0).cpu().eval()
             self.diffusion.load_state_dict(torch.load(f'{models_dir}/diffusion_decoder.pth'))
 
-        self.clvp = CLVP(dim_text=512, dim_speech=512, dim_latent=512, num_text_tokens=256, text_enc_depth=12,
-                         text_seq_len=350, text_heads=8,
-                         num_speech_tokens=8192, speech_enc_depth=12, speech_heads=8, speech_seq_len=430,
+        self.clvp = CLVP(dim_text=768, dim_speech=768, dim_latent=768, num_text_tokens=256, text_enc_depth=20,
+                         text_seq_len=350, text_heads=12,
+                         num_speech_tokens=8192, speech_enc_depth=20, speech_heads=12, speech_seq_len=430,
                          use_xformers=True).cpu().eval()
-        self.clvp.load_state_dict(torch.load(f'{models_dir}/clvp.pth'))
+        self.clvp.load_state_dict(torch.load(f'{models_dir}/clvp2.pth'))
 
         self.cvvp = CVVP(model_dim=512, transformer_heads=8, dropout=0, mel_codes=8192, conditioning_enc_depth=8, cond_mask_percentage=0,
                          speech_enc_depth=8, speech_mask_percentage=0, latent_multiplier=1).cpu().eval()
