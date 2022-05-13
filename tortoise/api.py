@@ -31,14 +31,14 @@ def download_models(specific_models=None):
     Call to download all the models that Tortoise uses.
     """
     MODELS = {
-        'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/autoregressive.pth',
-        'classifier.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/classifier.pth',
-        'clvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/clvp.pth',
-        'cvvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/cvvp.pth',
-        'diffusion_decoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/diffusion_decoder.pth',
-        'vocoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/vocoder.pth',
-        'rlg_auto.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/rlg_auto.pth',
-        'rlg_diffuser.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/hf/.models/rlg_diffuser.pth',
+        'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/autoregressive.pth',
+        'classifier.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/classifier.pth',
+        'clvp2.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/clvp2.pth',
+        'cvvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/cvvp.pth',
+        'diffusion_decoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/diffusion_decoder.pth',
+        'vocoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/vocoder.pth',
+        'rlg_auto.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_auto.pth',
+        'rlg_diffuser.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_diffuser.pth',
     }
     os.makedirs('.models', exist_ok=True)
     def show_progress(block_num, block_size, total_size):
