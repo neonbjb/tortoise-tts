@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 
 import torch
 import torchaudio
@@ -9,8 +10,8 @@ from tortoise.utils.audio import load_audio, get_voices, load_voices
 
 
 def split_and_recombine_text(texts, desired_length=200, max_len=300):
-    # TODO: also split across '!' and '?'. Attempt to keep quotations together.
-    texts = [s.strip() + "." for s in texts.split('.')]
+    split = re.split(r'([\!\?\;]|\.{1,3})+(?=(?:(?:[^\"\n]*\"){2})*[^\"\n]*$)',texts, flags=re.MULTILINE)
+    texts = [split[i-1].strip()+split[i].strip() for i in range(1,len(split),2)]
 
     i = 0
     while i < len(texts):
