@@ -9,6 +9,10 @@ This repo contains all the code needed to run Tortoise TTS in inference mode.
 
 ### New features
 
+#### v2.3; 2022/5/12
+- New CLVP-large model for further improved decoding guidance.
+- Improvements to read.py and do_tts.py (new options)
+
 #### v2.2; 2022/5/5
 - Added several new voices from the training set.
 - Automated redaction. Wrap the text you want to use to prompt the model but not be spoken in brackets.
