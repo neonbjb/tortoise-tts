@@ -29,6 +29,8 @@ def load_audio(audiopath, sampling_rate):
     elif audiopath[-4:] == '.mp3':
         audio, lsr = librosa.load(audiopath, sr=sampling_rate)
         audio = torch.FloatTensor(audio)
+    else:
+        assert False, f"Unsupported audio format provided: {audiopath[-4:]}"
 
     # Remove any channel data.
     if len(audio.shape) > 1:
