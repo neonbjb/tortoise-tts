@@ -5,25 +5,8 @@ import torch
 import torchaudio
 
 from api import TextToSpeech
-from tortoise.utils.audio import load_audio, get_voices, load_voices
-
-
-def split_and_recombine_text(texts, desired_length=200, max_len=300):
-    # TODO: also split across '!' and '?'. Attempt to keep quotations together.
-    texts = [s.strip() + "." for s in texts.split('.')]
-
-    i = 0
-    while i < len(texts):
-        ltxt = texts[i]
-        if len(ltxt) >= desired_length or i == len(texts)-1:
-            i += 1
-            continue
-        if len(ltxt) + len(texts[i+1]) > max_len:
-            i += 1
-            continue
-        texts[i] = f'{ltxt} {texts[i+1]}'
-        texts.pop(i+1)
-    return texts
+from utils.audio import load_audio, get_voices, load_voices
+from utils.text import split_and_recombine_text
 
 
 if __name__ == '__main__':
