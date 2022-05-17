@@ -1,6 +1,7 @@
 import os
 import random
 import uuid
+from time import time
 from urllib import request
 
 import torch
@@ -304,7 +305,8 @@ class TextToSpeech:
         kwargs.update(presets[preset])
         return self.tts(text, **kwargs)
 
-    def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True,
+    def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True, use_deterministic_seed=None,
+            return_deterministic_state=False,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8, max_mel_tokens=500,
             # CLVP & CVVP parameters
@@ -359,6 +361,8 @@ class TextToSpeech:
         :return: Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
                  Sample rate is 24kHz.
         """
+        deterministic_seed = self.deterministic_state(seed=use_deterministic_seed)
+
         text_tokens = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).cuda()
         text_tokens = F.pad(text_tokens, (0, 1))  # This may not be necessary.
         assert text_tokens.shape[-1] < 400, 'Too much text provided. Break the text up into separate segments and re-try inference.'
@@ -465,7 +469,26 @@ class TextToSpeech:
                     return self.aligner.redact(clip.squeeze(1), text).unsqueeze(1)
                 return clip
             wav_candidates = [potentially_redact(wav_candidate, text) for wav_candidate in wav_candidates]
-            if len(wav_candidates) > 1:
-                return wav_candidates
-            return wav_candidates[0]
 
+            if len(wav_candidates) > 1:
+                res = wav_candidates
+            else:
+                res = wav_candidates[0]
+
+            if return_deterministic_state:
+                return res, (deterministic_seed, text, voice_samples, conditioning_latents)
+            else:
+                return res
+
+    def deterministic_state(self, seed=None):
+        """
+        Sets the random seeds that tortoise uses to the current time() and returns that seed so results can be
+        reproduced.
+        """
+        seed = int(time()) if seed is None else seed
+        torch.manual_seed(seed)
+        random.seed(seed)
+        # Can't currently set this because of CUBLAS. TODO: potentially enable it if necessary.
+        # torch.use_deterministic_algorithms(True)
+
+        return seed

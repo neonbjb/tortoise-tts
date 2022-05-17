@@ -1,5 +1,6 @@
 import argparse
 import os
+from time import time
 
 import torch
 import torchaudio
@@ -22,6 +23,9 @@ if __name__ == '__main__':
                         default=.5)
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
                                                       'should only be specified if you have custom checkpoints.', default='.models')
+    parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
+    parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
+
     args = parser.parse_args()
     tts = TextToSpeech(models_dir=args.model_dir)
 
@@ -41,6 +45,7 @@ if __name__ == '__main__':
     else:
         texts = split_and_recombine_text(text)
 
+    seed = int(time()) if args.seed is None else args.seed
     for selected_voice in selected_voices:
         voice_outpath = os.path.join(outpath, selected_voice)
         os.makedirs(voice_outpath, exist_ok=True)
@@ -57,10 +62,17 @@ if __name__ == '__main__':
                 all_parts.append(load_audio(os.path.join(voice_outpath, f'{j}.wav'), 24000))
                 continue
             gen = tts.tts_with_preset(text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
-                                      preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider)
+                                      preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider,
+                                      use_deterministic_seed=seed)
             gen = gen.squeeze(0).cpu()
             torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen, 24000)
             all_parts.append(gen)
+
         full_audio = torch.cat(all_parts, dim=-1)
         torchaudio.save(os.path.join(voice_outpath, 'combined.wav'), full_audio, 24000)
+
+        if args.produce_debug_state:
+            os.makedirs('debug_states', exist_ok=True)
+            dbg_state = (seed, texts, voice_samples, conditioning_latents)
+            torch.save(dbg_state, f'debug_states/read_debug_{selected_voice}.pth')
 
