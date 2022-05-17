@@ -13,9 +13,6 @@ if __name__ == '__main__':
     parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
                                                  'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='random')
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='fast')
-    parser.add_argument('--voice_diversity_intelligibility_slider', type=float,
-                        help='How to balance vocal diversity with the quality/intelligibility of the spoken text. 0 means highly diverse voice (not recommended), 1 means maximize intellibility',
-                        default=.5)
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
                                                       'should only be specified if you have custom checkpoints.', default='.models')
@@ -31,8 +28,7 @@ if __name__ == '__main__':
     for k, voice in enumerate(selected_voices):
         voice_samples, conditioning_latents = load_voice(voice)
         gen, dbg_state = tts.tts_with_preset(args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
-                                  preset=args.preset, clvp_cvvp_slider=args.voice_diversity_intelligibility_slider,
-                                  use_deterministic_seed=args.seed, return_deterministic_state=True)
+                                  preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True)
         if isinstance(gen, list):
             for j, g in enumerate(gen):
                 torchaudio.save(os.path.join(args.output_path, f'{voice}_{k}_{j}.wav'), g.squeeze(0).cpu(), 24000)

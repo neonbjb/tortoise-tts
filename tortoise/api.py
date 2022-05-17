@@ -10,7 +10,6 @@ import progressbar
 import torchaudio
 
 from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
-from tortoise.models.cvvp import CVVP
 from tortoise.models.diffusion_decoder import DiffusionTts
 from tortoise.models.autoregressive import UnifiedVoice
 from tqdm import tqdm
@@ -35,7 +34,6 @@ def download_models(specific_models=None):
         'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/autoregressive.pth',
         'classifier.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/classifier.pth',
         'clvp2.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/clvp2.pth',
-        'cvvp.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/cvvp.pth',
         'diffusion_decoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/diffusion_decoder.pth',
         'vocoder.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/vocoder.pth',
         'rlg_auto.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_auto.pth',
@@ -223,10 +221,6 @@ class TextToSpeech:
                          use_xformers=True).cpu().eval()
         self.clvp.load_state_dict(torch.load(f'{models_dir}/clvp2.pth'))
 
-        self.cvvp = CVVP(model_dim=512, transformer_heads=8, dropout=0, mel_codes=8192, conditioning_enc_depth=8, cond_mask_percentage=0,
-                         speech_enc_depth=8, speech_mask_percentage=0, latent_multiplier=1).cpu().eval()
-        self.cvvp.load_state_dict(torch.load(f'{models_dir}/cvvp.pth'))
-
         self.vocoder = UnivNetGenerator().cpu()
         self.vocoder.load_state_dict(torch.load(f'{models_dir}/vocoder.pth')['model_g'])
         self.vocoder.eval(inference=True)
@@ -309,8 +303,6 @@ class TextToSpeech:
             return_deterministic_state=False,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8, max_mel_tokens=500,
-            # CLVP & CVVP parameters
-            clvp_cvvp_slider=.5,
             # diffusion generation parameters follow
             diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,
             **hf_generate_kwargs):
@@ -321,10 +313,10 @@ class TextToSpeech:
         :param conditioning_latents: A tuple of (autoregressive_conditioning_latent, diffusion_conditioning_latent), which
                                      can be provided in lieu of voice_samples. This is ignored unless voice_samples=None.
                                      Conditioning latents can be retrieved via get_conditioning_latents().
-        :param k: The number of returned clips. The most likely (as determined by Tortoises' CLVP and CVVP models) clips are returned.
+        :param k: The number of returned clips. The most likely (as determined by Tortoises' CLVP model) clips are returned.
         :param verbose: Whether or not to print log messages indicating the progress of creating a clip. Default=true.
         ~~AUTOREGRESSIVE KNOBS~~
-        :param num_autoregressive_samples: Number of samples taken from the autoregressive model, all of which are filtered using CLVP+CVVP.
+        :param num_autoregressive_samples: Number of samples taken from the autoregressive model, all of which are filtered using CLVP.
                As Tortoise is a probabilistic model, more samples means a higher probability of creating something "great".
         :param temperature: The softmax temperature of the autoregressive model.
         :param length_penalty: A length penalty applied to the autoregressive decoder. Higher settings causes the model to produce more terse outputs.
@@ -336,11 +328,6 @@ class TextToSpeech:
                                  I was interested in the premise, but the results were not as good as I was hoping. This is off by default, but
                                  could use some tuning.
         :param typical_mass: The typical_mass parameter from the typical_sampling algorithm.
-        ~~CLVP-CVVP KNOBS~~
-        :param clvp_cvvp_slider: Controls the influence of the CLVP and CVVP models in selecting the best output from the autoregressive model.
-                                [0,1]. Values closer to 1 will cause Tortoise to emit clips that follow the text more. Values closer to
-                                0 will cause Tortoise to emit clips that more closely follow the reference clip (e.g. the voice sounds more
-                                similar).
         ~~DIFFUSION KNOBS~~
         :param diffusion_iterations: Number of diffusion steps to perform. [0,4000]. More steps means the network has more chances to iteratively refine
                                      the output, which should theoretically mean a higher quality output. Generally a value above 250 is not noticeably better,
@@ -402,28 +389,19 @@ class TextToSpeech:
                 samples.append(codes)
             self.autoregressive = self.autoregressive.cpu()
 
-            clip_results = []
+            clvp_results = []
             self.clvp = self.clvp.cuda()
-            self.cvvp = self.cvvp.cuda()
             if verbose:
-                print("Computing best candidates using CLVP and CVVP")
+                print("Computing best candidates using CLVP")
             for batch in tqdm(samples, disable=not verbose):
                 for i in range(batch.shape[0]):
                     batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
                 clvp = self.clvp(text_tokens.repeat(batch.shape[0], 1), batch, return_loss=False)
-                if auto_conds is not None:
-                    cvvp_accumulator = 0
-                    for cl in range(auto_conds.shape[1]):
-                        cvvp_accumulator = cvvp_accumulator + self.cvvp(auto_conds[:, cl].repeat(batch.shape[0], 1, 1), batch, return_loss=False)
-                    cvvp = cvvp_accumulator / auto_conds.shape[1]
-                    clip_results.append(clvp * clvp_cvvp_slider + cvvp * (1-clvp_cvvp_slider))
-                else:
-                    clip_results.append(clvp)
-            clip_results = torch.cat(clip_results, dim=0)
+                clvp_results.append(clvp)
+            clvp_results = torch.cat(clvp_results, dim=0)
             samples = torch.cat(samples, dim=0)
-            best_results = samples[torch.topk(clip_results, k=k).indices]
+            best_results = samples[torch.topk(clvp_results, k=k).indices]
             self.clvp = self.clvp.cpu()
-            self.cvvp = self.cvvp.cpu()
             del samples
 
             # The diffusion model actually wants the last hidden layer from the autoregressive model as conditioning
