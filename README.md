@@ -7,7 +7,11 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
-### New features
+### Version history
+
+#### v2.4; 2022/5/117
+- Removed CVVP model. Found that it does not, in fact, make an appreciable difference in the output.
+- Add better debugging support; existing tools now spit out debug files which can be used to reproduce bad runs.
 
 #### v2.3; 2022/5/12
 - New CLVP-large model for further improved decoding guidance.
