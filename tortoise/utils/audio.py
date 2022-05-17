@@ -119,14 +119,16 @@ def load_voices(voices):
         if latent is None:
             assert len(latents) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
             clips.extend(clip)
-        elif voice is None:
-            assert len(voices) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
+        elif clip is None:
+            assert len(clips) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
             latents.append(latent)
     if len(latents) == 0:
         return clips, None
     else:
-        latents = torch.stack(latents, dim=0)
-        return None, latents.mean(dim=0)
+        latents_0 = torch.stack([l[0] for l in latents], dim=0).mean(dim=0)
+        latents_1 = torch.stack([l[1] for l in latents], dim=0).mean(dim=0)
+        latents = (latents_0,latents_1)
+        return None, latents
 
 
 class TacotronSTFT(torch.nn.Module):
