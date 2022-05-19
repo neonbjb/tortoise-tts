@@ -3,8 +3,8 @@ import os
 
 import torchaudio
 
-from api import TextToSpeech
-from tortoise.utils.audio import load_audio, get_voices, load_voice
+from api import TextToSpeech, MODELS_DIR
+from utils.audio import load_voice
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -17,7 +17,7 @@ if __name__ == '__main__':
                         default=.5)
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
-                                                      'should only be specified if you have custom checkpoints.', default='.models')
+                                                      'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
