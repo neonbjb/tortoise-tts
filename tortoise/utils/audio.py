@@ -82,21 +82,23 @@ def dynamic_range_decompression(x, C=1):
     return torch.exp(x) / C
 
 
-def get_voices():
-    subs = os.listdir('tortoise/voices')
+def get_voices(extra_voice_dirs=[]):
+    dirs = ['tortoise/voices'] + extra_voice_dirs
     voices = {}
-    for sub in subs:
-        subj = os.path.join('tortoise/voices', sub)
-        if os.path.isdir(subj):
-            voices[sub] = list(glob(f'{subj}/*.wav')) + list(glob(f'{subj}/*.mp3')) + list(glob(f'{subj}/*.pth'))
+    for d in dirs:
+        subs = os.listdir(d)
+        for sub in subs:
+            subj = os.path.join(d, sub)
+            if os.path.isdir(subj):
+                voices[sub] = list(glob(f'{subj}/*.wav')) + list(glob(f'{subj}/*.mp3')) + list(glob(f'{subj}/*.pth'))
     return voices
 
 
-def load_voice(voice):
+def load_voice(voice, extra_voice_dirs=[]):
     if voice == 'random':
         return None, None
 
-    voices = get_voices()
+    voices = get_voices(extra_voice_dirs)
     paths = voices[voice]
     if len(paths) == 1 and paths[0].endswith('.pth'):
         return None, torch.load(paths[0])
@@ -108,14 +110,14 @@ def load_voice(voice):
         return conds, None
 
 
-def load_voices(voices):
+def load_voices(voices, extra_voice_dirs=[]):
     latents = []
     clips = []
     for voice in voices:
         if voice == 'random':
             print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
             return None, None
-        clip, latent = load_voice(voice)
+        clip, latent = load_voice(voice, extra_voice_dirs)
         if latent is None:
             assert len(latents) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
             clips.extend(clip)
