@@ -25,6 +25,7 @@ from tortoise.utils.wav2vec_alignment import Wav2VecAlignment
 
 pbar = None
 
+MODELS_DIR = os.environ.get('TORTOISE_MODELS_DIR', '.models')
 
 def download_models(specific_models=None):
     """
@@ -39,7 +40,7 @@ def download_models(specific_models=None):
         'rlg_auto.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_auto.pth',
         'rlg_diffuser.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_diffuser.pth',
     }
-    os.makedirs('.models', exist_ok=True)
+    os.makedirs(MODELS_DIR, exist_ok=True)
     def show_progress(block_num, block_size, total_size):
         global pbar
         if pbar is None:
@@ -55,10 +56,11 @@ def download_models(specific_models=None):
     for model_name, url in MODELS.items():
         if specific_models is not None and model_name not in specific_models:
             continue
-        if os.path.exists(f'.models/{model_name}'):
+        model_path = os.path.join(MODELS_DIR, model_name)
+        if os.path.exists(model_path):
             continue
         print(f'Downloading {model_name} from {url}...')
-        request.urlretrieve(url, f'.models/{model_name}', show_progress)
+        request.urlretrieve(url, model_path, show_progress)
         print('Done.')
 
 
@@ -153,7 +155,7 @@ def classify_audio_clip(clip):
     classifier = AudioMiniEncoderWithClassifierHead(2, spec_dim=1, embedding_dim=512, depth=5, downsample_factor=4,
                                                     resnet_blocks=2, attn_blocks=4, num_attn_heads=4, base_channels=32,
                                                     dropout=0, kernel_size=5, distribute_zero_label=False)
-    classifier.load_state_dict(torch.load('.models/classifier.pth', map_location=torch.device('cpu')))
+    classifier.load_state_dict(torch.load(os.path.join(MODELS_DIR, 'classifier.pth'), map_location=torch.device('cpu')))
     clip = clip.cpu().unsqueeze(0)
     results = F.softmax(classifier(clip), dim=-1)
     return results[0][0]
@@ -180,7 +182,7 @@ class TextToSpeech:
     Main entry point into Tortoise.
     """
 
-    def __init__(self, autoregressive_batch_size=None, models_dir='.models', enable_redaction=True):
+    def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, enable_redaction=True):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -271,9 +273,9 @@ class TextToSpeech:
         # Lazy-load the RLG models.
         if self.rlg_auto is None:
             self.rlg_auto = RandomLatentConverter(1024).eval()
-            self.rlg_auto.load_state_dict(torch.load('.models/rlg_auto.pth', map_location=torch.device('cpu')))
+            self.rlg_auto.load_state_dict(torch.load(os.path.join(MODELS_DIR, 'rlg_auto.pth'), map_location=torch.device('cpu')))
             self.rlg_diffusion = RandomLatentConverter(2048).eval()
-            self.rlg_diffusion.load_state_dict(torch.load('.models/rlg_diffuser.pth', map_location=torch.device('cpu')))
+            self.rlg_diffusion.load_state_dict(torch.load(os.path.join(MODELS_DIR, 'rlg_diffuser.pth'), map_location=torch.device('cpu')))
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 

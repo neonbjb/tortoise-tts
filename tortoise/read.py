@@ -5,8 +5,8 @@ from time import time
 import torch
 import torchaudio
 
-from api import TextToSpeech
-from utils.audio import load_audio, get_voices, load_voices
+from api import TextToSpeech, MODELS_DIR
+from utils.audio import load_audio, load_voices
 from utils.text import split_and_recombine_text
 
 
@@ -19,10 +19,14 @@ if __name__ == '__main__':
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='standard')
     parser.add_argument('--regenerate', type=str, help='Comma-separated list of clip numbers to re-generate, or nothing.', default=None)
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
+<<<<<<< HEAD
                                                       'should only be specified if you have custom checkpoints.', default='.models')
     parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
     parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
 
+=======
+                                                      'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
+>>>>>>> origin/main
     args = parser.parse_args()
     tts = TextToSpeech(models_dir=args.model_dir)
 

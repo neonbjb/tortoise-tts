@@ -4,8 +4,8 @@ import os
 import torch
 import torchaudio
 
-from api import TextToSpeech
-from tortoise.utils.audio import load_audio, get_voices, load_voice
+from api import TextToSpeech, MODELS_DIR
+from utils.audio import load_voice
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='fast')
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
-                                                      'should only be specified if you have custom checkpoints.', default='.models')
+                                                      'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
     parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
     parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
