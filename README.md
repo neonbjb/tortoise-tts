@@ -9,7 +9,7 @@ This repo contains all the code needed to run Tortoise TTS in inference mode.
 
 ### Version history
 
-#### v2.4; 2022/5/117
+#### v2.4; 2022/5/17
 - Removed CVVP model. Found that it does not, in fact, make an appreciable difference in the output.
 - Add better debugging support; existing tools now spit out debug files which can be used to reproduce bad runs.
 
