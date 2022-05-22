@@ -36,11 +36,11 @@ if __name__ == '__main__':
                                   preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True)
         if isinstance(gen, list):
             for j, g in enumerate(gen):
-                torchaudio.save(os.path.join(args.output_path, f'{voice}_{k}_{j}.wav'), g.squeeze(0).cpu(), 24000)
+                torchaudio.save(os.path.join(args.output_path, f'{selected_voice}_{k}_{j}.wav'), g.squeeze(0).cpu(), 24000)
         else:
-            torchaudio.save(os.path.join(args.output_path, f'{voice}_{k}.wav'), gen.squeeze(0).cpu(), 24000)
+            torchaudio.save(os.path.join(args.output_path, f'{selected_voice}_{k}.wav'), gen.squeeze(0).cpu(), 24000)
 
         if args.produce_debug_state:
             os.makedirs('debug_states', exist_ok=True)
-            torch.save(dbg_state, f'debug_states/do_tts_debug_{voice}.pth')
+            torch.save(dbg_state, f'debug_states/do_tts_debug_{selected_voice}.pth')
 
