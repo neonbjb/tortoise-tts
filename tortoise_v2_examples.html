@@ -32,10 +32,10 @@ available at <a href="https://github.com/neonbjb/tortoise-tts">https://github.co
 <h2>Short-form</h2>
 <audio controls="" style="width: 600px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/favorite_riding_hood.mp3" type="audio/mp3"></audio><br>
 
-<h1>Compared to Tacotron2 (with the LJSpeech voice): 🐢 </h1>
+<h1>Comparisons (with the LJSpeech voice): 🐢 </h1>
 <p>LJSpeech is a popular dataset used to train small-scale TTS models. TorToiSe is a multi-voice model, following is how
-it renders the LJSpeech voice with no fine-tuning, compared with results for the same text from the popular Tacotron2
-model paired with the Waveglow transformer:</p>
+it renders the LJSpeech voice with and without fine-tuning, compared with results for the same text from the popular Tacotron2
+model paired with the Waveglow vocoder.</p>
 <table><th>Tacotron2+Waveglow</th><th>TorToiSe</th><th>TorToiSe Finetuned</th><tr>
     <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/tacotron_comparison/2-tacotron2.mp3" type="audio/mp3"></audio><br>
 </td>
@@ -50,6 +50,22 @@ model paired with the Waveglow transformer:</p>
 
     <td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/finetuned/lj/4.mp3" type="audio/mp3"></audio><br></td>
 </tr></table>
+<p>NaturalVoice is a SOTA TTS engine developed by Microsoft Research Asia in May 2022. It features realistic prosody
+and end-to-end generation with no need for a vocoder. While not much has actually been released about this model other
+than five samples, those samples are quite good and I would consider this the most competitive TTS engine out there
+right now.</p>
+<table><th>Natural Voice</th><th>TorToiSe Finetuned</th>
+<tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/naturalspeech_comparison/lax/naturalspeech.mp3" type="audio/mp3"></audio><br></td>
+<td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/naturalspeech_comparison/lax/tortoise.mp3" type="audio/mp3"></audio><br></td>
+</tr><tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/naturalspeech_comparison/maltby/naturalspeech.mp3" type="audio/mp3"></audio><br></td>
+<td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/naturalspeech_comparison/maltby/tortoise.mp3" type="audio/mp3"></audio><br></td>
+</tr><tr><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/naturalspeech_comparison/fibers/naturalspeech.mp3" type="audio/mp3"></audio><br>
+</td><td><audio controls="" style="width: 300px;"><source src="https://github.com/neonbjb/tortoise-tts/raw/main/examples/naturalspeech_comparison/fibers/tortoise.mp3" type="audio/mp3"></audio><br></td>
+</tr></table>
+<p>It is important to note that it is not actually fair to compare any of these models: Tortoise is a multi-voice probabilistic
+model trained on millions of hours of speech with an exceptionally slow inference time. Tacotron and NaturalVoice are efficient,
+fast, single-voice models trained on 24 hours of speech. Unfortunately, there isn't much in the way of actually comparable
+research to Tortoise.</p>
 
 <h1>All Results 🐢</h1>
 <p>    Following are all the results from which the hand-picked results were drawn from. Also included is the reference
