@@ -5,7 +5,7 @@ import torch
 import torchaudio
 
 from api import TextToSpeech, MODELS_DIR
-from utils.audio import load_voice
+from utils.audio import load_voices
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -25,8 +25,13 @@ if __name__ == '__main__':
     tts = TextToSpeech(models_dir=args.model_dir)
 
     selected_voices = args.voice.split(',')
-    for k, voice in enumerate(selected_voices):
-        voice_samples, conditioning_latents = load_voice(voice)
+    for k, selected_voice in enumerate(selected_voices):
+        if '&' in selected_voice:
+            voice_sel = selected_voice.split('&')
+        else:
+            voice_sel = [selected_voice]
+        voice_samples, conditioning_latents = load_voices(voice_sel)
+
         gen, dbg_state = tts.tts_with_preset(args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
                                   preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True)
         if isinstance(gen, list):
