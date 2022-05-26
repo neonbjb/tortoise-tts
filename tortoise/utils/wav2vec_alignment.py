@@ -7,13 +7,15 @@ from transformers import Wav2Vec2ForCTC, Wav2Vec2FeatureExtractor, Wav2Vec2CTCTo
 from tortoise.utils.audio import load_audio
 
 
-def max_alignment(s1, s2, skip_character='~', record={}):
+def max_alignment(s1, s2, skip_character='~', record=None):
     """
     A clever function that aligns s1 to s2 as best it can. Wherever a character from s1 is not found in s2, a '~' is
     used to replace that character.
 
     Finally got to use my DP skills!
     """
+    if record is None:
+        record = {}
     assert skip_character not in s1, f"Found the skip character {skip_character} in the provided string, {s1}"
     if len(s1) == 0:
         return ''
@@ -145,4 +147,3 @@ class Wav2VecAlignment:
             start, stop = nri
             output_audio.append(audio[:, alignments[start]:alignments[stop]])
         return torch.cat(output_audio, dim=-1)
-
