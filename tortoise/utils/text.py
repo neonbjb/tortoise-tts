@@ -50,14 +50,18 @@ def split_and_recombine_text(text, desired_length=200, max_length=300):
             commit()
         # check for sentence boundaries
         elif not in_quote and (c in '!?\n' or (c == '.' and next_c in '\n ')):
+            # seek forward if we have consecutive boundary markers but still within the max length
+            while len(current) < max_length and next_c in '!?.':
+                c, next_c = seek(1)
+                current += c
             split_pos.append(pos)
             if len(current) >= desired_length:
                 commit()
     rv.append(current)
 
-    # clean up
+    # clean up, remove lines with only whitespace or punctuation
     rv = [s.strip() for s in rv]
-    rv = [s for s in rv if len(s) > 0]
+    rv = [s for s in rv if len(s) > 0 and not re.match(r'^[\s\.,;:!?]*$', s)]
 
     return rv
 
@@ -80,5 +84,16 @@ if __name__ == '__main__':
                               'should force a split',
                               'inthemiddlebutinotinthislongword.',
                               '"Don\'t split my quote... please"'])
+
+        def test_split_and_recombine_text_2(self):
+            text = """
+            When you are really angry sometimes you use consecutive exclamation marks!!!!!! Is this a good thing to do?!?!?!
+            I don't know but we should handle this situation..........................
+            """
+            self.assertEqual(split_and_recombine_text(text, desired_length=30, max_length=50),
+                             ['When you are really angry sometimes you use',
+                              'consecutive exclamation marks!!!!!!',
+                              'Is this a good thing to do?!?!?!',
+                              'I don\'t know but we should handle this situation.'])
 
     unittest.main()
