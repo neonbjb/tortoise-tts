@@ -60,7 +60,7 @@ def split_and_recombine_text(text, desired_length=200, max_length=300):
             split_pos.append(pos)
             if len(current) >= desired_length:
                 commit()
-        # treat end of quote as a boundary if its preceded by a space or newline
+        # treat end of quote as a boundary if its followed by a space or newline
         elif in_quote and peek(1) == '"' and peek(2) in '\n ':
             seek(2)
             split_pos.append(pos)
