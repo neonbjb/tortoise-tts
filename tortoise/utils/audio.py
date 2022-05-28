@@ -115,7 +115,8 @@ def load_voices(voices, extra_voice_dirs=[]):
     clips = []
     for voice in voices:
         if voice == 'random':
-            print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
+            if len(voices) > 1:
+                print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
             return None, None
         clip, latent = load_voice(voice, extra_voice_dirs)
         if latent is None:
