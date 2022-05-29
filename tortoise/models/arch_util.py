@@ -1,3 +1,4 @@
+import os
 import functools
 import math
 
@@ -288,9 +289,12 @@ class AudioMiniEncoder(nn.Module):
         return h[:, :, 0]
 
 
+DEFAULT_MEL_NORM_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../data/mel_norms.pth')
+
+
 class TorchMelSpectrogram(nn.Module):
     def __init__(self, filter_length=1024, hop_length=256, win_length=1024, n_mel_channels=80, mel_fmin=0, mel_fmax=8000,
-                 sampling_rate=22050, normalize=False, mel_norm_file='tortoise/data/mel_norms.pth'):
+                 sampling_rate=22050, normalize=False, mel_norm_file=DEFAULT_MEL_NORM_FILE):
         super().__init__()
         # These are the default tacotron values for the MEL spectrogram.
         self.filter_length = filter_length
