@@ -186,7 +186,7 @@ if args.output_dir:
 else:
     if len(selected_voices) > 1:
         parser.error('cannot have multiple voices without --output-dir"')
-    if args.candiates > 1:
+    if args.candidates > 1:
         parser.error('cannot have multiple candidates without --output-dir"')
 
 # error out early if pydub isn't installed
