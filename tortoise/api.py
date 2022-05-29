@@ -26,7 +26,8 @@ from tortoise.utils.wav2vec_alignment import Wav2VecAlignment
 
 pbar = None
 
-MODELS_DIR = os.environ.get('TORTOISE_MODELS_DIR', '.models')
+DEFAULT_MODELS_DIR = os.path.join(os.path.expanduser('~'), '.cache', 'tortoise', 'models')
+MODELS_DIR = os.environ.get('TORTOISE_MODELS_DIR', DEFAULT_MODELS_DIR)
 MODELS = {
     'autoregressive.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/autoregressive.pth',
     'classifier.pth': 'https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/classifier.pth',
@@ -309,9 +310,9 @@ class TextToSpeech:
             'high_quality': Use if you want the absolute best. This is not really worth the compute, though.
         """
         # Use generally found best tuning knobs for generation.
-        kwargs.update({'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0,
-                       'top_p': .8,
-                       'cond_free_k': 2.0, 'diffusion_temperature': 1.0})
+        settings = {'temperature': .8, 'length_penalty': 1.0, 'repetition_penalty': 2.0,
+                    'top_p': .8,
+                    'cond_free_k': 2.0, 'diffusion_temperature': 1.0}
         # Presets are defined here.
         presets = {
             'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False},
@@ -319,8 +320,9 @@ class TextToSpeech:
             'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 200},
             'high_quality': {'num_autoregressive_samples': 256, 'diffusion_iterations': 400},
         }
-        kwargs.update(presets[preset])
-        return self.tts(text, **kwargs)
+        settings.update(presets[preset])
+        settings.update(kwargs) # allow overriding of preset settings with kwargs
+        return self.tts(text, **settings)
 
     def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True, use_deterministic_seed=None,
             return_deterministic_state=False,

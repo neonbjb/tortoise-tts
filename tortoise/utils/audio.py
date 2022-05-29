@@ -10,6 +10,9 @@ from scipy.io.wavfile import read
 from tortoise.utils.stft import STFT
 
 
+BUILTIN_VOICES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../voices')
+
+
 def load_wav_to_torch(full_path):
     sampling_rate, data = read(full_path)
     if data.dtype == np.int32:
@@ -83,7 +86,7 @@ def dynamic_range_decompression(x, C=1):
 
 
 def get_voices(extra_voice_dirs=[]):
-    dirs = ['tortoise/voices'] + extra_voice_dirs
+    dirs = [BUILTIN_VOICES_DIR] + extra_voice_dirs
     voices = {}
     for d in dirs:
         subs = os.listdir(d)
@@ -115,7 +118,8 @@ def load_voices(voices, extra_voice_dirs=[]):
     clips = []
     for voice in voices:
         if voice == 'random':
-            print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
+            if len(voices) > 1:
+                print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
             return None, None
         clip, latent = load_voice(voice, extra_voice_dirs)
         if latent is None:

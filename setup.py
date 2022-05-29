@@ -14,6 +14,9 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/neonbjb/tortoise-tts",
     project_urls={},
+    scripts=[
+        'scripts/tortoise_tts.py',
+    ],
     install_requires=[
         'tqdm',
         'rotary_embedding_torch',
