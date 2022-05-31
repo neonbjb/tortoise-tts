@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setuptools.setup(
     name="TorToiSe",
     packages=setuptools.find_packages(),
-    version="2.4.0",
+    version="2.4.1",
     author="James Betker",
     author_email="james@adamant.ai",
     description="A high quality multi-voice text-to-speech library",
@@ -17,6 +17,7 @@ setuptools.setup(
     scripts=[
         'scripts/tortoise_tts.py',
     ],
+    include_package_data=True,
     install_requires=[
         'tqdm',
         'rotary_embedding_torch',
