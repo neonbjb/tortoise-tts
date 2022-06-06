@@ -72,11 +72,22 @@ if __name__ == '__main__':
                 gen = gen[0].squeeze(0).cpu()
             all_parts.append(gen)
 
-        full_audio = torch.cat(all_parts, dim=-1)
-        torchaudio.save(os.path.join(voice_outpath, 'combined.wav'), full_audio, 24000)
+        if args.candidates == 1:
+            full_audio = torch.cat(all_parts, dim=-1)
+            torchaudio.save(os.path.join(voice_outpath, 'combined.wav'), full_audio, 24000)
 
         if args.produce_debug_state:
             os.makedirs('debug_states', exist_ok=True)
             dbg_state = (seed, texts, voice_samples, conditioning_latents)
             torch.save(dbg_state, f'debug_states/read_debug_{selected_voice}.pth')
 
+        # Combine each candidate's audio clips.
+        if args.candidates > 1:
+            audio_clips = []
+            for candidate in range(args.candidates):
+                for line in range(len(texts)):
+                    wav_file = os.path.join(voice_outpath, str(line), f"{candidate}.wav")
+                    audio_clips.append(load_audio(wav_file, 24000))
+                audio_clips = torch.cat(audio_clips, dim=-1)
+                torchaudio.save(os.path.join(voice_outpath, f"combined_{candidate:02d}.wav"), audio_clips, 24000)
+                audio_clips = []
