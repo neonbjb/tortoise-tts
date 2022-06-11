@@ -270,7 +270,7 @@ class TextToSpeech:
             if not isinstance(voice_samples, list):
                 voice_samples = [voice_samples]
             for vs in voice_samples:
-                auto_conds.append(format_conditioning(vs, self.device))
+                auto_conds.append(format_conditioning(vs, device=self.device))
             auto_conds = torch.stack(auto_conds, dim=1)
             self.autoregressive = self.autoregressive.to(self.device)
             auto_latent = self.autoregressive.get_conditioning(auto_conds)

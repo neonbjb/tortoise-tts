@@ -210,7 +210,7 @@ tts = TextToSpeech(models_dir=args.models_dir, enable_redaction=not args.disable
                    device=args.device, autoregressive_batch_size=args.batch_size)
 gen_settings = {
     'use_deterministic_seed': seed,
-    'varbose': not args.quiet,
+    'verbose': not args.quiet,
     'k': args.candidates,
     'preset': args.preset,
 }
