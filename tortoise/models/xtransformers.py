@@ -970,15 +970,16 @@ class AttentionLayers(nn.Module):
 
             if layer_type == 'a':
                 out, inter, k, v = checkpoint(block, x, None, mask, None, attn_mask, self.pia_pos_emb, rotary_pos_emb,
-                                        prev_attn, layer_mem, layer_past)
+                                        prev_attn, layer_mem, layer_past, use_reentrant=False)
             elif layer_type == 'c':
                 if exists(full_context):
                     out, inter, k, v = checkpoint(block, x, full_context[cross_attn_count], mask, context_mask, None, None,
-                                            None, prev_attn, None, layer_past)
+                                            None, prev_attn, None, layer_past, use_reentrant=False)
                 else:
-                    out, inter, k, v = checkpoint(block, x, context, mask, context_mask, None, None, None, prev_attn, None, layer_past)
+                    out, inter, k, v = checkpoint(block, x, context, mask, context_mask, None, None, None, prev_attn, None, layer_past,
+                                                  use_reentrant=False)
             elif layer_type == 'f':
-                out = checkpoint(block, x)
+                out = checkpoint(block, x, use_reentrant=False)
 
             if layer_type == 'a' or layer_type == 'c' and present_key_values is not None:
                 present_key_values.append((k.detach(), v.detach()))
