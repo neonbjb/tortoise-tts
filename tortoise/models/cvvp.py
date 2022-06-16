@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import einsum
-from torch.utils.checkpoint import checkpoint
 
 from tortoise.models.arch_util import AttentionBlock
 from tortoise.models.xtransformers import ContinuousTransformerWrapper, Encoder
@@ -44,7 +43,7 @@ class CollapsingTransformer(nn.Module):
     def forward(self, x, **transformer_kwargs):
         h = self.transformer(x, **transformer_kwargs)
         h = h.permute(0, 2, 1)
-        h = checkpoint(self.pre_combiner, h).permute(0, 2, 1)
+        h = self.pre_combiner(h).permute(0, 2, 1)
         if self.training:
             mask = torch.rand_like(h.float()) > self.mask_percentage
         else:

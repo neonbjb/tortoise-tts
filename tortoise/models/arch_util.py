@@ -342,7 +342,7 @@ class CheckpointedLayer(nn.Module):
         for k, v in kwargs.items():
             assert not (isinstance(v, torch.Tensor) and v.requires_grad)  # This would screw up checkpointing.
         partial = functools.partial(self.wrap, **kwargs)
-        return torch.utils.checkpoint.checkpoint(partial, x, *args)
+        return partial(x, *args)
 
 
 class CheckpointedXTransformerEncoder(nn.Module):
