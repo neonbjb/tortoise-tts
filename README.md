@@ -39,6 +39,8 @@ sampling rates. On a K80, expect to generate a medium sized sentence every 2 min
 
 See [this page](http://nonint.com/static/tortoise_v2_examples.html) for a large list of example outputs.
 
+Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
+
 ## Usage guide
 
 ### Colab
