@@ -1,6 +1,6 @@
 tqdm
 rotary_embedding_torch
-transformers>=4.19
+transformers==4.19
 tokenizers
 inflect
 progressbar
