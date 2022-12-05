@@ -7,6 +7,9 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
+A (*very*) rough draft of the Tortoise paper is now available in doc format. I would definitely appreciate any comments, suggestions or reviews:
+https://docs.google.com/document/d/13O_eyY65i6AkNrN_LdPhpUjGhyTNKYHvDrIvHnHe1GA
+
 ### Version history
 
 #### v2.4; 2022/5/17
