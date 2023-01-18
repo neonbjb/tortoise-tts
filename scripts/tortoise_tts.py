@@ -110,7 +110,7 @@ tuning_group.add_argument(
 tuning_group.add_argument(
     '--cvvp-amount', type=float, default=None,
     help='How much the CVVP model should influence the output.'
-    'Increasing this can in some cases reduce the likelyhood of multiple speakers.')
+    'Increasing this can in some cases reduce the likelihood of multiple speakers.')
 tuning_group.add_argument(
     '--diffusion-iterations', type=int, default=None,
     help='Number of diffusion steps to perform.  More steps means the network has more chances to iteratively'

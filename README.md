@@ -121,7 +121,7 @@ For the those in the ML space: this is created by projecting a random vector ont
 
 This repo comes with several pre-packaged voices. Voices prepended with "train_" came from the training set and perform
 far better than the others. If your goal is high quality speech, I recommend you pick one of them. If you want to see
-what Tortoise can do for zero-shot mimicing, take a look at the others.
+what Tortoise can do for zero-shot mimicking, take a look at the others.
 
 ### Adding a new voice
 
