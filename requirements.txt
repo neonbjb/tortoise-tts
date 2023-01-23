@@ -11,7 +11,6 @@ librosa
 numpy==1.20.0
 numba==0.48.0
 torchaudio
-ffmpeg
 threadpoolctl
 llvmlite
 appdirs
