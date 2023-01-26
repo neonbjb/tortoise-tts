@@ -17,6 +17,8 @@ RUN ln -s -f /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
 
 RUN pip install --upgrade pip
 
+RUN apt-get update && apt-get -y install libsndfile1-dev 
+
 # 2. Copy files
 COPY . /src
 
