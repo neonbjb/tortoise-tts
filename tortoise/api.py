@@ -231,6 +231,7 @@ class TextToSpeech:
                                           heads=16, number_text_tokens=255, start_text_token=255, checkpointing=False,
                                           train_solo_embeddings=False).cpu().eval()
             self.autoregressive.load_state_dict(torch.load(get_model_path('autoregressive.pth', models_dir)))
+            self.autoregressive.post_init_gpt2_config()
 
             self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
                                           in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
@@ -332,7 +333,7 @@ class TextToSpeech:
                     'cond_free_k': 2.0, 'diffusion_temperature': 1.0}
         # Presets are defined here.
         presets = {
-            'ultra_fast_KEA': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False, 'sampler': 'KEA'},
+            'ultra_fast_KEA': {'num_autoregressive_samples': 16, 'diffusion_iterations': 20, 'cond_free': False, 'sampler': 'KEA'},
             'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False},
             'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 80},
             'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 200},
@@ -350,7 +351,7 @@ class TextToSpeech:
             cvvp_amount=.0,
             # diffusion generation parameters follow
             diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,
-            sampler='ddim',
+            sampler='ddim', half=True,
             **hf_generate_kwargs):
         """
         Produces an audio clip of the given text being spoken with the given reference voice.
@@ -423,7 +424,7 @@ class TextToSpeech:
             self.autoregressive = self.autoregressive.to(self.device)
             if verbose:
                 print("Generating autoregressive samples..")
-            with self.temporary_cuda(self.autoregressive) as autoregressive, torch.autocast(device_type='cuda', dtype=torch.float16):
+            with self.temporary_cuda(self.autoregressive) as autoregressive, torch.autocast(device_type='cuda', dtype=torch.float16, enabled=half):
                 for b in tqdm(range(num_batches), disable=not verbose):
                     codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
                                                                  do_sample=True,

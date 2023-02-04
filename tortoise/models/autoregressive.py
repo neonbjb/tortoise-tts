@@ -341,6 +341,19 @@ class UnifiedVoice(nn.Module):
         for module in embeddings:
             module.weight.data.normal_(mean=0.0, std=.02)
 
+    def post_init_gpt2_config(self):
+        seq_length = self.max_mel_tokens + self.max_text_tokens + 2
+        gpt_config = GPT2Config(vocab_size=self.max_mel_tokens,
+                                n_positions=seq_length,
+                                n_ctx=seq_length,
+                                n_embd=self.model_dim,
+                                n_layer=self.layers,
+                                n_head=self.heads,
+                                gradient_checkpointing=False,
+                                use_cache=True)
+        self.inference_model = GPT2InferenceModel(gpt_config, self.gpt, self.mel_pos_embedding, self.mel_embedding, self.final_norm, self.mel_head)
+        self.gpt.wte = self.mel_embedding
+
     def build_aligned_inputs_and_targets(self, input, start_token, stop_token):
         inp = F.pad(input, (1,0), value=start_token)
         tar = F.pad(input, (0,1), value=stop_token)
@@ -459,20 +472,6 @@ class UnifiedVoice(nn.Module):
 
     def inference_speech(self, speech_conditioning_latent, text_inputs, input_tokens=None, num_return_sequences=1,
                          max_generate_length=None, typical_sampling=False, typical_mass=.9, **hf_generate_kwargs):
-        seq_length = self.max_mel_tokens + self.max_text_tokens + 2
-        if not hasattr(self, 'inference_model'):
-            # TODO: Decouple gpt_config from this inference model.
-            gpt_config = GPT2Config(vocab_size=self.max_mel_tokens,
-                                    n_positions=seq_length,
-                                    n_ctx=seq_length,
-                                    n_embd=self.model_dim,
-                                    n_layer=self.layers,
-                                    n_head=self.heads,
-                                    gradient_checkpointing=False,
-                                    use_cache=True)
-            self.inference_model = GPT2InferenceModel(gpt_config, self.gpt, self.mel_pos_embedding, self.mel_embedding, self.final_norm, self.mel_head)
-            self.gpt.wte = self.mel_embedding
-
         text_inputs = F.pad(text_inputs, (0, 1), value=self.stop_text_token)
         text_inputs, text_targets = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
