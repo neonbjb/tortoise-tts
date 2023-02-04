@@ -13,8 +13,29 @@ import math
 import numpy as np
 import torch
 import torch as th
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
+def append_zero(x):
+    return torch.cat([x, x.new_zeros([1])])
+def default_noise_sampler(x):
+    return lambda sigma, sigma_next: torch.randn_like(x)
+def get_ancestral_step(sigma_from, sigma_to, eta=1.):
+    """Calculates the noise level (sigma_down) to step down to and the amount
+    of noise to add (sigma_up) when doing an ancestral sampling step."""
+    if not eta:
+        return sigma_to, 0.
+    sigma_up = min(sigma_to, eta * (sigma_to ** 2 * (sigma_from ** 2 - sigma_to ** 2) / sigma_from ** 2) ** 0.5)
+    sigma_down = (sigma_to ** 2 - sigma_up ** 2) ** 0.5
+    return sigma_down, sigma_up
+def to_d(x, sigma, denoised):
+    """Converts a denoiser output to a Karras ODE derivative."""
+    return (x - denoised) / append_dims(sigma, x.ndim)
+def append_dims(x, target_dims):
+    """Appends dimensions to the end of a tensor until it has target_dims dimensions."""
+    dims_to_append = target_dims - x.ndim
+    if dims_to_append < 0:
+        raise ValueError(f'input has {x.ndim} dims but target_dims is {target_dims}, which is less')
+    return x[(...,) + (None,) * dims_to_append]
 
 def normal_kl(mean1, logvar1, mean2, logvar2):
     """
@@ -200,7 +221,9 @@ class GaussianDiffusion:
         conditioning_free=False,
         conditioning_free_k=1,
         ramp_conditioning_free=True,
+        sampler='ddim'
     ):
+        self.sampler = sampler
         self.model_mean_type = ModelMeanType(model_mean_type)
         self.model_var_type = ModelVarType(model_var_type)
         self.loss_type = LossType(loss_type)
@@ -529,6 +552,67 @@ class GaussianDiffusion:
             )
         sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
+
+    TRAINED_DIFFUSION_STEPS = 4000 # HARDCODED
+    def get_sigmas_karras(self, sigma_min, sigma_max, rho=7., device='cpu'):
+        """Constructs the noise schedule of Karras et al. (2022)."""
+        n = self.num_timesteps # HACK
+        ramp = torch.linspace(0, 1, n)
+        min_inv_rho = sigma_min ** (1 / rho)
+        max_inv_rho = sigma_max ** (1 / rho)
+        sigmas = (max_inv_rho + ramp * (min_inv_rho - max_inv_rho)) ** rho
+        return append_zero(sigmas).to(device)
+        '''
+    @torch.no_grad()
+    def sample_euler_ancestral(model, x, sigmas, extra_args=None, callback=None, disable=None, eta=1., s_noise=1., noise_sampler=None):
+        """Ancestral sampling with Euler method steps."""
+        extra_args = {} if extra_args is None else extra_args
+        noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
+        s_in = x.new_ones([x.shape[0]])
+        for i in trange(len(sigmas) - 1, disable=disable):
+            denoised = model(x, sigmas[i] * s_in, **extra_args)
+            sigma_down, sigma_up = get_ancestral_step(sigmas[i], sigmas[i + 1], eta=eta)
+            if callback is not None:
+                callback({'x': x, 'i': i, 'sigma': sigmas[i], 'sigma_hat': sigmas[i], 'denoised': denoised})
+            d = to_d(x, sigmas[i], denoised)
+            # Euler method
+            dt = sigma_down - sigmas[i]
+            x = x + d * dt
+            if sigmas[i + 1] > 0:
+                x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * s_noise * sigma_up
+        return x
+        '''
+    def sample_loop(self, *args, **kwargs):
+        if self.sampler == 'KEA':
+            return self.fast_sample_loop(*args, **kwargs)
+        elif self.sampler == 'ddim':
+            return self.p_sample_loop(*args, **kwargs)
+        else: raise RuntimeError("sampler not impl")
+    def fast_sample_loop(
+        self, model, shape, noise=None, # all given
+        clip_denoised=True, denoised_fn=None, cond_fn=None, device=None, # ALL UNUSED
+        model_kwargs=None, #{'precomputed_aligned_embeddings': precomputed_embeddings},
+        progress=False #unused as well
+    ):
+        eta = s_noise = 1.
+        if device is None:
+            device = next(model.parameters()).device
+        x: torch.Tensor = noise # pyright: ignore
+        sigmas = self.get_sigmas_karras(sigma_min=0.03, sigma_max=14.5, device=device)
+        noise_sampler = default_noise_sampler(x)
+        s_in = x.new_ones([x.shape[0]])
+        for i in trange(len(sigmas) - 1):
+            denoised = model(x, sigmas[i] * s_in, **model_kwargs)
+            sigma_down, sigma_up = get_ancestral_step(sigmas[i], sigmas[i + 1], eta=eta)
+            #if callback is not None:
+            #    callback({'x': x, 'i': i, 'sigma': sigmas[i], 'sigma_hat': sigmas[i], 'denoised': denoised})
+            d = to_d(x, sigmas[i], denoised)
+            # Euler method
+            dt = sigma_down - sigmas[i]
+            x = x + d * dt
+            if sigmas[i + 1] > 0:
+                x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * s_noise * sigma_up
+        return x
 
     def p_sample_loop(
         self,
