@@ -288,9 +288,8 @@ class TextToSpeech:
             for vs in voice_samples:
                 auto_conds.append(format_conditioning(vs, device=self.device))
             auto_conds = torch.stack(auto_conds, dim=1)
-            self.autoregressive = self.autoregressive.to(self.device)
-            auto_latent = self.autoregressive.get_conditioning(auto_conds)
-            self.autoregressive = self.autoregressive.cpu()
+            with self.temporary_cuda(self.autoregressive) as ar:
+                auto_latent = ar.get_conditioning(auto_conds)
 
             diffusion_conds = []
             for sample in voice_samples:
@@ -424,7 +423,7 @@ class TextToSpeech:
             self.autoregressive = self.autoregressive.to(self.device)
             if verbose:
                 print("Generating autoregressive samples..")
-            with self.temporary_cuda(self.autoregressive) as autoregressive:
+            with self.temporary_cuda(self.autoregressive) as autoregressive, torch.autocast(device_type='cuda', dtype=torch.float16):
                 for b in tqdm(range(num_batches), disable=not verbose):
                     codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
                                                                  do_sample=True,
