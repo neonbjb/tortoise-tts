@@ -21,10 +21,11 @@ if __name__ == '__main__':
     parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
     parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
+    parser.add_argument('--high_vram', help='keep ALL models loaded in vram for faster perf', default=True)
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 
-    tts = TextToSpeech(models_dir=args.model_dir)
+    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram)
 
     selected_voices = args.voice.split(',')
     for k, selected_voice in enumerate(selected_voices):

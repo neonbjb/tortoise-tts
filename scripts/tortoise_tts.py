@@ -62,6 +62,9 @@ multi_output_group.add_argument(
 
 advanced_group = parser.add_argument_group('advanced options')
 advanced_group.add_argument(
+    '--high-vram', default=True,
+    help='keep ALL models loaded in vram for faster perf')
+advanced_group.add_argument(
     '--produce-debug-state', default=False, action='store_true',
     help='Whether or not to produce debug_states in current directory, which can aid in reproducing problems.')
 advanced_group.add_argument(
@@ -207,7 +210,7 @@ seed = int(time.time()) if args.seed is None else args.seed
 if not args.quiet:
     print('Loading tts...')
 tts = TextToSpeech(models_dir=args.models_dir, enable_redaction=not args.disable_redaction,
-                   device=args.device, autoregressive_batch_size=args.batch_size)
+                   device=args.device, autoregressive_batch_size=args.batch_size, high_vram=args.high_vram)
 gen_settings = {
     'use_deterministic_seed': seed,
     'verbose': not args.quiet,
