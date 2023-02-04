@@ -13,7 +13,7 @@ Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.
 
 | `--preset` | half precision | high vram | duration | sample |
 |-|-|-|-|-|
-|`ultra_fast`| no | no | 11.50s | [link](./examples_new/original_baseline_should_be_identical_to_base_repo/emma_0_1.wav) |
+|`ultra_fast`| no | no | 11.50s | ![link](./examples_new/original_baseline_should_be_identical_to_base_repo/emma.avi) |
 |`ultra_fast`| no | yes | 11.07s | [link](./examples_new/original_but_high_vram/emma_0_1.wav) |
 |`ultra_fast_KEA`| no | yes | 10.55s | [link](./examples_new/full_precision-K_Euler_A-high_vram/emma_0_1.wav) |
 |`ultra_fast`| yes | yes | 7.34s | [link](./examples_new/half_precision_high_vram/emma_0_1.wav) |
