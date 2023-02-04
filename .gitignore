@@ -133,3 +133,8 @@ dmypy.json
 .custom/*
 results/*
 debug_states/*
+
+
+notes.md
+TensorRT/
+k-diffusion/
