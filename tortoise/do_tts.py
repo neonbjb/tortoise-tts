@@ -30,7 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
     parser.add_argument('--high_vram', help='keep ALL models loaded in vram for faster perf', default=True)
-    parser.add_argument('--no_half', help='disable autocast to half precision for autoregressive model', default=False, action='store_true')
+    parser.add_argument('--half', help='enable autocast to half precision for autoregressive model', default=False, action='store_true')
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
         with timeit(f'Generating {args.candidates} candidates for voice {selected_voice} (seed={args.seed})'):
             gen, dbg_state = tts.tts_with_preset(args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
-                                  preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount, half=not args.no_half)
+                                  preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount, half=args.half)
         if isinstance(gen, list):
             for j, g in enumerate(gen):
                 torchaudio.save(os.path.join(args.output_path, f'{selected_voice}_{k}_{j}.wav'), g.squeeze(0).cpu(), 24000)
