@@ -1,3 +1,39 @@
+# Speeding up TorToiSe inference
+This repo adds the following config options for TorToiSe for faster inference:
+ - [X] half precision inference on autoregressive model (`--half`)
+ - [X] K Euler A sampler for the diffusion process (`--preset ultra_fast_KEA`)
+ - [X] higher vram usage for better speed (on by defualt, disable with `--high_vram False`)
+
+## Current results
+All results are generated from the following base command,
+
+> `python tortoise/do_tts.py --text "I'm looking for contributors who can do optimizations better than me." --voice emma --seed 42`
+
+Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.py`.
+
+| `--preset` | half precision | high vram | duration | sample |
+|-|-|-|-|-|
+|`ultra_fast`| no | no | 11.50s | [link](./examples_new/original_baseline_should_be_identical_to_base_repo/emma_0_1.wav) |
+|`ultra_fast`| no | yes | 11.07s | [link](./examples_new/original_but_high_vram/emma_0_1.wav) |
+|`ultra_fast_KEA`| no | yes | 10.55s | [link](./examples_new/full_precision-K_Euler_A-high_vram/emma_0_1.wav) |
+|`ultra_fast`| yes | yes | 7.34s | [link](./examples_new/half_precision_high_vram/emma_0_1.wav) |
+|`ultra_fast_KEA`| yes | yes | 6.82s | [link](./examples_new/half_precision-K_Euler_A-high_vram/emma_0_1.wav) |
+
+Half precision currently significantly worsens outputs, so I do not recommend enabling it unless you are happy with the samples linked.
+
+## Future plans
+- [] add DPM++ samplers
+- [] **add TensorRT model**. 90% of inference time is spent in the GPT model; compiling it should produce great speedups, but it requires:
+    - [] a less hacky `transformers` model definition (see `GPT2InferenceModel`)
+    - [] an ORTModelForCausalLM implementation for tortoise
+    - [] tensorRT runtime
+- [] try half precision in other parts of the model
+
+
+Original README description:
+
+---
+
 # TorToiSe
 
 Tortoise is a text-to-speech program built with the following priorities:
