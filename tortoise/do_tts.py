@@ -33,10 +33,11 @@ if __name__ == '__main__':
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
     parser.add_argument('--high_vram', help='keep ALL models loaded in vram for faster perf', default=True)
     parser.add_argument('--half', help='enable autocast to half precision for autoregressive model', default=False, action='store_true')
+    parser.add_argument('--kv_cache', help='enable (partially broken) kv_cache usage, leading to drastic speedups but worse memory usage + results', default=False, action='store_true')
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 
-    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram)
+    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache)
 
     selected_voices = args.voice.split(',')
     for k, selected_voice in enumerate(selected_voices):
