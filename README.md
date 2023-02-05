@@ -1,4 +1,4 @@
-# Speeding up TorToiSe inference
+# Speeding up TorToiSe inference 5x
 This is a working project to drastically boost the performance of TorToiSe, without modifying the base models. **Expect speedups of _5~10x_**, and hopefully 20x or larger when this project is complete.
 
 This repo adds the following config options for TorToiSe for faster inference:
@@ -95,6 +95,11 @@ QoL related:
 - [ ] implement new args in places other than ./tortoise/do_tts.py
 - [ ] fix api usage with new args
 - [ ] webui integration???
+
+## Motivation
+As stated by an [11Labs](https://beta.elevenlabs.io) developer:
+
+![](https://cdn.discordapp.com/attachments/1070203929410940988/1071295918269272124/Screenshot_20230204-130541_Discord.png)
 
 Original README description:
 
