@@ -1,3 +1,5 @@
+[click me](#installation) to skip to installation && usage!
+
 # Speeding up TorToiSe inference 5x
 This is a working project to drastically boost the performance of TorToiSe, without modifying the base models. **Expect speedups of _5~10x_**, and hopefully 20x or larger when this project is complete.
 
@@ -14,26 +16,28 @@ All changes in this fork are licensed under the **AGPL**. For avoidance beyond a
 ## Current results
 All results listed were generated with a slightly undervolted RTX 3090 on Ubuntu 22.04, with the following base command:
 
-> `python tortoise/do_tts.py --voice emma --seed 42 --text "$TEXT"`
+```sh
+python tortoise/do_tts.py --voice emma --seed 42 --text "$TEXT"
+```
 
 Original TorToiSe [repo](https://github.com/neonbjb/tortoise-tts):
 | speed (B) | speed (A) | preset | sample | 
 |-|-|-|-|
-| 14.94s | 112.81s | ultra_fast | optimized_examples/A/tortoise_original-with_original_vram/emma_0_0.wav |
+| 112.81s | 14.94s | ultra_fast | [here](optimized_examples/A/tortoise_original-with_original_vram/) |
 
 New [repo](https://github.com/152334H/tortoise-tts), with `--preset ultra_fast`:
-| speed (B) | speed (A) | sampler | cond-free diffusion | autocast to fp16 | GPT kv-cache | samples |
+| speed (B) | speed (A) | GPT kv-cache | sampler | cond-free diffusion | autocast to fp16 | samples |
 |-|-|-|-|-|-|-|
-|  118.61   |   11.20   | DDIM    | no                  | no               | no           | [here](optimized_examples/A/tortoise_original/) |
-|  115.51   |   10.67   | DPM++2M | yes                 | no               | no           | [here](optimized_examples/A/ultra_fast/) |
-|  114.58   |   10.24   | DPM++2M | no                  | no               | no           | [here](optimized_examples/A/ultra_fast-no_cond_tree/) |
-|   55.76   |    7.25   | DDIM    | no                  | yes              | no           | [here](optimized_examples/A/tortoise_original-half_incomplete/) |
-|   53.59   |    6.77   | DPM++2M | yes                 | yes              | no           | [here](optimized_examples/A/ultra_fast-half/) |
-|   51.98   |    6.29   | DPM++2M | no                  | yes              | no           | [here](optimized_examples/A/ultra_fast-half-no_cond_tree/) |
-|    9.86   |    4.24   | DDIM    | no                  | no               | yes          | [here](optimized_examples/A/tortoise_original-kv_cache/) |
-|    8.51   |    3.77   | DPM++2M | yes                 | no               | yes          | [here](optimized_examples/A/ultra_fast-kv_cache/) |
-|    8.12   |    3.82   | DPM++2M | yes                 | yes              | yes          | [here](optimized_examples/A/ultra_fast-kv_cache-half/) |
-|    6.78   |    3.35   | DPM++2M | no                  | yes              | yes          | [here](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
+|  118.61   |   11.20   | ❌           | DDIM    | ❌                  | ❌               | [here](optimized_examples/A/tortoise_original/) |
+|  115.51   |   10.67   | ❌           | DPM++2M | ✅                  | ❌               | [here](optimized_examples/A/ultra_fast/) |
+|  114.58   |   10.24   | ❌           | DPM++2M | ❌                  | ❌               | [here](optimized_examples/A/ultra_fast-no_cond_tree/) |
+|   55.76   |    7.25   | ❌           | DDIM    | ❌                  | ✅               | [here](optimized_examples/A/tortoise_original-half_incomplete/) |
+|   53.59   |    6.77   | ❌           | DPM++2M | ✅                  | ✅               | [here](optimized_examples/A/ultra_fast-half/) |
+|   51.98   |    6.29   | ❌           | DPM++2M | ❌                  | ✅               | [here](optimized_examples/A/ultra_fast-half-no_cond_tree/) |
+|    9.86   |    4.24   | ✅           | DDIM    | ❌                  | ❌               | [here](optimized_examples/A/tortoise_original-kv_cache/) |
+|    8.51   |    3.77   | ✅           | DPM++2M | ✅                  | ❌               | [here](optimized_examples/A/ultra_fast-kv_cache/) |
+|    8.12   |    3.82   | ✅           | DPM++2M | ✅                  | ✅               | [here](optimized_examples/A/ultra_fast-kv_cache-half/) |
+|    6.78   |    3.35   | ✅           | DPM++2M | ❌                  | ✅               | [here](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
 
 Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.py`.
 
@@ -48,7 +52,6 @@ B (188 characters)
 > Because it was grassy and wanted wear;
 > Though as for that the passing there
 > Had worn them really about the same,
-
 
 Half precision currently significantly worsens outputs, so I do not recommend enabling it unless you are happy with the samples linked. Using `cond_free` with half precision seems to produce decent outputs.
 
@@ -70,16 +73,23 @@ Note that if you have the original tortoise installed,
 ## Usage
 For maximum speed (and worst quality), you can try:
 
-> `python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset ultra_fast --text ...`
-> `python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset single_sample --candidates 1 --text ... # generates only 1 sample` 
+```sh
+python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset ultra_fast --text #...
+# or, to only generate 1 sample:
+python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset single_sample --candidates 1 --text #...
+```
 
 But in most cases, these settings should perform decently && fast:
 
-> `python tortoise/do_tts.py --kv_cache --preset ultra_fast --text ...`
+```sh
+python tortoise/do_tts.py --kv_cache --preset ultra_fast --text # ...
+```
 
 You can obtain outputs 100% identical to the original tortoise repo with the following command:
 
-> `python tortoise/do_tts.py --preset ultra_fast_old --text ...`
+```sh
+python tortoise/do_tts.py --preset ultra_fast_old --text #...
+```
 
 ## Future plans
 Optimization related:
@@ -92,6 +102,7 @@ Optimization related:
 - [ ] try half precision in the vocoder + diffuser
 
 QoL related:
+- [ ] display samples on github pages, where you can do audio embeddings
 - [ ] implement new args in places other than ./tortoise/do_tts.py
 - [ ] fix api usage with new args
 - [ ] webui integration???
