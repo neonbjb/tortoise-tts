@@ -4,6 +4,10 @@ This repo adds the following config options for TorToiSe for faster inference:
  - [X] K Euler A sampler for the diffusion process (`--preset ultra_fast_KEA`)
  - [X] higher vram usage for better speed (on by defualt, disable with `--high_vram False`)
 
+All changes in this fork are licensed under the **AGPL**. For avoidance beyond all doubt, the [following statement](https://en.wikipedia.org/wiki/Apache_License#Licensing_conditions) is added as a comment to all changed code files:
+
+> `AGPL: a notification must be added stating that changes have been made to that file. `
+
 ## Current results
 All results are generated from the following base command,
 

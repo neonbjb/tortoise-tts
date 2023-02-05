@@ -1,3 +1,4 @@
+# AGPL: a notification must be added stating that changes have been made to that file. 
 import functools
 
 import torch

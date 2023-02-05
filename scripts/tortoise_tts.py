@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# AGPL: a notification must be added stating that changes have been made to that file. 
 
 import argparse
 import os
