@@ -8,6 +8,8 @@ import torchaudio
 
 from api import TextToSpeech, MODELS_DIR
 from utils.audio import load_voices
+from utils.diffusion import K_DIFFUSION_SAMPLERS
+SAMPLERS = list(K_DIFFUSION_SAMPLERS.keys()) + ['ddim']
 
 from contextlib import contextmanager
 from time import time
@@ -34,6 +36,9 @@ if __name__ == '__main__':
     parser.add_argument('--high_vram', help='keep ALL models loaded in vram for faster perf', default=True)
     parser.add_argument('--half', help='enable autocast to half precision for autoregressive model', default=False, action='store_true')
     parser.add_argument('--kv_cache', help='enable (partially broken) kv_cache usage, leading to drastic speedups but worse memory usage + results', default=False, action='store_true')
+    parser.add_argument('--sampler', help='override the sampler used for diffusion (default depends on --preset)', choices=SAMPLERS)
+    parser.add_argument('--steps', type=int, help='override the steps used for diffusion (default depends on --preset)')
+
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
 
@@ -48,8 +53,17 @@ if __name__ == '__main__':
         voice_samples, conditioning_latents = load_voices(voice_sel)
 
         with timeit(f'Generating {args.candidates} candidates for voice {selected_voice} (seed={args.seed})'):
-            gen, dbg_state = tts.tts_with_preset(args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
-                                  preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount, half=args.half)
+            nullable_kwargs = {
+                k:v for k,v in zip(
+                    ['sampler', 'diffusion_iterations'],
+                    [args.sampler, args.steps]
+                ) if v is not None
+            }
+            gen, dbg_state = tts.tts_with_preset(
+                args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
+                preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount,
+                half=args.half, **nullable_kwargs
+            )
         if isinstance(gen, list):
             for j, g in enumerate(gen):
                 torchaudio.save(os.path.join(args.output_path, f'{selected_voice}_{k}_{j}.wav'), g.squeeze(0).cpu(), 24000)

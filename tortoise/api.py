@@ -324,7 +324,9 @@ class TextToSpeech:
     def tts_with_preset(self, text, preset='fast', **kwargs):
         """
         Calls TTS with one of a set of preset generation parameters. Options:
-            'ultra_fast': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
+            'single_sample': Produces speech even faster, but only produces 1 sample.
+            'ultra_fast': Produces speech much faster than the original tortoise repo.
+            'ultra_fast_old': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
             'fast': Decent quality speech at a decent inference rate. A good choice for mass inference.
             'standard': Very good quality. This is generally about as good as you are going to get.
             'high_quality': Use if you want the absolute best. This is not really worth the compute, though.
@@ -335,9 +337,9 @@ class TextToSpeech:
                     'cond_free_k': 2.0, 'diffusion_temperature': 1.0}
         # Presets are defined here.
         presets = {
-            'ultra_fast_KEA_cond': {'num_autoregressive_samples': 16, 'diffusion_iterations': 20, 'sampler': 'KEA'},
-            'ultra_fast_KEA': {'num_autoregressive_samples': 16, 'diffusion_iterations': 20, 'cond_free': False, 'sampler': 'KEA'},
-            'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False},
+            'single_sample': {'num_autoregressive_samples': 8, 'diffusion_iterations': 10, 'sampler': 'dpm++2m'},
+            'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 10, 'sampler': 'dpm++2m'},
+            'ultra_fast_old': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False},
             'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 80},
             'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 200},
             'high_quality': {'num_autoregressive_samples': 256, 'diffusion_iterations': 400},
@@ -419,6 +421,10 @@ class TextToSpeech:
 
         diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=diffusion_iterations, cond_free=cond_free, cond_free_k=cond_free_k, sampler=sampler)
 
+        # in the case of single_sample,
+        orig_batch_size = self.autoregressive_batch_size
+        while num_autoregressive_samples % self.autoregressive_batch_size:
+            self.autoregressive_batch_size //= 2
         with torch.no_grad():
             samples = []
             num_batches = num_autoregressive_samples // self.autoregressive_batch_size
@@ -441,6 +447,7 @@ class TextToSpeech:
                     padding_needed = max_mel_tokens - codes.shape[1]
                     codes = F.pad(codes, (0, padding_needed), value=stop_mel_token)
                     samples.append(codes)
+            self.autoregressive_batch_size = orig_batch_size # in the case of single_sample
 
             clip_results = []
             with self.temporary_cuda(self.clvp) as clvp:

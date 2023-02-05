@@ -1,4 +1,6 @@
 # Speeding up TorToiSe inference
+This is a working project to drastically boost the performance of TorToiSe, without modifying the base models.
+
 This repo adds the following config options for TorToiSe for faster inference:
  - [X] half precision inference on autoregressive model (`--half`)
  - [X] K Euler A sampler for the diffusion process (`--preset ultra_fast_KEA`)
@@ -25,6 +27,21 @@ Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.
 |`ultra_fast_KEA`| yes | yes | 6.82s | [link](./examples_new/half_precision-K_Euler_A-high_vram/emma_0_1.wav) |
 
 Half precision currently significantly worsens outputs, so I do not recommend enabling it unless you are happy with the samples linked. Using `cond_free` with half precision seems to produce decent outputs.
+
+## Installation
+The installation process is identical to the original tortoise-tts repo.
+
+```shell
+git clone https://github.com/152334H/tortoise-tts.git
+cd tortoise-tts
+python -m pip install -r ./requirements.txt
+python setup.py install
+```
+
+Note that if you have the original tortoise installed,
+* You will need to uninstall it (`pip uninstall tortoise`)
+* You will need to install the new requirements (`pip install -r requirements.txt`)
+* You may want to install this repository as a symbolic link (`pip install -e .`), as this repository will be updated frequently
 
 ## Future plans
 - [] add DPM++ samplers
