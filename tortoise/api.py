@@ -450,7 +450,7 @@ class TextToSpeech:
             self.autoregressive_batch_size = orig_batch_size # in the case of single_sample
 
             clip_results = []
-            with self.temporary_cuda(self.clvp) as clvp:
+            with self.temporary_cuda(self.clvp) as clvp, torch.autocast(device_type='cuda', dtype=torch.float16, enabled=half):
                 if cvvp_amount > 0:
                     if self.cvvp is None:
                         self.load_cvvp()

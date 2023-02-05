@@ -1,30 +1,54 @@
 # Speeding up TorToiSe inference
-This is a working project to drastically boost the performance of TorToiSe, without modifying the base models.
+This is a working project to drastically boost the performance of TorToiSe, without modifying the base models. **Expect speedups of _5~10x_**, and hopefully 20x or larger when this project is complete.
 
 This repo adds the following config options for TorToiSe for faster inference:
- - [X] half precision inference on autoregressive model (`--half`)
- - [X] K Euler A sampler for the diffusion process (`--preset ultra_fast_KEA`)
- - [X] higher vram usage for better speed (on by defualt, disable with `--high_vram False`)
+ - [X] (`--kv_cache`) enabling of [KV cache](https://kipp.ly/blog/transformer-inference-arithmetic/#kv-cache) for MUCH faster GPT sampling
+ - [X] (`--half`) half precision inference where possible
+ - [X] (`--sampler dpm++2m`) [k-diffusion](https://github.com/crowsonkb/k-diffusion) samplers for faster diffusion
+ - [X] (disable with `--low_vram`) option to toggle cpu offloading, for high vram users
 
 All changes in this fork are licensed under the **AGPL**. For avoidance beyond all doubt, the [following statement](https://en.wikipedia.org/wiki/Apache_License#Licensing_conditions) is added as a comment to all changed code files:
 
 > `AGPL: a notification must be added stating that changes have been made to that file. `
 
 ## Current results
-All results are generated from the following base command,
+All results listed were generated with a slightly undervolted RTX 3090 on Ubuntu 22.04, with the following base command:
 
-> `python tortoise/do_tts.py --text "I'm looking for contributors who can do optimizations better than me." --voice emma --seed 42`
+> `python tortoise/do_tts.py --voice emma --seed 42 --text "$TEXT"`
+
+Original TorToiSe [repo](https://github.com/neonbjb/tortoise-tts):
+| speed (B) | speed (A) | preset | sample | 
+|-|-|-|-|
+| 14.94s | 112.81s | ultra_fast | optimized_examples/A/tortoise_original-with_original_vram/emma_0_0.wav |
+
+New [repo](https://github.com/152334H/tortoise-tts), with `--preset ultra_fast`:
+| speed (B) | speed (A) | sampler | cond-free diffusion | autocast to fp16 | GPT kv-cache | samples |
+|-|-|-|-|-|-|-|
+|  118.61   |   11.20   | DDIM    | no                  | no               | no           | [here](optimized_examples/A/tortoise_original/) |
+|  115.51   |   10.67   | DPM++2M | yes                 | no               | no           | [here](optimized_examples/A/ultra_fast/) |
+|  114.58   |   10.24   | DPM++2M | no                  | no               | no           | [here](optimized_examples/A/ultra_fast-no_cond_tree/) |
+|   55.76   |    7.25   | DDIM    | no                  | yes              | no           | [here](optimized_examples/A/tortoise_original-half_incomplete/) |
+|   53.59   |    6.77   | DPM++2M | yes                 | yes              | no           | [here](optimized_examples/A/ultra_fast-half/) |
+|   51.98   |    6.29   | DPM++2M | no                  | yes              | no           | [here](optimized_examples/A/ultra_fast-half-no_cond_tree/) |
+|    9.86   |    4.24   | DDIM    | no                  | no               | yes          | [here](optimized_examples/A/tortoise_original-kv_cache/) |
+|    8.51   |    3.77   | DPM++2M | yes                 | no               | yes          | [here](optimized_examples/A/ultra_fast-kv_cache/) |
+|    8.12   |    3.82   | DPM++2M | yes                 | yes              | yes          | [here](optimized_examples/A/ultra_fast-kv_cache-half/) |
+|    6.78   |    3.35   | DPM++2M | no                  | yes              | yes          | [here](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
 
 Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.py`.
 
-| `--preset` | half precision | high vram | duration | sample |
-|-|-|-|-|-|
-|`ultra_fast`| no | no | 11.50s | ![link](./examples_new/original_baseline_should_be_identical_to_base_repo/emma_0_1.wav) |
-|`ultra_fast`| no | yes | 11.07s | [link](./examples_new/original_but_high_vram/emma_0_1.wav) |
-|`ultra_fast_KEA`| no | yes | 10.55s | [link](./examples_new/full_precision-K_Euler_A-high_vram/emma_0_1.wav) |
-|`ultra_fast_KEA_cond` | yes | yes | 7.94s | [link](./examples_new/half_precision-K_Euler_A-doublecond_highvram/emma_0_1.wav) |
-|`ultra_fast`| yes | yes | 7.34s | [link](./examples_new/half_precision_high_vram/emma_0_1.wav) |
-|`ultra_fast_KEA`| yes | yes | 6.82s | [link](./examples_new/half_precision-K_Euler_A-high_vram/emma_0_1.wav) |
+The example texts used were:
+
+A (70 characters)
+> I'm looking for contributors who can do optimizations better than me.
+
+B (188 characters)
+> Then took the other, as just as fair,
+> And having perhaps the better claim,
+> Because it was grassy and wanted wear;
+> Though as for that the passing there
+> Had worn them really about the same,
+
 
 Half precision currently significantly worsens outputs, so I do not recommend enabling it unless you are happy with the samples linked. Using `cond_free` with half precision seems to produce decent outputs.
 
@@ -43,14 +67,34 @@ Note that if you have the original tortoise installed,
 * You will need to install the new requirements (`pip install -r requirements.txt`)
 * You may want to install this repository as a symbolic link (`pip install -e .`), as this repository will be updated frequently
 
-## Future plans
-- [] add DPM++ samplers
-- [] **add TensorRT model**. 90% of inference time is spent in the GPT model; compiling it should produce great speedups, but it requires:
-    - [] a less hacky `transformers` model definition (see `GPT2InferenceModel`)
-    - [] an ORTModelForCausalLM implementation for tortoise
-    - [] tensorRT runtime
-- [] try half precision in other parts of the model
+## Usage
+For maximum speed (and worst quality), you can try:
 
+> `python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset ultra_fast --text ...`
+> `python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset single_sample --candidates 1 --text ... # generates only 1 sample` 
+
+But in most cases, these settings should perform decently && fast:
+
+> `python tortoise/do_tts.py --kv_cache --preset ultra_fast --text ...`
+
+You can obtain outputs 100% identical to the original tortoise repo with the following command:
+
+> `python tortoise/do_tts.py --preset ultra_fast_old --text ...`
+
+## Future plans
+Optimization related:
+- [ ] add more k-diffusion samplers; optimize diffusion step count
+- [ ] **fix KV cache** implementation
+- [ ] **add TensorRT model**. 90% of inference time is spent in the GPT model; compiling it should produce great speedups, but it requires:
+    - [ ] a less hacky `transformers` model definition (see `GPT2InferenceModel`)
+    - [ ] an ORTModelForCausalLM implementation for tortoise
+    - [ ] tensorRT runtime
+- [ ] try half precision in the vocoder + diffuser
+
+QoL related:
+- [ ] implement new args in places other than ./tortoise/do_tts.py
+- [ ] fix api usage with new args
+- [ ] webui integration???
 
 Original README description:
 

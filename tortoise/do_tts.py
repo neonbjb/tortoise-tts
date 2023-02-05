@@ -33,11 +33,13 @@ if __name__ == '__main__':
     parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
     parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
-    parser.add_argument('--high_vram', help='keep ALL models loaded in vram for faster perf', default=True)
+    parser.add_argument('--low_vram', dest='high_vram', help='re-enable default offloading behaviour of tortoise', default=True, action='store_false')
     parser.add_argument('--half', help='enable autocast to half precision for autoregressive model', default=False, action='store_true')
     parser.add_argument('--kv_cache', help='enable (partially broken) kv_cache usage, leading to drastic speedups but worse memory usage + results', default=False, action='store_true')
     parser.add_argument('--sampler', help='override the sampler used for diffusion (default depends on --preset)', choices=SAMPLERS)
     parser.add_argument('--steps', type=int, help='override the steps used for diffusion (default depends on --preset)')
+    parser.add_argument('--cond_free', help='force conditioning free diffusion', action='store_true')
+    parser.add_argument('--no_cond_free', help='force disable conditioning free diffusion', dest='cond_free', action='store_false')
 
     args = parser.parse_args()
     os.makedirs(args.output_path, exist_ok=True)
@@ -55,8 +57,8 @@ if __name__ == '__main__':
         with timeit(f'Generating {args.candidates} candidates for voice {selected_voice} (seed={args.seed})'):
             nullable_kwargs = {
                 k:v for k,v in zip(
-                    ['sampler', 'diffusion_iterations'],
-                    [args.sampler, args.steps]
+                    ['sampler', 'diffusion_iterations', 'cond_free'],
+                    [args.sampler, args.steps, args.cond_free]
                 ) if v is not None
             }
             gen, dbg_state = tts.tts_with_preset(
