@@ -32,136 +32,6 @@ class ResBlock(nn.Module):
     def forward(self, x):
         return F.relu(self.net(x) + x)
 
-class PrunedGPT2InferenceModel(GPT2PreTrainedModel):
-    def __init__(self, config, gpt, text_pos_emb, embeddings, norm, linear):
-        super().__init__(config)
-        self.transformer = gpt
-        self.text_pos_embedding = text_pos_emb
-        self.embeddings = embeddings
-        self.lm_head = nn.Sequential(norm, linear)
-
-    def store_mel_emb(self, mel_emb):
-        self.cached_mel_emb = mel_emb
-
-    def prepare_inputs_for_generation(self, input_ids, past=None, **kwargs):
-        token_type_ids = kwargs.get("token_type_ids", None)
-        # only last token for inputs_ids if past is defined in kwargs
-        print(past)
-        if past:
-            input_ids = input_ids[:, -1].unsqueeze(-1)
-            if token_type_ids is not None:
-                token_type_ids = token_type_ids[:, -1].unsqueeze(-1)
-
-        attention_mask = kwargs.get("attention_mask", None)
-        position_ids = kwargs.get("position_ids", None)
-
-        if attention_mask is not None and position_ids is None:
-            # create position_ids on the fly for batch generation
-            print(position_ids)
-            position_ids = attention_mask.long().cumsum(-1) - 1
-            position_ids.masked_fill_(attention_mask == 0, 1)
-            print(position_ids)
-            if past:
-                position_ids = position_ids[:, -1].unsqueeze(-1)
-        else:
-            position_ids = None
-        return {
-            "input_ids": input_ids,
-            "past_key_values": past,
-            "use_cache": kwargs.get("use_cache"),
-            "position_ids": position_ids,
-            "attention_mask": attention_mask,
-            "token_type_ids": token_type_ids,
-        }
-
-    def forward(
-        self,
-        input_ids=None,
-        attention_mask=None,
-        position_ids=None, **kwargs
-    ):
-        past_key_values=None
-        token_type_ids=None
-        head_mask=None
-        inputs_embeds=None
-        encoder_hidden_states=None
-        encoder_attention_mask=None
-        labels=None
-        use_cache=True
-        output_attentions=False
-        output_hidden_states=False
-        return_dict=True
-        #
-        assert self.cached_mel_emb is not None
-        assert inputs_embeds is None  # Not supported by this inference model.
-        assert labels is None  # Training not supported by this inference model.
-        #return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        '''
-        print(attention_mask)
-        print(position_ids)
-        print(attention_mask.dtype)
-        print(position_ids.dtype)
-        '''
-
-        '''
-        attention_mask=tensor([[1, 1, 1,  ..., 1, 1, 1],
-            [1, 1, 1,  ..., 1, 1, 1],
-            [1, 1, 1,  ..., 1, 1, 1],
-            ...,
-            [1, 1, 1,  ..., 1, 1, 1],
-            [1, 1, 1,  ..., 1, 1, 1],
-            [1, 1, 1,  ..., 1, 1, 1]], device='cuda:0')
-        '''
-
-        # Create embedding
-        mel_len = self.cached_mel_emb.shape[1]
-        text_inputs = input_ids[:, mel_len:]
-        text_emb = self.embeddings(text_inputs)
-        text_emb = text_emb + self.text_pos_embedding(text_emb)
-        mel_emb = self.cached_mel_emb.repeat_interleave(text_emb.shape[0]//self.cached_mel_emb.shape[0], 0)
-        emb = torch.cat([mel_emb, text_emb], dim=1)
-
-        transformer_outputs = self.transformer(
-            inputs_embeds=emb,
-            past_key_values=past_key_values,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask,
-            use_cache=use_cache,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-        )
-        hidden_states = transformer_outputs[0]
-
-        lm_logits = self.lm_head(hidden_states)
-
-        if not return_dict:
-            return (lm_logits,) + transformer_outputs[1:]
-        return CausalLMOutputWithCrossAttentions(
-            loss=None,
-            logits=lm_logits,
-            past_key_values=transformer_outputs.past_key_values,
-            hidden_states=transformer_outputs.hidden_states,
-            attentions=transformer_outputs.attentions,
-            cross_attentions=transformer_outputs.cross_attentions,
-        )
-
-    @staticmethod
-    def _reorder_cache(past, beam_idx):
-        """
-        This function is used to re-order the :obj:`past_key_values` cache if
-        :meth:`~transformers.PreTrainedModel.beam_search` or :meth:`~transformers.PreTrainedModel.beam_sample` is
-        called. This is required to match :obj:`past_key_values` with the correct beam_idx at every generation step.
-        """
-        return tuple(
-            tuple(past_state.index_select(0, beam_idx.to(past_state.device)) for past_state in layer_past)
-            for layer_past in past
-        )
-
 class GPT2InferenceModel(GPT2PreTrainedModel):
     def __init__(self, config, gpt, text_pos_emb, embeddings, norm, linear, kv_cache):
         super().__init__(config)
@@ -596,6 +466,135 @@ class UnifiedVoice(nn.Module):
                                             num_return_sequences=num_return_sequences, **hf_generate_kwargs)
         return gen[:, trunc_index:]
 
+class PrunedGPT2InferenceModel(GPT2PreTrainedModel):
+    def __init__(self, config, gpt, text_pos_emb, embeddings, norm, linear):
+        super().__init__(config)
+        self.transformer = gpt
+        self.text_pos_embedding = text_pos_emb
+        self.embeddings = embeddings
+        self.lm_head = nn.Sequential(norm, linear)
+
+    def store_mel_emb(self, mel_emb):
+        self.cached_mel_emb = mel_emb
+
+    def prepare_inputs_for_generation(self, input_ids, past=None, **kwargs):
+        token_type_ids = kwargs.get("token_type_ids", None)
+        # only last token for inputs_ids if past is defined in kwargs
+        print(past)
+        if past:
+            input_ids = input_ids[:, -1].unsqueeze(-1)
+            if token_type_ids is not None:
+                token_type_ids = token_type_ids[:, -1].unsqueeze(-1)
+
+        attention_mask = kwargs.get("attention_mask", None)
+        position_ids = kwargs.get("position_ids", None)
+
+        if attention_mask is not None and position_ids is None:
+            # create position_ids on the fly for batch generation
+            print(position_ids)
+            position_ids = attention_mask.long().cumsum(-1) - 1
+            position_ids.masked_fill_(attention_mask == 0, 1)
+            print(position_ids)
+            if past:
+                position_ids = position_ids[:, -1].unsqueeze(-1)
+        else:
+            position_ids = None
+        return {
+            "input_ids": input_ids,
+            "past_key_values": past,
+            "use_cache": kwargs.get("use_cache"),
+            "position_ids": position_ids,
+            "attention_mask": attention_mask,
+            "token_type_ids": token_type_ids,
+        }
+
+    def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        position_ids=None, **kwargs
+    ):
+        past_key_values=None
+        token_type_ids=None
+        head_mask=None
+        inputs_embeds=None
+        encoder_hidden_states=None
+        encoder_attention_mask=None
+        labels=None
+        use_cache=True
+        output_attentions=False
+        output_hidden_states=False
+        return_dict=True
+        #
+        assert self.cached_mel_emb is not None
+        assert inputs_embeds is None  # Not supported by this inference model.
+        assert labels is None  # Training not supported by this inference model.
+        #return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        '''
+        print(attention_mask)
+        print(position_ids)
+        print(attention_mask.dtype)
+        print(position_ids.dtype)
+        '''
+
+        '''
+        attention_mask=tensor([[1, 1, 1,  ..., 1, 1, 1],
+            [1, 1, 1,  ..., 1, 1, 1],
+            [1, 1, 1,  ..., 1, 1, 1],
+            ...,
+            [1, 1, 1,  ..., 1, 1, 1],
+            [1, 1, 1,  ..., 1, 1, 1],
+            [1, 1, 1,  ..., 1, 1, 1]], device='cuda:0')
+        '''
+
+        # Create embedding
+        mel_len = self.cached_mel_emb.shape[1]
+        text_inputs = input_ids[:, mel_len:]
+        text_emb = self.embeddings(text_inputs)
+        text_emb = text_emb + self.text_pos_embedding(text_emb)
+        mel_emb = self.cached_mel_emb.repeat_interleave(text_emb.shape[0]//self.cached_mel_emb.shape[0], 0)
+        emb = torch.cat([mel_emb, text_emb], dim=1)
+
+        transformer_outputs = self.transformer(
+            inputs_embeds=emb,
+            past_key_values=past_key_values,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=encoder_attention_mask,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
+        hidden_states = transformer_outputs[0]
+
+        lm_logits = self.lm_head(hidden_states)
+
+        if not return_dict:
+            return (lm_logits,) + transformer_outputs[1:]
+        return CausalLMOutputWithCrossAttentions(
+            loss=None,
+            logits=lm_logits,
+            past_key_values=transformer_outputs.past_key_values,
+            hidden_states=transformer_outputs.hidden_states,
+            attentions=transformer_outputs.attentions,
+            cross_attentions=transformer_outputs.cross_attentions,
+        )
+
+    @staticmethod
+    def _reorder_cache(past, beam_idx):
+        """
+        This function is used to re-order the :obj:`past_key_values` cache if
+        :meth:`~transformers.PreTrainedModel.beam_search` or :meth:`~transformers.PreTrainedModel.beam_sample` is
+        called. This is required to match :obj:`past_key_values` with the correct beam_idx at every generation step.
+        """
+        return tuple(
+            tuple(past_state.index_select(0, beam_idx.to(past_state.device)) for past_state in layer_past)
+            for layer_past in past
+        )
 
 if __name__ == '__main__':
     gpt = UnifiedVoice(model_dim=256, heads=4, train_solo_embeddings=True, use_mel_codes_as_input=True, max_conditioning_inputs=4)
