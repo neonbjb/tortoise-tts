@@ -48,9 +48,13 @@ A (70 characters)
 
 B (188 characters)
 > Then took the other, as just as fair,
+>
 > And having perhaps the better claim,
+>
 > Because it was grassy and wanted wear;
+>
 > Though as for that the passing there
+>
 > Had worn them really about the same,
 
 Half precision currently significantly worsens outputs, so I do not recommend enabling it unless you are happy with the samples linked. Using `cond_free` with half precision seems to produce decent outputs.
