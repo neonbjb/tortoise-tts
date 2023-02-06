@@ -496,9 +496,8 @@ class TextToSpeech:
             if verbose:
                 print("Transforming autoregressive outputs into audio..")
             wav_candidates = []
-            self.diffusion = self.diffusion.to(self.device)
-            self.vocoder = self.vocoder.to(self.device)
             with self.temporary_cuda(self.diffusion) as diffusion, self.temporary_cuda(self.vocoder) as vocoder:
+                diffusion.enable_fp16 = half # hacky
                 for b in range(best_results.shape[0]):
                     codes = best_results[b].unsqueeze(0)
                     latents = best_latents[b].unsqueeze(0)
