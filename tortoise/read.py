@@ -1,3 +1,5 @@
+# AGPL: a notification must be added stating that changes have been made to that file. 
+
 import argparse
 import os
 from time import time
@@ -9,23 +11,29 @@ from api import TextToSpeech, MODELS_DIR
 from utils.audio import load_audio, load_voices
 from utils.text import split_and_recombine_text
 
+from base_argparser import ap
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(parents=[ap])
+    parser.set_defaults(
+        output_path='results/longform/',
+        voice='pat',
+        #preset='standard', #changed: preset is now fast
+    )
+    #
     parser.add_argument('--textfile', type=str, help='A file containing the text to read.', default="tortoise/data/riding_hood.txt")
-    parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
-                                                 'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='pat')
-    parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/longform/')
-    parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='standard')
     parser.add_argument('--regenerate', type=str, help='Comma-separated list of clip numbers to re-generate, or nothing.', default=None)
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice. Only the first candidate is actually used in the final product, the others can be used manually.', default=1)
-    parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
-                                                      'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
-    parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
-    parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
+    # FORKED ARGUMENTS
 
     args = parser.parse_args()
-    tts = TextToSpeech(models_dir=args.model_dir)
+    nullable_kwargs = {
+        k:v for k,v in zip(
+            ['sampler', 'diffusion_iterations', 'cond_free'],
+            [args.sampler, args.steps, args.cond_free]
+        ) if v is not None
+    }
+    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache)
 
     outpath = args.output_path
     selected_voices = args.voice.split(',')
@@ -59,8 +67,11 @@ if __name__ == '__main__':
             if regenerate is not None and j not in regenerate:
                 all_parts.append(load_audio(os.path.join(voice_outpath, f'{j}.wav'), 24000))
                 continue
-            gen = tts.tts_with_preset(text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
-                                      preset=args.preset, k=args.candidates, use_deterministic_seed=seed)
+            gen = tts.tts_with_preset(
+                text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
+                preset=args.preset, k=args.candidates, use_deterministic_seed=seed,
+                half=args.half, **nullable_kwargs
+            )
             if args.candidates == 1:
                 gen = gen.squeeze(0).cpu()
                 torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen, 24000)
