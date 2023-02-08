@@ -1,4 +1,4 @@
-# AGPL: a notification must be added stating that changes have been made to that file. 
+# ## AGPL: a notification must be added stating that changes have been made to that file. 
 
 import os
 import random
@@ -275,13 +275,19 @@ class TextToSpeech:
                          speech_enc_depth=8, speech_mask_percentage=0, latent_multiplier=1).cpu().eval()
         self.cvvp.load_state_dict(torch.load(get_model_path('cvvp.pth', self.models_dir)))
 
-    def get_conditioning_latents(self, voice_samples, return_mels=False):
+    def get_conditioning_latents(self, voice_samples, return_mels=False, latent_averaging_mode=0):
         """
         Transforms one or more voice_samples into a tuple (autoregressive_conditioning_latent, diffusion_conditioning_latent).
         These are expressive learned latents that encode aspects of the provided clips like voice, intonation, and acoustic
         properties.
         :param voice_samples: List of 2 or more ~10 second reference clips, which should be torch tensors containing 22.05kHz waveform data.
+        :param latent_averaging_mode: 0/1/2 for following modes:
+            0 - latents will be generated as in original tortoise, using ~4.27s from each voice sample, averaging latent across all samples
+            1 - latents will be generated using (almost) entire voice samples, averaged across all the ~4.27s chunks
+            2 - latents will be generated using (almost) entire voice samples, averaged per voice sample
         """
+        assert latent_averaging_mode in [0, 1, 2], "latent_averaging mode has to be one of (0, 1, 2)"
+        print('mode', latent_averaging_mode)
         with torch.no_grad():
             voice_samples = [v.to(self.device) for v in voice_samples]
 
@@ -295,12 +301,26 @@ class TextToSpeech:
                 auto_latent = ar.get_conditioning(auto_conds)
 
             diffusion_conds = []
+
             for sample in voice_samples:
                 # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
                 sample = torchaudio.functional.resample(sample, 22050, 24000)
-                sample = pad_or_truncate(sample, 102400)
-                cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
-                diffusion_conds.append(cond_mel)
+                if latent_averaging_mode == 0:
+                    sample = pad_or_truncate(sample, 102400)
+                    cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
+                    diffusion_conds.append(cond_mel)
+                else:
+                    if latent_averaging_mode == 2:
+                        temp_diffusion_conds = []
+                    for chunk in range(sample.shape[1]//102400):
+                        current_sample = sample[:, chunk*102400:(chunk+1)*102400]
+                        cond_mel = wav_to_univnet_mel(current_sample.to(self.device), do_normalization=False, device=self.device)
+                        if latent_averaging_mode == 1:
+                            diffusion_conds.append(cond_mel)
+                        elif latent_averaging_mode == 2:
+                            temp_diffusion_conds.append(cond_mel)
+                    if latent_averaging_mode == 2:
+                        diffusion_conds.append(torch.stack(temp_diffusion_conds).mean(0))
             diffusion_conds = torch.stack(diffusion_conds, dim=1)
 
             with self.temporary_cuda(self.diffusion) as diffusion:
@@ -349,7 +369,7 @@ class TextToSpeech:
         return self.tts(text, **settings)
 
     def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True, use_deterministic_seed=None,
-            return_deterministic_state=False,
+            return_deterministic_state=False, latent_averaging_mode=0,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8, max_mel_tokens=500,
             # CVVP parameters follow
@@ -366,6 +386,10 @@ class TextToSpeech:
                                      can be provided in lieu of voice_samples. This is ignored unless voice_samples=None.
                                      Conditioning latents can be retrieved via get_conditioning_latents().
         :param k: The number of returned clips. The most likely (as determined by Tortoises' CLVP model) clips are returned.
+        :param latent_averaging_mode: 0/1/2 for following modes:
+            0 - latents will be generated as in original tortoise, using ~4.27s from each voice sample, averaging latent across all samples
+            1 - latents will be generated using (almost) entire voice samples, averaged across all the ~4.27s chunks
+            2 - latents will be generated using (almost) entire voice samples, averaged per voice sample
         :param verbose: Whether or not to print log messages indicating the progress of creating a clip. Default=true.
         ~~AUTOREGRESSIVE KNOBS~~
         :param num_autoregressive_samples: Number of samples taken from the autoregressive model, all of which are filtered using CLVP.
@@ -411,7 +435,8 @@ class TextToSpeech:
 
         auto_conds = None
         if voice_samples is not None:
-            auto_conditioning, diffusion_conditioning, auto_conds, _ = self.get_conditioning_latents(voice_samples, return_mels=True)
+            auto_conditioning, diffusion_conditioning, auto_conds, _ = self.get_conditioning_latents(voice_samples, return_mels=True, 
+                                                                                                     latent_averaging_mode=latent_averaging_mode)
         elif conditioning_latents is not None:
             auto_conditioning, diffusion_conditioning = conditioning_latents
         else:
