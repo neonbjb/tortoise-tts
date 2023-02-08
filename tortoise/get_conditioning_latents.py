@@ -2,8 +2,6 @@
 import argparse
 import os
 import torch
-from glob import glob
-
 from api import TextToSpeech
 from tortoise.utils.audio import load_audio, get_voices
 
