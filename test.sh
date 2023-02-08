@@ -34,15 +34,10 @@ f() {
 	sleep 30; # sleep to ensure gpu cools down
 }
 
-f --preset ultra_fast_old --seed 42 --low_vram
-save tortoise_original-with_original_vram
-f --preset ultra_fast --seed 42 --no_cond_free # aka DPM++2M without cond_free
-save ultra_fast-no_cond_tree
-f --preset ultra_fast --seed 42 --half --no_cond_free # DPM++2M (no cond_free) + autocast
-save ultra_fast-half-no_cond_tree
-f --preset ultra_fast --seed 42 --kv_cache --half --no_cond_free # enable all optimizations
-save ultra_fast-kv_cache-half-no_cond_tree
-
+f --preset ultra_fast --seed 42 --kv_cache --low_vram # DPM++2M with kv_cache
+#save low_vram-ultra_fast-kv_cache
+f --preset ultra_fast --seed 42 --kv_cache # DPM++2M with kv_cache
+#save low_vram-ultra_fast-kv_cache
 exit
 
 f --preset ultra_fast_old --seed 42 --low_vram

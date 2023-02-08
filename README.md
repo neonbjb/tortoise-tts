@@ -74,6 +74,9 @@ Note that if you have the original tortoise installed,
 * You will need to install the new requirements (`pip install -r requirements.txt`)
 * You may want to install this repository as a symbolic link (`pip install -e .`), as this repository will be updated frequently
 
+#### pytorch issues
+If you are experiencing errors related to GPU usage (or lackthereof), please see the instructions on [the pytorch website](https://pytorch.org/get-started/locally/) to install pytorch with proper GPU support.
+
 ## Usage
 For maximum speed (and worst quality), you can try:
 

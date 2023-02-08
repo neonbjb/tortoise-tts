@@ -360,7 +360,8 @@ class TextToSpeech:
             'single_sample': {'num_autoregressive_samples': 8, 'diffusion_iterations': 10, 'sampler': 'dpm++2m'},
             'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 10, 'sampler': 'dpm++2m'},
             'ultra_fast_old': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False},
-            'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 80},
+            'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 20, 'sampler': 'dpm++2m'},
+            'fast_old': {'num_autoregressive_samples': 96, 'diffusion_iterations': 80},
             'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 200},
             'high_quality': {'num_autoregressive_samples': 256, 'diffusion_iterations': 400},
         }
