@@ -25,16 +25,22 @@ def load_wav_to_torch(full_path):
         raise NotImplemented(f"Provided data dtype not supported: {data.dtype}")
     return (torch.FloatTensor(data.astype(np.float32)) / norm_fix, sampling_rate)
 
+def check_audio(audio, audiopath: str):
+    # Check some assumptions about audio range. This should be automatically fixed in load_wav_to_torch, but might not be in some edge cases, where we should squawk.
+    # '2' is arbitrarily chosen since it seems like audio will often "overdrive" the [-1,1] bounds.
+    if torch.any(audio > 2) or not torch.any(audio < 0):
+        print(f"Error with {audiopath}. Max={audio.max()} min={audio.min()}")
+    audio.clip_(-1, 1)
 
-def load_audio(audiopath, sampling_rate):
+def read_audio_file(audiopath: str):
     if audiopath[-4:] == '.wav':
         audio, lsr = load_wav_to_torch(audiopath)
     elif audiopath[-4:] == '.mp3':
-        audio, lsr = librosa.load(audiopath, sr=sampling_rate)
+        audio, lsr = librosa.load(audiopath, sr=None)
         audio = torch.FloatTensor(audio)
     else:
         assert False, f"Unsupported audio format provided: {audiopath[-4:]}"
-
+    
     # Remove any channel data.
     if len(audio.shape) > 1:
         if audio.shape[0] < 5:
@@ -43,14 +49,26 @@ def load_audio(audiopath, sampling_rate):
             assert audio.shape[1] < 5
             audio = audio[:, 0]
 
+    return audio, lsr
+
+def load_required_audio(audiopath: str):
+    audio, lsr = read_audio_file(audiopath)
+
+    audios = [
+        torchaudio.functional.resample(audio, lsr, sampling_rate)
+        for sampling_rate in (22050, 24000)
+    ]
+    for audio in audios:
+        check_audio(audio, audiopath)
+
+    return [audio.unsqueeze(0) for audio in audios]
+
+def load_audio(audiopath, sampling_rate):
+    audio, lsr = read_audio_file(audiopath)
+
     if lsr != sampling_rate:
         audio = torchaudio.functional.resample(audio, lsr, sampling_rate)
-
-    # Check some assumptions about audio range. This should be automatically fixed in load_wav_to_torch, but might not be in some edge cases, where we should squawk.
-    # '2' is arbitrarily chosen since it seems like audio will often "overdrive" the [-1,1] bounds.
-    if torch.any(audio > 2) or not torch.any(audio < 0):
-        print(f"Error with {audiopath}. Max={audio.max()} min={audio.min()}")
-    audio.clip_(-1, 1)
+    check_audio(audio, audiopath)
 
     return audio.unsqueeze(0)
 
@@ -108,7 +126,7 @@ def load_voice(voice, extra_voice_dirs=[]):
     else:
         conds = []
         for cond_path in paths:
-            c = load_audio(cond_path, 22050)
+            c = load_required_audio(cond_path)
             conds.append(c)
         return conds, None
 

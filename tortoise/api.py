@@ -280,7 +280,7 @@ class TextToSpeech:
         Transforms one or more voice_samples into a tuple (autoregressive_conditioning_latent, diffusion_conditioning_latent).
         These are expressive learned latents that encode aspects of the provided clips like voice, intonation, and acoustic
         properties.
-        :param voice_samples: List of 2 or more ~10 second reference clips, which should be torch tensors containing 22.05kHz waveform data.
+        :param voice_samples: List of arbitrary reference clips, which should be *pairs* of torch tensors containing arbitrary kHz waveform data.
         :param latent_averaging_mode: 0/1/2 for following modes:
             0 - latents will be generated as in original tortoise, using ~4.27s from each voice sample, averaging latent across all samples
             1 - latents will be generated using (almost) entire voice samples, averaged across all the ~4.27s chunks
@@ -289,22 +289,20 @@ class TextToSpeech:
         assert latent_averaging_mode in [0, 1, 2], "latent_averaging mode has to be one of (0, 1, 2)"
         print('mode', latent_averaging_mode)
         with torch.no_grad():
-            voice_samples = [v.to(self.device) for v in voice_samples]
+            voice_samples = [[v.to(self.device) for v in ls] for ls in voice_samples]
 
             auto_conds = []
-            if not isinstance(voice_samples, list):
-                voice_samples = [voice_samples]
-            for vs in voice_samples:
-                auto_conds.append(format_conditioning(vs, device=self.device))
+            for ls in voice_samples:
+                auto_conds.append(format_conditioning(ls[0], device=self.device))
             auto_conds = torch.stack(auto_conds, dim=1)
             with self.temporary_cuda(self.autoregressive) as ar:
                 auto_latent = ar.get_conditioning(auto_conds)
 
             diffusion_conds = []
 
-            for sample in voice_samples:
+            for ls in voice_samples:
                 # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
-                sample = torchaudio.functional.resample(sample, 22050, 24000)
+                sample = ls[1]
                 if latent_averaging_mode == 0:
                     sample = pad_or_truncate(sample, 102400)
                     cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
@@ -382,7 +380,7 @@ class TextToSpeech:
         """
         Produces an audio clip of the given text being spoken with the given reference voice.
         :param text: Text to be spoken.
-        :param voice_samples: List of 2 or more ~10 second reference clips which should be torch tensors containing 22.05kHz waveform data.
+        :param voice_samples: List of an arbitrary number of reference clips, which should be *tuple-pairs* of torch tensors containing arbitrary kHz waveform data.
         :param conditioning_latents: A tuple of (autoregressive_conditioning_latent, diffusion_conditioning_latent), which
                                      can be provided in lieu of voice_samples. This is ignored unless voice_samples=None.
                                      Conditioning latents can be retrieved via get_conditioning_latents().

@@ -3,7 +3,7 @@ import argparse
 import os
 import torch
 from api import TextToSpeech
-from tortoise.utils.audio import load_audio, get_voices
+from tortoise.utils.audio import load_required_audio, get_voices
 
 """
 Dumps the conditioning latents for the specified voice to disk. These are expressive latents which can be used for
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         cond_paths = voices[voice]
         conds = []
         for cond_path in cond_paths:
-            c = load_audio(cond_path, 22050)
+            c = load_required_audio(cond_path)
             conds.append(c)
         conditioning_latents = tts.get_conditioning_latents(conds, latent_averaging_mode=args.latent_averaging_mode)
         torch.save(conditioning_latents, os.path.join(args.output_path, f'{voice}.pth'))

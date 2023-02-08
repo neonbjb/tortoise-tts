@@ -4,7 +4,7 @@ import os
 import torchaudio
 
 from api import TextToSpeech
-from tortoise.utils.audio import load_audio
+from tortoise.utils.audio import load_required_audio
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     for line in lines:
         text, real = line.strip().split('\t')
-        conds = [load_audio(real, 22050)]
+        conds = [load_required_audio(real)]
         gen = tts.tts_with_preset(text, voice_samples=conds, conditioning_latents=None, preset=args.preset)
         torchaudio.save(os.path.join(args.output_path, os.path.basename(real)), gen.squeeze(0).cpu(), 24000)
 
