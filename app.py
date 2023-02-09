@@ -30,6 +30,7 @@ if __name__ == "__main__":
         help="Text to speak.",
         value="The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them.",
     )
+
     voices = os.listdir("tortoise/voices") + ["random"]
     voices.remove("cond_latent_example")
     voice = st.selectbox(
@@ -39,7 +40,7 @@ if __name__ == "__main__":
         "Use the & character to join two voices together. Use a comma to perform inference on multiple voices.",
         index=len(voices) - 1,
     )
-    preset = st.radio(
+    preset = st.selectbox(
         "Preset",
         (
             "single_sample",
@@ -50,7 +51,7 @@ if __name__ == "__main__":
             "high_quality",
         ),
         help="Which voice preset to use.",
-        index=3,
+        index=1,
     )
     with st.expander("Advanced"):
         col1, col2 = st.columns(2)
@@ -75,7 +76,6 @@ if __name__ == "__main__":
             )
             if seed == -1:
                 seed = None
-
             """#### Directories"""
             output_path = st.text_input(
                 "Output Path", help="Where to store outputs.", value="results/"
@@ -88,16 +88,17 @@ if __name__ == "__main__":
             )
 
 
+
         with col2:
             """#### Optimizations"""
             high_vram = not st.checkbox(
                 "Low VRAM",
-                help="re-enable default offloading behaviour of tortoise",
+                help="Re-enable default offloading behaviour of tortoise",
                 value=True,
             )
             half = st.checkbox(
                 "Half-Precision",
-                help="enable autocast to half precision for autoregressive model",
+                help="Enable autocast to half precision for autoregressive model",
                 value=False,
             )
             kv_cache = st.checkbox(
@@ -121,11 +122,12 @@ if __name__ == "__main__":
                 value=True,
             )
 
-
+    if 'tts' not in st.session_state:
+        st.session_state.tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache)
+    tts = st.session_state.tts
     if st.button("Start"):
         with st.spinner(f"Generating {candidates} candidates for voice {voice} (seed={seed}). You can see progress in the terminal"):
             os.makedirs(output_path, exist_ok=True)
-            tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache)
 
             selected_voices = voice.split(",")
             for k, selected_voice in enumerate(selected_voices):
@@ -168,7 +170,7 @@ if __name__ == "__main__":
                 )
                 audio_buffer = BytesIO()
                 torchaudio.save(
-                    audio_stream,
+                    audio_buffer,
                     g.squeeze(0).cpu(),
                     24000,
                 )
