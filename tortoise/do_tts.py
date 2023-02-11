@@ -29,8 +29,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     nullable_kwargs = {
         k:v for k,v in zip(
-            ['sampler', 'diffusion_iterations', 'cond_free'],
-            [args.sampler, args.steps, args.cond_free]
+            ['sampler', 'diffusion_iterations', 'cond_free','num_autoregressive_samples'],
+            [args.sampler, args.steps, args.cond_free, args.autoregressive_samples]
         ) if v is not None
     }
     os.makedirs(args.output_path, exist_ok=True)

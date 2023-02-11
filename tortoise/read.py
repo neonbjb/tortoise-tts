@@ -29,8 +29,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     nullable_kwargs = {
         k:v for k,v in zip(
-            ['sampler', 'diffusion_iterations', 'cond_free'],
-            [args.sampler, args.steps, args.cond_free]
+            ['sampler', 'diffusion_iterations', 'cond_free','num_autoregressive_samples'],
+            [args.sampler, args.steps, args.cond_free, args.autoregressive_samples]
         ) if v is not None
     }
     tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
               "your intent, please remove all '|' characters from the input.")
         texts = text.split('|')
     else:
-        texts = split_and_recombine_text(text)
+        texts = split_and_recombine_text(text,100,200)
 
     seed = int(time()) if args.seed is None else args.seed
     for selected_voice in selected_voices:
