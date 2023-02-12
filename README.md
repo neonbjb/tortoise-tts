@@ -1,3 +1,5 @@
+new: :sparkles: [streamlit webui](#Webui) by @Ryu
+
 [click me](#installation) to skip to installation && usage!
 
 # Speeding up TorToiSe inference 5x
@@ -94,6 +96,17 @@ You can obtain outputs 100% identical to the original tortoise repo with the fol
 ```sh
 python tortoise/do_tts.py --preset ultra_fast_old --text #...
 ```
+
+## Webui
+An experimental [Streamlit](https://streamlit.io/) web UI is now available. To access, run:
+
+```bash
+$ streamlit run app.py
+```
+
+![](./static/webui_simple.png)
+
+![](./static/webui_advanced.png)
 
 ## Future plans
 Optimization related:
