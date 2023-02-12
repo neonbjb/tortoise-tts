@@ -21,4 +21,6 @@ ap.add_argument('--sampler', help='override the sampler used for diffusion (defa
 ap.add_argument('--steps', type=int, help='override the steps used for diffusion (default depends on --preset)')
 ap.add_argument('--cond_free', help='force conditioning free diffusion', action='store_true')
 ap.add_argument('--no_cond_free', help='force disable conditioning free diffusion', dest='cond_free', action='store_false')
-
+ap.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
+                'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
+ap.add_argument('--autoregressive_samples', type=int, help='override the autoregressive_samples used for diffusion (default depends on --preset)')
