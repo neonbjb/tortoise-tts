@@ -202,6 +202,13 @@ class TextToSpeech:
     Main entry point into Tortoise.
     """
 
+    def _config(self):
+        return {
+            'high_vram': self.high_vram,
+            'models_dir': self.models_dir,
+            'kv_cache': self.autoregressive.inference_model.kv_cache,
+        }
+
     def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, enable_redaction=True, device=None, high_vram=False, kv_cache=False):
         """
         Constructor

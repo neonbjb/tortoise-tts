@@ -122,7 +122,9 @@ if __name__ == "__main__":
                 value=True,
             )
 
-    if 'tts' not in st.session_state:
+    if 'tts' not in st.session_state or st.session_state.tts._config() != {
+            'models_dir': model_dir, 'high_vram': high_vram, 'kv_cache': kv_cache
+    }:
         st.session_state.tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache)
     tts = st.session_state.tts
     if st.button("Start"):
