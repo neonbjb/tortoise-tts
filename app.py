@@ -69,7 +69,7 @@ if __name__ == "__main__":
             steps = st.number_input(
                 "Steps",
                 help="Override the steps used for diffusion (default depends on preset)",
-                value=100,
+                value=30,
             )
             seed = st.number_input(
                 "Seed", help="Random seed which can be used to reproduce results.", value=-1
