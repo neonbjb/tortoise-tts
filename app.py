@@ -162,42 +162,27 @@ if __name__ == "__main__":
                         half=half,
                         **nullable_kwargs,
                     )
-        if isinstance(gen, list):
-            for j, g in enumerate(gen):
-                filename = f"{selected_voice}_{k}_{j}.wav"
-                torchaudio.save(
-                    os.path.join(output_path, filename),
-                    g.squeeze(0).cpu(),
-                    24000,
-                )
-                audio_buffer = BytesIO()
-                torchaudio.save(
-                    audio_buffer,
-                    g.squeeze(0).cpu(),
-                    24000,
-                )
-                st.audio(audio_buffer, format="audio/wav")
-                st.download_button(
-                    "Download sample",
-                    audio_buffer,
-                    file_name=filename,
-                )
-        else:
-            filename = f"{selected_voice}_{k}.wav"
+        def save_generation(g, filename: str):
             torchaudio.save(
                 os.path.join(output_path, filename),
-                gen.squeeze(0).cpu(),
+                g.squeeze(0).cpu(),
                 24000,
-                format="wav",
             )
             audio_buffer = BytesIO()
-            torchaudio.save(audio_buffer, gen.squeeze(0).cpu(), 24000, format="wav")
+            torchaudio.save(audio_buffer, g.squeeze(0).cpu(), 24000, format='wav')
             st.audio(audio_buffer, format="audio/wav")
             st.download_button(
                 "Download sample",
                 audio_buffer,
                 file_name=filename,
             )
+        if isinstance(gen, list):
+            for j, g in enumerate(gen):
+                filename = f"{selected_voice}_{k}_{j}.wav"
+                save_generation(g, filename)
+        else:
+            filename = f"{selected_voice}_{k}.wav"
+            save_generation(gen, filename)
 
         if produce_debug_state:
             os.makedirs("debug_states", exist_ok=True)
