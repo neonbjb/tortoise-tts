@@ -113,7 +113,6 @@ $ streamlit run app.py
 ## Future plans
 Optimization related:
 - [ ] add more k-diffusion samplers; optimize diffusion step count
-- [ ] **fix KV cache** implementation
 - [ ] **add TensorRT model**. 90% of inference time is spent in the GPT model; compiling it should produce great speedups, but it requires:
     - [ ] a less hacky `transformers` model definition (see `GPT2InferenceModel`)
     - [ ] an ORTModelForCausalLM implementation for tortoise
@@ -122,9 +121,8 @@ Optimization related:
 
 QoL related:
 - [ ] display samples on github pages, where you can do audio embeddings
-- [ ] implement new args in places other than ./tortoise/do_tts.py
-- [ ] fix api usage with new args
-- [ ] webui integration???
+- [ ] refactor api & CLI args with saner defaults and names
+- [ ] improved webui integration
 
 ## Motivation
 As stated by an [11Labs](https://beta.elevenlabs.io) developer:
