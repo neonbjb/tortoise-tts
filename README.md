@@ -64,7 +64,7 @@ Half precision currently significantly worsens outputs, so I do not recommend en
 The installation process is identical to the original tortoise-tts repo.
 
 ```shell
-git clone https://github.com/152334H/tortoise-tts
+git clone https://github.com/152334H/tortoise-tts-fast
 cd tortoise-tts
 python -m pip install -r ./requirements.txt
 python setup.py install
