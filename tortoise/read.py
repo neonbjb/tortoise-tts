@@ -70,7 +70,7 @@ if __name__ == '__main__':
             gen = tts.tts_with_preset(
                 text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
                 preset=args.preset, k=args.candidates, use_deterministic_seed=seed,
-                half=args.half, **nullable_kwargs
+                half=args.half, original_tortoise=args.original_tortoise, **nullable_kwargs
             )
             if args.candidates == 1:
                 gen = gen.squeeze(0).cpu()

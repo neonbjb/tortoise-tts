@@ -47,7 +47,7 @@ if __name__ == '__main__':
             gen, dbg_state = tts.tts_with_preset(
                 args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
                 preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount,
-                half=args.half, **nullable_kwargs
+                half=args.half, original_tortoise=args.original_tortoise, **nullable_kwargs
             )
         if isinstance(gen, list):
             for j, g in enumerate(gen):

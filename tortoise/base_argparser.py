@@ -25,3 +25,4 @@ ap.add_argument('--no_cond_free', help='force disable conditioning free diffusio
 ap.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                 'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
 ap.add_argument('--autoregressive_samples', type=int, help='override the autoregressive_samples used for diffusion (default depends on --preset)')
+ap.add_argument('--original_tortoise', help='ensure results are identical to original tortoise-tts repo', default=False, action='store_true')

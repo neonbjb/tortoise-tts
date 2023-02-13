@@ -93,11 +93,10 @@ But in most cases, these settings should perform decently && fast:
 python tortoise/do_tts.py --preset ultra_fast --text # ...
 ```
 
-TODO fix this:
 You can obtain outputs 100% identical to the original tortoise repo with the following command:
 
 ```sh
-python tortoise/do_tts.py --preset ultra_fast_old --text #...
+python tortoise/do_tts.py --preset ultra_fast_old --original_tortoise --text #...
 ```
 
 ## Webui

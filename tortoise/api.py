@@ -282,7 +282,7 @@ class TextToSpeech:
                          speech_enc_depth=8, speech_mask_percentage=0, latent_multiplier=1).cpu().eval()
         self.cvvp.load_state_dict(torch.load(get_model_path('cvvp.pth', self.models_dir)))
 
-    def get_conditioning_latents(self, voice_samples, return_mels=False, latent_averaging_mode=0):
+    def get_conditioning_latents(self, voice_samples, return_mels=False, latent_averaging_mode=0, original_tortoise=False):
         """
         Transforms one or more voice_samples into a tuple (autoregressive_conditioning_latent, diffusion_conditioning_latent).
         These are expressive learned latents that encode aspects of the provided clips like voice, intonation, and acoustic
@@ -309,7 +309,7 @@ class TextToSpeech:
 
             for ls in voice_samples:
                 # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
-                sample = ls[1]
+                sample = torchaudio.functional.resample(ls[0], 22050, 24000) if original_tortoise else ls[1]
                 if latent_averaging_mode == 0:
                     sample = pad_or_truncate(sample, 102400)
                     cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
@@ -382,7 +382,7 @@ class TextToSpeech:
             cvvp_amount=.0,
             # diffusion generation parameters follow
             diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,
-            sampler='ddim', half=True,
+            sampler='ddim', half=True, original_tortoise=False,
             **hf_generate_kwargs):
         """
         Produces an audio clip of the given text being spoken with the given reference voice.
@@ -441,8 +441,9 @@ class TextToSpeech:
 
         auto_conds = None
         if voice_samples is not None:
-            auto_conditioning, diffusion_conditioning, auto_conds, _ = self.get_conditioning_latents(voice_samples, return_mels=True, 
-                                                                                                     latent_averaging_mode=latent_averaging_mode)
+            auto_conditioning, diffusion_conditioning, auto_conds, _ = self.get_conditioning_latents(
+                voice_samples, return_mels=True, latent_averaging_mode=latent_averaging_mode, original_tortoise=original_tortoise
+            )
         elif conditioning_latents is not None:
             auto_conditioning, diffusion_conditioning = conditioning_latents
         else:
