@@ -1,6 +1,10 @@
-new: :sparkles: [streamlit webui](#Webui) by @Ryu
+### recent updates
+- `--kv_cache` is now **fixed**, and produces outputs **identical to the original tortoise repo**. It is also enabled by default now because of this.
+- new: :sparkles: [streamlit webui](#Webui) by @Ryu
 
 [click me](#installation) to skip to installation && usage!
+
+---
 
 # Speeding up TorToiSe inference 5x
 This is a working project to drastically boost the performance of TorToiSe, without modifying the base models. **Expect speedups of _5~10x_**, and hopefully 20x or larger when this project is complete.
@@ -28,18 +32,13 @@ Original TorToiSe [repo](https://github.com/neonbjb/tortoise-tts):
 | 112.81s | 14.94s | ultra_fast | [here](optimized_examples/A/tortoise_original-with_original_vram/) |
 
 New [repo](https://github.com/152334H/tortoise-tts), with `--preset ultra_fast`:
-| speed (B) | speed (A) | GPT kv-cache | sampler | cond-free diffusion | autocast to fp16 | samples |
+| speed (B) | speed (A) | GPT kv-cache | sampler | cond-free diffusion | autocast to fp16 | samples (vs orig repo) |
 |-|-|-|-|-|-|-|
-|  118.61   |   11.20   | ❌           | DDIM    | ❌                  | ❌               | [here](optimized_examples/A/tortoise_original/) |
-|  115.51   |   10.67   | ❌           | DPM++2M | ✅                  | ❌               | [here](optimized_examples/A/ultra_fast/) |
-|  114.58   |   10.24   | ❌           | DPM++2M | ❌                  | ❌               | [here](optimized_examples/A/ultra_fast-no_cond_tree/) |
-|   55.76   |    7.25   | ❌           | DDIM    | ❌                  | ✅               | [here](optimized_examples/A/tortoise_original-half_incomplete/) |
-|   53.59   |    6.77   | ❌           | DPM++2M | ✅                  | ✅               | [here](optimized_examples/A/ultra_fast-half/) |
-|   51.98   |    6.29   | ❌           | DPM++2M | ❌                  | ✅               | [here](optimized_examples/A/ultra_fast-half-no_cond_tree/) |
-|    9.86   |    4.24   | ✅           | DDIM    | ❌                  | ❌               | [here](optimized_examples/A/tortoise_original-kv_cache/) |
-|    8.51   |    3.77   | ✅           | DPM++2M | ✅                  | ❌               | [here](optimized_examples/A/ultra_fast-kv_cache/) |
-|    8.12   |    3.82   | ✅           | DPM++2M | ✅                  | ✅               | [here](optimized_examples/A/ultra_fast-kv_cache-half/) |
-|    6.78   |    3.35   | ✅           | DPM++2M | ❌                  | ✅               | [here](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
+|  118.61   |   11.20   | ❌           | DDIM    | ❌                  | ❌               | [~identical](optimized_examples/A/tortoise_original/) |
+|    9.98   |    4.17   | ✅           | DDIM    | ❌                  | ❌               | [~identical](optimized_examples/A/tortoise_original-kv_cache/) |
+|    7.51   |    3.26   | ✅           | DPM++2M | ✅                  | ❌               | [**best**](optimized_examples/A/ultra_fast-kv_cache/) |
+|    7.12   |    3.30   | ✅           | DPM++2M | ✅                  | ✅               | [okayish](optimized_examples/A/ultra_fast-kv_cache-half/) |
+|    7.21   |    3.27   | ✅           | DPM++2M | ❌                  | ✅               | [bad](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
 
 Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.py`.
 
@@ -79,21 +78,22 @@ Note that if you have the original tortoise installed,
 #### pytorch issues
 If you are experiencing errors related to GPU usage (or lackthereof), please see the instructions on [the pytorch website](https://pytorch.org/get-started/locally/) to install pytorch with proper GPU support.
 
-## Usage
+## CLI Usage
 For maximum speed (and worst quality), you can try:
 
 ```sh
-python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset ultra_fast --text #...
+python tortoise/do_tts.py --half --no_cond_free --preset ultra_fast --text #...
 # or, to only generate 1 sample:
-python tortoise/do_tts.py --kv_cache --half --no_cond_free --preset single_sample --candidates 1 --text #...
+python tortoise/do_tts.py --half --no_cond_free --preset single_sample --candidates 1 --text #...
 ```
 
 But in most cases, these settings should perform decently && fast:
 
 ```sh
-python tortoise/do_tts.py --kv_cache --preset ultra_fast --text # ...
+python tortoise/do_tts.py --preset ultra_fast --text # ...
 ```
 
+TODO fix this:
 You can obtain outputs 100% identical to the original tortoise repo with the following command:
 
 ```sh

@@ -16,7 +16,8 @@ ap.add_argument('--produce_debug_state', type=bool, help='Whether or not to prod
 # FORKED ARGUMENTS
 ap.add_argument('--low_vram', dest='high_vram', help='re-enable default offloading behaviour of tortoise', default=True, action='store_false')
 ap.add_argument('--half', help='enable autocast to half precision for autoregressive model', default=False, action='store_true')
-ap.add_argument('--kv_cache', help='enable (partially broken) kv_cache usage, leading to drastic speedups but worse memory usage + results', default=False, action='store_true')
+ap.add_argument('--kv_cache', help='no-op; kv_cache is enabled by default and this flag exists for compatibility', default=True, action='store_true')
+ap.add_argument('--no_cache', help='disable kv_cache usage. This should really only be used if you are very low on vram.', action='store_false', dest='kv_cache')
 ap.add_argument('--sampler', help='override the sampler used for diffusion (default depends on --preset)', choices=SAMPLERS)
 ap.add_argument('--steps', type=int, help='override the steps used for diffusion (default depends on --preset)')
 ap.add_argument('--cond_free', help='force conditioning free diffusion', action='store_true')

@@ -209,7 +209,7 @@ class TextToSpeech:
             'kv_cache': self.autoregressive.inference_model.kv_cache,
         }
 
-    def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, enable_redaction=True, device=None, high_vram=False, kv_cache=False):
+    def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, enable_redaction=True, device=None, high_vram=False, kv_cache=True):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing

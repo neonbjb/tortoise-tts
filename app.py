@@ -103,8 +103,8 @@ if __name__ == "__main__":
             )
             kv_cache = st.checkbox(
                 "Key-Value Cache",
-                help="Enable (partially broken) kv_cache usage, leading to drastic speedups but worse memory usage + results",
-                value=False,
+                help="Enable kv_cache usage, leading to drastic speedups but worse memory usage",
+                value=True,
             )
             cond_free = st.checkbox(
                 "Conditioning Free", help="Force conditioning free diffusion", value=True

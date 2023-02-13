@@ -23,8 +23,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(parents=[ap])
     parser.add_argument('--text', type=str, help='Text to speak.', default="The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them.")
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
-    parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
-                                                          'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
 
     args = parser.parse_args()
     nullable_kwargs = {
