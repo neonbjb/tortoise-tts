@@ -1,7 +1,7 @@
 import sys
 import os
 from random import randint
-from typing import Optional
+from typing import Optional, Union
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import get_voices, load_voices, load_audio
 from tortoise.utils.text import split_and_recombine_text
@@ -65,5 +65,46 @@ def check_pydub(play: bool):
 def get_seed(seed: Optional[int]):
     return randint(0, 2**32-1) if seed is None else seed
 
-    
+from typing import Callable,Any
+import torch
+from pathlib import Path
+import torchaudio
+
+def run_and_save_tts(call_tts, text, output_dir: Path, return_deterministic_state):
+    output_dir.mkdir(exist_ok=True)
+    if return_deterministic_state:
+        gen,dbg = call_tts(text)
+        torch.save(dbg, output_dir / f'dbg.pt')
+    else:
+        gen = call_tts(text)
+    #
+    if not isinstance(gen, list): gen = [gen]
+    gen = [g.squeeze(0).cpu() for g in gen]
+    for i,g in enumerate(gen):
+        torchaudio.save(output_dir/f'{i}.wav', g, 24000)
+    return gen
+
+def infer_on_texts(call_tts: Callable[[str],Any], texts: list[str], output_dir: Union[str,Path], return_deterministic_state: bool, lines_to_regen: set[int], logger=print):
+    audio_parts = []
+    base_p = Path(output_dir)
+    base_p.mkdir(exist_ok=True)
+
+    for text_idx,text in enumerate(texts):
+        line_p = base_p/f'{text_idx}'
+        line_p.mkdir(exist_ok=True)
+        #
+        if text_idx not in lines_to_regen:
+            p = line_p/'0.wav'
+            if p.exists():
+                logger(f'loading existing audio fragment {p}')
+                audio_parts.append(load_audio(str(p), 24000))
+                continue
+            else: logger(f'no existing audio fragment {p}')
+        #
+        logger(f'generating audio for text {text_idx}: {text}')
+        audio_parts.append(run_and_save_tts(call_tts, text, line_p, return_deterministic_state)[0])
+
+    resultant = torch.cat(audio_parts, dim=-1)
+    torchaudio.save(base_p/'combined.wav', resultant, 24000)
+    return resultant
 

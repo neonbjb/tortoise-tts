@@ -10,7 +10,10 @@ from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
 
+from scripts.inference import run_and_save_tts, infer_on_texts, split_and_recombine_text
+
 from contextlib import contextmanager
+from pathlib import Path
 from time import time
 from io import BytesIO
 
@@ -43,6 +46,7 @@ if __name__ == "__main__":
         (
             "single_sample",
             "ultra_fast",
+            "very_fast",
             "ultra_fast_old",
             "fast",
             "standard",
@@ -113,6 +117,15 @@ if __name__ == "__main__":
                 value=False,
             )
 
+            """#### Text Splitting"""
+            min_chars_to_split = st.number_input(
+                "Min Chars to Split",
+                help="Minimum number of characters to split text on",
+                min_value=50,
+                value=200,
+                step=1
+            )
+
             """#### Debug"""
             produce_debug_state = st.checkbox(
                 "Produce Debug State",
@@ -126,6 +139,17 @@ if __name__ == "__main__":
         st.session_state.tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache)
     tts = st.session_state.tts
     if st.button("Start"):
+        assert preset
+        assert voice
+        def show_generation(g, filename: str):
+            audio_buffer = BytesIO()
+            torchaudio.save(audio_buffer, g, 24000, format='wav')
+            st.audio(audio_buffer, format="audio/wav")
+            st.download_button(
+                "Download sample",
+                audio_buffer,
+                file_name=filename,
+            )
         with st.spinner(f"Generating {candidates} candidates for voice {voice} (seed={seed}). You can see progress in the terminal"):
             os.makedirs(output_path, exist_ok=True)
 
@@ -136,6 +160,8 @@ if __name__ == "__main__":
                 else:
                     voice_sel = [selected_voice]
                 voice_samples, conditioning_latents = load_voices(voice_sel)
+
+                voice_path = Path(os.path.join(output_path, selected_voice))
 
                 with timeit(
                     f"Generating {candidates} candidates for voice {selected_voice} (seed={seed})"
@@ -148,40 +174,35 @@ if __name__ == "__main__":
                         )
                         if v is not None
                     }
-                    gen, dbg_state = tts.tts_with_preset(
-                        text,
-                        k=candidates,
-                        voice_samples=voice_samples,
-                        conditioning_latents=conditioning_latents,
-                        preset=preset,
-                        use_deterministic_seed=seed,
-                        return_deterministic_state=True,
-                        cvvp_amount=0.0,
-                        half=half,
-                        **nullable_kwargs,
-                    )
-        def save_generation(g, filename: str):
-            torchaudio.save(
-                os.path.join(output_path, filename),
-                g.squeeze(0).cpu(),
-                24000,
-            )
-            audio_buffer = BytesIO()
-            torchaudio.save(audio_buffer, g.squeeze(0).cpu(), 24000, format='wav')
-            st.audio(audio_buffer, format="audio/wav")
-            st.download_button(
-                "Download sample",
-                audio_buffer,
-                file_name=filename,
-            )
-        if isinstance(gen, list):
-            for j, g in enumerate(gen):
-                filename = f"{selected_voice}_{k}_{j}.wav"
-                save_generation(g, filename)
-        else:
-            filename = f"{selected_voice}_{k}.wav"
-            save_generation(gen, filename)
-
+                    def call_tts(text: str):
+                        return tts.tts_with_preset(
+                            text,
+                            k=candidates,
+                            voice_samples=voice_samples,
+                            conditioning_latents=conditioning_latents,
+                            preset=preset,
+                            use_deterministic_seed=seed,
+                            return_deterministic_state=True,
+                            cvvp_amount=0.0,
+                            half=half,
+                            **nullable_kwargs,
+                        )
+                    if len(text) < min_chars_to_split:
+                        audios = run_and_save_tts(call_tts, text, voice_path, return_deterministic_state=True)
+                        for i,audio in enumerate(audios):
+                            show_generation(audio, f'{selected_voice}-text-{i}.wav')
+                    else: 
+                        desired_length = int(min_chars_to_split)
+                        texts = split_and_recombine_text(text, desired_length, desired_length+100)
+                        if candidates != 1:
+                            print("WARNING: only choosing the first candidate for each text fragment!")
+                        audio = infer_on_texts(
+                            call_tts, texts, voice_path,
+                            return_deterministic_state=True,
+                            lines_to_regen=set(range(len(texts)))
+                        )
+                        show_generation(audio, f'{selected_voice}-text.wav')
+        '''
         if produce_debug_state:
             os.makedirs("debug_states", exist_ok=True)
             filename = f"debug_states/do_tts_debug_{selected_voice}.pth"
@@ -193,3 +214,4 @@ if __name__ == "__main__":
                 dbg_buffer,
                 file_name=f"debug_states/do_tts_debug_{selected_voice}.pth",
             )
+        '''
