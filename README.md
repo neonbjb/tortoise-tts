@@ -1,4 +1,5 @@
 ### recent updates
+- `--sampler dpm++2m` is now **fixed**, and actually uses dpm++2m. see [here](https://github.com/152334H/tortoise-tts-fast/issues/2) for more discussion
 - `--kv_cache` is now **fixed**, and produces outputs **identical to the original tortoise repo**. It is also enabled by default now because of this.
 - new: :sparkles: [streamlit webui](#Webui) by @Ryu
 
@@ -12,7 +13,7 @@ This is a working project to drastically boost the performance of TorToiSe, with
 This repo adds the following config options for TorToiSe for faster inference:
  - [X] (`--kv_cache`) enabling of [KV cache](https://kipp.ly/blog/transformer-inference-arithmetic/#kv-cache) for MUCH faster GPT sampling
  - [X] (`--half`) half precision inference where possible
- - [X] (`--sampler dpm++2m`) [k-diffusion](https://github.com/crowsonkb/k-diffusion) samplers for faster diffusion
+ - [X] (`--sampler dpm++2m`) [DPM-Solver](https://github.com/LuChengTHU/dpm-solver) samplers for faster diffusion
  - [X] (disable with `--low_vram`) option to toggle cpu offloading, for high vram users
 
 All changes in this fork are licensed under the **AGPL**. For avoidance beyond all doubt, the [following statement](https://en.wikipedia.org/wiki/Apache_License#Licensing_conditions) is added as a comment to all changed code files:
@@ -32,13 +33,14 @@ Original TorToiSe [repo](https://github.com/neonbjb/tortoise-tts):
 | 112.81s | 14.94s | ultra_fast | [here](optimized_examples/A/tortoise_original-with_original_vram/) |
 
 New [repo](https://github.com/152334H/tortoise-tts), with `--preset ultra_fast`:
-| speed (B) | speed (A) | GPT kv-cache | sampler | cond-free diffusion | autocast to fp16 | samples (vs orig repo) |
-|-|-|-|-|-|-|-|
-|  118.61   |   11.20   | ❌           | DDIM    | ❌                  | ❌               | [~identical](optimized_examples/A/tortoise_original/) |
-|    9.98   |    4.17   | ✅           | DDIM    | ❌                  | ❌               | [~identical](optimized_examples/A/tortoise_original-kv_cache/) |
-|    7.51   |    3.26   | ✅           | DPM++2M | ✅                  | ❌               | [**best**](optimized_examples/A/ultra_fast-kv_cache/) |
-|    7.12   |    3.30   | ✅           | DPM++2M | ✅                  | ✅               | [okayish](optimized_examples/A/ultra_fast-kv_cache-half/) |
-|    7.21   |    3.27   | ✅           | DPM++2M | ❌                  | ✅               | [bad](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
+| speed (B) | speed (A) | GPT kv-cache | sampler | steps | cond-free diffusion | autocast to fp16 | samples (vs orig repo) |
+|-|-|-|-|-|-|-|-|
+|  118.61   |   11.20   | ❌           | DDIM    |   30  | ❌                  | ❌               | [identical](optimized_examples/A/tortoise_original/) |
+|    9.98   |    4.17   | ✅           | DDIM    |   30  | ❌                  | ❌               | [identical](optimized_examples/A/tortoise_original-kv_cache/) |
+|   14.32   |    5.58   | ✅           | DPM++2M |   30  | ✅                  | ❌               | [**best**](optimized_examples/A/very_fast-ar16/) |
+|    7.51   |    3.26   | ✅           | DDIM    |   10  | ✅                  | ❌               | [~identical](optimized_examples/A/ultra_fast-kv_cache/) |
+|    7.12   |    3.30   | ✅           | DDIM    |   10  | ✅                  | ✅               | [okayish](optimized_examples/A/ultra_fast-kv_cache-half/) |
+|    7.21   |    3.27   | ✅           | DDIM    |   10  | ❌                  | ✅               | [bad](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
 
 Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.py`.
 
@@ -91,6 +93,12 @@ But in most cases, these settings should perform decently && fast:
 
 ```sh
 python tortoise/do_tts.py --preset ultra_fast --text # ...
+```
+
+For better quality, you might want the `very_fast` preset:
+
+```sh
+python tortoise/do_tts.py --preset very_fast --text # ...
 ```
 
 You can obtain outputs 100% identical to the original tortoise repo with the following command:
