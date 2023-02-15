@@ -1,7 +1,7 @@
 import sys
 import os
 from random import randint
-from typing import Optional, Union
+from typing import Optional, Union, List, Set
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import get_voices, load_voices, load_audio
 from tortoise.utils.text import split_and_recombine_text
@@ -10,7 +10,7 @@ def get_all_voices(extra_voice_dirs_str: str=''):
     extra_voice_dirs = extra_voice_dirs_str.split(',') if extra_voice_dirs_str else []
     return sorted(get_voices(extra_voice_dirs)), extra_voice_dirs
 
-def parse_voice_str(voice_str: str, all_voices: list[str]):
+def parse_voice_str(voice_str: str, all_voices: List[str]):
     selected_voices = all_voices if voice_str == 'all' else voice_str.split(',')
     selected_voices = [v.split('&') if '&' in v else [v] for v in selected_voices]
     for voices in selected_voices:
@@ -20,11 +20,11 @@ def parse_voice_str(voice_str: str, all_voices: list[str]):
 
     return selected_voices
 
-def voice_loader(selected_voices: list, extra_voice_dirs: list[str]):
+def voice_loader(selected_voices: list, extra_voice_dirs: List[str]):
     for voices in selected_voices:
         yield voices, *load_voices(voices, extra_voice_dirs)
 
-def parse_multiarg_text(text: list[str]):
+def parse_multiarg_text(text: List[str]):
     return (
         ' '.join(text) if text else
         ''.join(line for line in sys.stdin)
@@ -84,7 +84,7 @@ def run_and_save_tts(call_tts, text, output_dir: Path, return_deterministic_stat
         torchaudio.save(output_dir/f'{i}.wav', g, 24000)
     return gen
 
-def infer_on_texts(call_tts: Callable[[str],Any], texts: list[str], output_dir: Union[str,Path], return_deterministic_state: bool, lines_to_regen: set[int], logger=print):
+def infer_on_texts(call_tts: Callable[[str],Any], texts: List[str], output_dir: Union[str,Path], return_deterministic_state: bool, lines_to_regen: Set[int], logger=print):
     audio_parts = []
     base_p = Path(output_dir)
     base_p.mkdir(exist_ok=True)

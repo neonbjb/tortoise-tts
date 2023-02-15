@@ -1,5 +1,6 @@
 import os
 from glob import glob
+from typing import List, Dict
 
 import librosa
 import torch
@@ -103,9 +104,9 @@ def dynamic_range_decompression(x, C=1):
     return torch.exp(x) / C
 
 
-def get_voices(extra_voice_dirs: list[str]=[]):
+def get_voices(extra_voice_dirs: List[str]=[]):
     dirs = [BUILTIN_VOICES_DIR] + extra_voice_dirs
-    voices: dict[str,list[str]] = {}
+    voices: Dict[str,List[str]] = {}
     for d in dirs:
         subs = os.listdir(d)
         for sub in subs:
@@ -115,7 +116,7 @@ def get_voices(extra_voice_dirs: list[str]=[]):
     return voices
 
 
-def load_voice(voice: str, extra_voice_dirs: list[str]=[]):
+def load_voice(voice: str, extra_voice_dirs: List[str]=[]):
     if voice == 'random':
         return None, None
 
@@ -131,7 +132,7 @@ def load_voice(voice: str, extra_voice_dirs: list[str]=[]):
         return conds, None
 
 
-def load_voices(voices: list[str], extra_voice_dirs: list[str]=[]):
+def load_voices(voices: List[str], extra_voice_dirs: List[str]=[]):
     latents = []
     clips = []
     for voice in voices:
