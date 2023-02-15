@@ -16,6 +16,8 @@ import torch
 import torch as th
 from tqdm import tqdm, trange
 
+from tortoise.dpm_solver_pytorch import NoiseScheduleVP, model_wrapper, DPM_Solver
+
 from k_diffusion.sampling import sample_euler_ancestral, sample_dpmpp_2m
 from k_diffusion.sampling import get_sigmas_karras
 K_DIFFUSION_SAMPLERS = {'k_euler_a': sample_euler_ancestral, 'dpm++2m': sample_dpmpp_2m}
@@ -562,7 +564,6 @@ class GaussianDiffusion:
             model_epsilon, model_var = th.split(model_output, model_output.shape[1]//2, dim=1)
             return model_epsilon, model_var
         #
-        from dpm_solver_pytorch import NoiseScheduleVP, model_wrapper, DPM_Solver
         '''
         print(self.betas)
         print(th.tensor(self.betas))

@@ -24,7 +24,7 @@ def timeit(desc=""):
     yield
     print(f"{desc} took {time() - start:.2f} seconds")
 
-
+LATENT_MODES = ["Tortoise original (bad)", "average per 4.27s", "average per voice file"]
 if __name__ == "__main__":
     text = st.text_area(
         "Text",
@@ -62,11 +62,17 @@ if __name__ == "__main__":
             candidates = st.number_input(
                 "Candidates", help="How many output candidates to produce per-voice.", value=3
             )
+            latent_averaging_mode = st.radio(
+                "Latent averaging mode",
+                LATENT_MODES,
+                help="How voice samples should be averaged together.",
+                index=1,
+            )
             sampler = st.radio(
                 "Sampler",
                 SAMPLERS,
                 help="override the sampler used for diffusion (default depends on preset)",
-                index=1
+                index=0
             )
             steps = st.number_input(
                 "Steps",
@@ -139,6 +145,7 @@ if __name__ == "__main__":
         st.session_state.tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache)
     tts = st.session_state.tts
     if st.button("Start"):
+        assert latent_averaging_mode
         assert preset
         assert voice
         def show_generation(g, filename: str):
@@ -185,6 +192,7 @@ if __name__ == "__main__":
                             return_deterministic_state=True,
                             cvvp_amount=0.0,
                             half=half,
+                            latent_averaging_mode=LATENT_MODES.index(latent_averaging_mode),
                             **nullable_kwargs,
                         )
                     if len(text) < min_chars_to_split:
@@ -195,23 +203,12 @@ if __name__ == "__main__":
                         desired_length = int(min_chars_to_split)
                         texts = split_and_recombine_text(text, desired_length, desired_length+100)
                         if candidates != 1:
-                            print("WARNING: only choosing the first candidate for each text fragment!")
+                            st.warning("candidates != 1 while splitting text; only choosing the first candidate for each text fragment!", icon="⚠️")
                         audio = infer_on_texts(
                             call_tts, texts, voice_path,
                             return_deterministic_state=True,
                             lines_to_regen=set(range(len(texts)))
                         )
                         show_generation(audio, f'{selected_voice}-text.wav')
-        '''
         if produce_debug_state:
-            os.makedirs("debug_states", exist_ok=True)
-            filename = f"debug_states/do_tts_debug_{selected_voice}.pth"
-            torch.save(dbg_state, filename)
-            dbg_buffer = BytesIO()
-            torch.save(dbg_buffer, filename)
-            st.download_button(
-                "Download debug state",
-                dbg_buffer,
-                file_name=f"debug_states/do_tts_debug_{selected_voice}.pth",
-            )
-        '''
+            '''Debug states can be found in the output directory'''

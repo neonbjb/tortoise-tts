@@ -103,9 +103,9 @@ def dynamic_range_decompression(x, C=1):
     return torch.exp(x) / C
 
 
-def get_voices(extra_voice_dirs=[]):
+def get_voices(extra_voice_dirs: list[str]=[]):
     dirs = [BUILTIN_VOICES_DIR] + extra_voice_dirs
-    voices = {}
+    voices: dict[str,list[str]] = {}
     for d in dirs:
         subs = os.listdir(d)
         for sub in subs:
@@ -115,7 +115,7 @@ def get_voices(extra_voice_dirs=[]):
     return voices
 
 
-def load_voice(voice, extra_voice_dirs=[]):
+def load_voice(voice: str, extra_voice_dirs: list[str]=[]):
     if voice == 'random':
         return None, None
 
@@ -131,7 +131,7 @@ def load_voice(voice, extra_voice_dirs=[]):
         return conds, None
 
 
-def load_voices(voices, extra_voice_dirs=[]):
+def load_voices(voices: list[str], extra_voice_dirs: list[str]=[]):
     latents = []
     clips = []
     for voice in voices:
