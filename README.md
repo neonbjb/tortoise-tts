@@ -253,7 +253,7 @@ of the model increases multiplicatively. On enterprise-grade hardware, this is n
 exceptionally wide buses that can accommodate this bandwidth. I cannot afford enterprise hardware, though, so I am stuck.
 
 I want to mention here
-that I think Tortoise could do be a **lot** better. The three major components of Tortoise are either vanilla Transformer Encoder stacks
+that I think Tortoise could be a **lot** better. The three major components of Tortoise are either vanilla Transformer Encoder stacks
 or Decoder stacks. Both of these types of models have a rich experimental history with scaling in the NLP realm. I see no reason
 to believe that the same is not true of TTS.
 
