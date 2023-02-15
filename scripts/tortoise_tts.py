@@ -63,9 +63,6 @@ multi_output_group.add_argument(
 
 advanced_group = parser.add_argument_group('advanced options')
 advanced_group.add_argument(
-    '--high-vram', default=True,
-    help='keep ALL models loaded in vram for faster perf')
-advanced_group.add_argument(
     '--produce-debug-state', default=False, action='store_true',
     help='Whether or not to produce debug_states in current directory, which can aid in reproducing problems.')
 advanced_group.add_argument(
@@ -136,6 +133,15 @@ tuning_group.add_argument(
     help='Controls the variance of the noise fed into the diffusion model. [0,1]. Values at 0 '
          'are the "mean" prediction of the diffusion network and will sound bland and smeared. ')
 
+from tortoise.utils.diffusion import SAMPLERS
+fast_group = parser.add_argument_group('new/speed options')
+fast_group.add_argument('--low_vram', dest='high_vram', help='re-enable default offloading behaviour of tortoise', default=True, action='store_false')
+fast_group.add_argument('--half', help='enable autocast to half precision for autoregressive model', default=False, action='store_true')
+fast_group.add_argument('--kv_cache', help='no-op; kv_cache is enabled by default and this flag exists for compatibility', default=True, action='store_true')
+fast_group.add_argument('--no_cache', help='disable kv_cache usage. This should really only be used if you are very low on vram.', action='store_false', dest='kv_cache')
+fast_group.add_argument('--sampler', help='override the sampler used for diffusion (default depends on --preset)', choices=SAMPLERS)
+fast_group.add_argument('--original_tortoise', help='ensure results are identical to original tortoise-tts repo', default=False, action='store_true')
+
 usage_examples = f'''
 Examples:
 
@@ -152,6 +158,13 @@ Read a text file using multiple voices and save the audio clips to a directory:
     {parser.prog} -O /tmp/tts-results -v tom,emma <textfile.txt
 '''
 
+from .inference import (
+    get_all_voices, parse_voice_str, voice_loader,
+    parse_multiarg_text, split_text,
+    validate_output_dir, check_pydub, get_seed
+)
+
+# show usage even when Ctrl+C is pressed early
 try:
     args = parser.parse_args()
 except SystemExit as e:
@@ -159,86 +172,62 @@ except SystemExit as e:
         print(usage_examples)
     sys.exit(e.code)
 
-extra_voice_dirs = args.voices_dir.split(',') if args.voices_dir else []
-all_voices = sorted(get_voices(extra_voice_dirs))
-
+# get voices 
+all_voices, extra_voice_dirs = get_all_voices(args.voices_dir)
 if args.list_voices:
-    for v in all_voices:
-        print(v)
+    for v in all_voices: print(v)
     sys.exit(0)
+selected_voices = parse_voice_str(args.voice, all_voices)
+voice_generator = voice_loader(selected_voices, extra_voice_dirs)
 
-selected_voices = all_voices if args.voice == 'all' else args.voice.split(',')
-selected_voices = [v.split('&') if '&' in v else [v] for v in selected_voices]
-for voices in selected_voices:
-    for v in voices:
-        if v != 'random' and v not in all_voices:
-            parser.error(f'voice {v} not available, use --list-voices to see available voices.')
+# parse text
+text = parse_multiarg_text(args.text)
+texts = split_text(text, args.text_split)
 
-if len(args.text) == 0:
-    text = ''
-    for line in sys.stdin:
-        text += line
-else:
-    text = ' '.join(args.text)
-text = text.strip()
-if args.text_split:
-    desired_length, max_length = [int(x) for x in args.text_split.split(',')]
-    if desired_length > max_length:
-        parser.error(f'--text-split: desired_length ({desired_length}) must be <= max_length ({max_length})')
-    texts = split_and_recombine_text(text, desired_length, max_length)
-else:
-    texts = split_and_recombine_text(text)
-if len(texts) == 0:
-    parser.error('no text provided')
-
-if args.output_dir:
-    os.makedirs(args.output_dir, exist_ok=True)
-else:
-    if len(selected_voices) > 1:
-        parser.error('cannot have multiple voices without --output-dir"')
-    if args.candidates > 1:
-        parser.error('cannot have multiple candidates without --output-dir"')
+output_dir = validate_output_dir(args.output_dir, selected_voices, args.candidates)
 
 # error out early if pydub isn't installed
-if args.play:
-    try:
-        import pydub
-        import pydub.playback
-    except ImportError:
-        parser.error('--play requires pydub to be installed, which can be done with "pip install pydub"')
+pydub = check_pydub(args.play)
 
-seed = int(time.time()) if args.seed is None else args.seed
-if not args.quiet:
+seed = get_seed(args.seed)
+verbose = not args.quiet
+
+if verbose:
     print('Loading tts...')
-tts = TextToSpeech(models_dir=args.models_dir, enable_redaction=not args.disable_redaction,
-                   device=args.device, autoregressive_batch_size=args.batch_size, high_vram=args.high_vram)
+tts = TextToSpeech(
+    models_dir=args.models_dir, enable_redaction=not args.disable_redaction,
+    device=args.device, autoregressive_batch_size=args.batch_size,
+    high_vram=args.high_vram, kv_cache=args.kv_cache
+)
+
+
 gen_settings = {
     'use_deterministic_seed': seed,
-    'verbose': not args.quiet,
+    'verbose': verbose,
     'k': args.candidates,
     'preset': args.preset,
 }
 tuning_options = [
     'num_autoregressive_samples', 'temperature', 'length_penalty', 'repetition_penalty', 'top_p',
+    'sampler', 'original_tortoise', 'half',
     'max_mel_tokens', 'cvvp_amount', 'diffusion_iterations', 'cond_free', 'cond_free_k', 'diffusion_temperature']
 for option in tuning_options:
     if getattr(args, option) is not None:
         gen_settings[option] = getattr(args, option)
 total_clips = len(texts) * len(selected_voices)
 regenerate_clips = [int(x) for x in args.regenerate.split(',')] if args.regenerate else None
-for voice_idx, voice in enumerate(selected_voices):
+for voice_idx, (voice, voice_samples, conditioning_latents) in enumerate(voice_generator):
     audio_parts = []
-    voice_samples, conditioning_latents = load_voices(voice, extra_voice_dirs)
     for text_idx, text in enumerate(texts):
         clip_name = f'{"-".join(voice)}_{text_idx:02d}'
         if args.output_dir:
             first_clip = os.path.join(args.output_dir, f'{clip_name}_00.wav')
             if (args.skip_existing or (regenerate_clips and text_idx not in regenerate_clips)) and os.path.exists(first_clip):
                 audio_parts.append(load_audio(first_clip, 24000))
-                if not args.quiet:
+                if verbose:
                     print(f'Skipping {clip_name}')
                 continue
-        if not args.quiet:
+        if verbose:
             print(f'Rendering {clip_name} ({(voice_idx * len(texts) + text_idx + 1)} of {total_clips})...')
             print('  ' + text)
         gen = tts.tts_with_preset(
