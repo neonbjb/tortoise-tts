@@ -19,6 +19,7 @@ from tqdm import tqdm, trange
 from k_diffusion.sampling import sample_euler_ancestral, sample_dpmpp_2m
 from k_diffusion.sampling import get_sigmas_karras
 K_DIFFUSION_SAMPLERS = {'k_euler_a': sample_euler_ancestral, 'dpm++2m': sample_dpmpp_2m}
+SAMPLERS = ['dpm++2m', 'p', 'ddim']
 
 def normal_kl(mean1, logvar1, mean2, logvar2):
     """
@@ -200,7 +201,7 @@ class GaussianDiffusion:
         model_mean_type,
         model_var_type,
         loss_type,
-        rescale_timesteps=False,
+        rescale_timesteps=False, # this is generally False
         conditioning_free=False,
         conditioning_free_k=1,
         ramp_conditioning_free=True,
@@ -341,6 +342,10 @@ class GaussianDiffusion:
         if model_kwargs is None:
             model_kwargs = {}
 
+        assert self.model_var_type == ModelVarType.LEARNED_RANGE
+        assert self.model_mean_type == ModelMeanType.EPSILON
+        assert denoised_fn == None
+        assert clip_denoised is True
         B, C = x.shape[:2]
         assert t.shape == (B,)
         model_output = model(x, self._scale_timesteps(t), **model_kwargs)
@@ -353,6 +358,7 @@ class GaussianDiffusion:
             if self.conditioning_free:
                 model_output_no_conditioning, _ = th.split(model_output_no_conditioning, C, dim=1)
             if self.model_var_type == ModelVarType.LEARNED:
+                assert False
                 model_log_variance = model_var_values
                 model_variance = th.exp(model_log_variance)
             else:
@@ -365,6 +371,7 @@ class GaussianDiffusion:
                 model_log_variance = frac * max_log + (1 - frac) * min_log
                 model_variance = th.exp(model_log_variance)
         else:
+            assert False
             model_variance, model_log_variance = {
                 # for fixedlarge, we set the initial (log-)variance like so
                 # to get a better decoder log likelihood.
@@ -390,18 +397,22 @@ class GaussianDiffusion:
 
         def process_xstart(x):
             if denoised_fn is not None:
+                assert False
                 x = denoised_fn(x)
             if clip_denoised:
                 return x.clamp(-1, 1)
+            assert False
             return x
 
         if self.model_mean_type == ModelMeanType.PREVIOUS_X:
+            assert False
             pred_xstart = process_xstart(
                 self._predict_xstart_from_xprev(x_t=x, t=t, xprev=model_output)
             )
             model_mean = model_output
         elif self.model_mean_type in [ModelMeanType.START_X, ModelMeanType.EPSILON]:
             if self.model_mean_type == ModelMeanType.START_X:
+                assert False
                 pred_xstart = process_xstart(model_output)
             else:
                 pred_xstart = process_xstart(
@@ -536,24 +547,159 @@ class GaussianDiffusion:
         sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
 
-    TRAINED_DIFFUSION_STEPS = 4000 # HARDCODED
     def k_diffusion_sample_loop(
-        self, k_sampler, model, shape, noise=None, # all given
+        self, k_sampler, pbar, model, shape, noise=None, # all given
         clip_denoised=True, denoised_fn=None, cond_fn=None, device=None, # ALL UNUSED
         model_kwargs=None, #{'precomputed_aligned_embeddings': precomputed_embeddings},
         progress=False,  #unused as well
     ):
+        assert isinstance(model_kwargs, dict)
         if device is None:
             device = next(model.parameters()).device
+        s_in = noise.new_ones([noise.shape[0]])
+        def model_split(*args, **kwargs):
+            model_output = model(*args, **kwargs)
+            model_epsilon, model_var = th.split(model_output, model_output.shape[1]//2, dim=1)
+            return model_epsilon, model_var
+        #
+        from dpm_solver_pytorch import NoiseScheduleVP, model_wrapper, DPM_Solver
+        '''
+        print(self.betas)
+        print(th.tensor(self.betas))
+        noise_schedule = NoiseScheduleVP(schedule='discrete', betas=th.tensor(self.betas))
+        '''
+        noise_schedule = NoiseScheduleVP(schedule='linear', continuous_beta_0=0.1 / 4, continuous_beta_1=20. / 4)
+        def model_fn_prewrap(x, t, *args, **kwargs):
+            '''
+                x_in = torch.cat([x] * 2)
+                t_in = torch.cat([t_continuous] * 2)
+                c_in = torch.cat([unconditional_condition, condition])
+                noise_uncond, noise = noise_pred_fn(x_in, t_in, cond=c_in).chunk(2)
+            print(t)
+            print(self.timestep_map)
+            exit()
+            '''
+            '''
+            model_output = model(x, self._scale_timesteps(t*4000), **model_kwargs)
+            out = self.p_mean_variance(model, x, t*4000, model_kwargs=model_kwargs)
+            return out['pred_xstart']
+            '''
+            x,_ = x.chunk(2)
+            t,_ = (t*1000).chunk(2)
+            res = torch.cat([
+                model_split(x, t, conditioning_free=True, **model_kwargs)[0],
+                model_split(x, t, **model_kwargs)[0]
+            ])
+            pbar.update(1)
+            return res
+        model_fn = model_wrapper(
+            model_fn_prewrap,
+            noise_schedule,
+            model_type='noise',  # "noise" or "x_start" or "v" or "score"
+            model_kwargs=model_kwargs,
+            guidance_type="classifier-free",
+            condition=th.Tensor(1),
+            unconditional_condition=th.Tensor(1),
+            guidance_scale=self.conditioning_free_k,
+        )
+        '''
+        model_fn = model_wrapper(
+            model_fn_prewrap,
+            noise_schedule,
+            model_type='x_start',
+            model_kwargs={}
+        )
+        #
+        dpm_solver = DPM_Solver(model_fn, noise_schedule, algorithm_type="dpmsolver")
+        x_sample = dpm_solver.sample(
+            noise,
+            steps=20,
+            order=3,
+            skip_type="time_uniform",
+            method="singlestep",
+        )
+        '''
+        dpm_solver = DPM_Solver(model_fn, noise_schedule, algorithm_type="dpmsolver++")
+        x_sample = dpm_solver.sample(
+            noise,
+            steps=self.num_timesteps,
+            order=2,
+            skip_type="time_uniform",
+            method="multistep",
+        )
+        #'''
+        return x_sample
+
+
+
+
+        # HF DIFFUSION ATTEMPT
+        '''
+        from .hf_diffusion import EulerAncestralDiscreteScheduler
+        Scheduler = EulerAncestralDiscreteScheduler()
+        Scheduler.set_timesteps(100)
+        for timestep in Scheduler.timesteps:
+            noise_input = Scheduler.scale_model_input(noise, timestep)
+            ts = s_in * timestep
+            model_output = model(noise_input, ts, **model_kwargs)
+            model_epsilon, _model_var = th.split(model_output, model_output.shape[1]//2, dim=1)
+            noise, _x0 = Scheduler.step(model_epsilon, timestep, noise)
+        return noise
+        '''
+
+        # KARRAS DIFFUSION ATTEMPT
+        """
+        TRAINED_DIFFUSION_STEPS = 4000 # HARDCODED
+        ratio = TRAINED_DIFFUSION_STEPS/14.5
+        def call_model(*args, **kwargs):
+            model_output = model(*args, **kwargs)
+            model_output, model_var_values = th.split(model_output, model_output.shape[1]//2, dim=1)
+            return model_output
+        print(get_sigmas_karras(self.num_timesteps, sigma_min=0.0, sigma_max=4000, device=device))
+        exit()
         sigmas = get_sigmas_karras(self.num_timesteps, sigma_min=0.03, sigma_max=14.5, device=device)
-        return k_sampler(model, noise, sigmas, extra_args=model_kwargs, disable=not progress)
+        return k_sampler(call_model, noise, sigmas, extra_args=model_kwargs, disable=not progress)
+        '''
+        sigmas = get_sigmas_karras(self.num_timesteps, sigma_min=0.03, sigma_max=14.5, device=device)
+        step = 0 # LMAO
+        global_sigmas = None
+        #
+        def fakemodel(x, t, **model_kwargs):
+            print(t,global_sigmas*ratio)
+            return model(x, t, **model_kwargs)
+        def denoised(x, sigmas, **extra_args):
+            t = th.tensor([self.num_timesteps-step-1] * shape[0], device=device)
+            nonlocal global_sigmas
+            global_sigmas = sigmas
+            with th.no_grad():
+                out = self.p_sample(
+                    fakemodel,
+                    x,
+                    t,
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    cond_fn=cond_fn,
+                    model_kwargs=model_kwargs,
+                )
+                return out["sample"]
+        def callback(d):
+            nonlocal step
+            step += 1
+
+        return k_sampler(denoised, noise, sigmas, extra_args=model_kwargs, callback=callback, disable=not progress)
+        '''
+        """
 
     def sample_loop(self, *args, **kwargs):
         s = self.sampler
-        if s == 'ddim':
+        if s == 'p':
             return self.p_sample_loop(*args, **kwargs)
-        elif s in K_DIFFUSION_SAMPLERS:
-            return self.k_diffusion_sample_loop(k_sampler=K_DIFFUSION_SAMPLERS[s], *args, **kwargs)
+        elif s == 'ddim':
+            return self.ddim_sample_loop(*args, **kwargs)
+        elif s == 'dpm++2m':
+            if self.conditioning_free != True: raise RuntimeError("cond_free must be true")
+            with tqdm(total=self.num_timesteps) as pbar:
+                return self.k_diffusion_sample_loop(K_DIFFUSION_SAMPLERS[s], pbar, *args, **kwargs)
         else: raise RuntimeError("sampler not impl")
 
     def p_sample_loop(
