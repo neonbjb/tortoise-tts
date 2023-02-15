@@ -11,7 +11,7 @@ from api import TextToSpeech, MODELS_DIR
 from utils.audio import load_audio, load_voices
 from utils.text import split_and_recombine_text
 
-from base_argparser import ap
+from base_argparser import ap, nullable_kwargs
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(parents=[ap])
@@ -27,12 +27,7 @@ if __name__ == '__main__':
     # FORKED ARGUMENTS
 
     args = parser.parse_args()
-    nullable_kwargs = {
-        k:v for k,v in zip(
-            ['sampler', 'diffusion_iterations', 'cond_free','num_autoregressive_samples'],
-            [args.sampler, args.steps, args.cond_free, args.autoregressive_samples]
-        ) if v is not None
-    }
+    kwargs = nullable_kwargs(args)
     tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache)
 
     outpath = args.output_path
@@ -70,7 +65,7 @@ if __name__ == '__main__':
             gen = tts.tts_with_preset(
                 text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
                 preset=args.preset, k=args.candidates, use_deterministic_seed=seed,
-                half=args.half, original_tortoise=args.original_tortoise, **nullable_kwargs
+                half=args.half, original_tortoise=args.original_tortoise, **kwargs
             )
             if args.candidates == 1:
                 gen = gen.squeeze(0).cpu()

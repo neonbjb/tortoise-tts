@@ -159,7 +159,7 @@ def do_spectrogram_diffusion(diffusion_model, diffuser, latents, conditioning_la
         precomputed_embeddings = diffusion_model.timestep_independent(latents, conditioning_latents, output_seq_len, False)
 
         noise = torch.randn(output_shape, device=latents.device) * temperature
-        mel = diffuser.p_sample_loop(diffusion_model, output_shape, noise=noise,
+        mel = diffuser.sample_loop(diffusion_model, output_shape, noise=noise,
                                       model_kwargs={'precomputed_aligned_embeddings': precomputed_embeddings},
                                      progress=verbose)
         return denormalize_tacotron_mel(mel)[:,:,:output_seq_len]
@@ -362,9 +362,10 @@ class TextToSpeech:
                     'cond_free_k': 2.0, 'diffusion_temperature': 1.0}
         # Presets are defined here.
         presets = {
-            'single_sample': {'num_autoregressive_samples': 8, 'diffusion_iterations': 10, 'sampler': 'dpm++2m'},
-            'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 10, 'sampler': 'dpm++2m'},
+            'single_sample': {'num_autoregressive_samples': 8, 'diffusion_iterations': 10, 'sampler': 'ddim'},
+            'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 10, 'sampler': 'ddim'},
             'ultra_fast_old': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False},
+            'very_fast': {'num_autoregressive_samples': 32, 'diffusion_iterations': 30, 'sampler': 'dpm++2m'},
             'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 20, 'sampler': 'dpm++2m'},
             'fast_old': {'num_autoregressive_samples': 96, 'diffusion_iterations': 80},
             'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 200},

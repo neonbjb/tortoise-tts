@@ -9,7 +9,7 @@ import torchaudio
 from api import TextToSpeech
 from utils.audio import load_voices
 
-from base_argparser import ap
+from base_argparser import ap, nullable_kwargs
 
 from contextlib import contextmanager
 from time import time
@@ -25,12 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
 
     args = parser.parse_args()
-    nullable_kwargs = {
-        k:v for k,v in zip(
-            ['sampler', 'diffusion_iterations', 'cond_free','num_autoregressive_samples'],
-            [args.sampler, args.steps, args.cond_free, args.autoregressive_samples]
-        ) if v is not None
-    }
+    kwargs = nullable_kwargs(args)
     os.makedirs(args.output_path, exist_ok=True)
 
     tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache)
@@ -47,7 +42,7 @@ if __name__ == '__main__':
             gen, dbg_state = tts.tts_with_preset(
                 args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
                 preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount,
-                half=args.half, original_tortoise=args.original_tortoise, **nullable_kwargs
+                half=args.half, original_tortoise=args.original_tortoise, **kwargs
             )
         if isinstance(gen, list):
             for j, g in enumerate(gen):

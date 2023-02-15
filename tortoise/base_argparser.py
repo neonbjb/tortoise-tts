@@ -1,8 +1,7 @@
 import argparse
 from api import TextToSpeech, MODELS_DIR
 
-from utils.diffusion import K_DIFFUSION_SAMPLERS
-SAMPLERS = list(K_DIFFUSION_SAMPLERS.keys()) + ['ddim']
+from utils.diffusion import SAMPLERS
 
 ap = argparse.ArgumentParser(add_help=False)
 ap.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
@@ -20,9 +19,25 @@ ap.add_argument('--kv_cache', help='no-op; kv_cache is enabled by default and th
 ap.add_argument('--no_cache', help='disable kv_cache usage. This should really only be used if you are very low on vram.', action='store_false', dest='kv_cache')
 ap.add_argument('--sampler', help='override the sampler used for diffusion (default depends on --preset)', choices=SAMPLERS)
 ap.add_argument('--steps', type=int, help='override the steps used for diffusion (default depends on --preset)')
-ap.add_argument('--cond_free', help='force conditioning free diffusion', action='store_true')
-ap.add_argument('--no_cond_free', help='force disable conditioning free diffusion', dest='cond_free', action='store_false')
+ap.add_argument('--cond_free', type=bool, help='enable/disable conditioning free diffusion.')
 ap.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                 'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
 ap.add_argument('--autoregressive_samples', type=int, help='override the autoregressive_samples used for diffusion (default depends on --preset)')
 ap.add_argument('--original_tortoise', help='ensure results are identical to original tortoise-tts repo', default=False, action='store_true')
+
+def nullable_kwargs(args, extras={}):
+    mappings = {
+        'sampler': 'sampler',
+        'steps': 'diffusion_iterations',
+        'cond_free': 'cond_free',
+        'autoregressive_samples': 'num_autoregressive_samples'
+    } | extras
+
+    kwargs = {}
+    for attr,arg in mappings.items():
+        v = getattr(args, attr)
+        if v is not None:
+            kwargs[arg] = v
+
+    return kwargs
+

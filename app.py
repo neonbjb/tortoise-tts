@@ -8,9 +8,7 @@ import streamlit as st
 
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import load_voices
-from tortoise.utils.diffusion import K_DIFFUSION_SAMPLERS
-
-SAMPLERS = list(K_DIFFUSION_SAMPLERS.keys()) + ["ddim"]
+from tortoise.utils.diffusion import SAMPLERS
 
 from contextlib import contextmanager
 from time import time
