@@ -13,7 +13,7 @@ This is a working project to drastically boost the performance of TorToiSe, with
 This repo adds the following config options for TorToiSe for faster inference:
  - [X] (`--kv_cache`) enabling of [KV cache](https://kipp.ly/blog/transformer-inference-arithmetic/#kv-cache) for MUCH faster GPT sampling
  - [X] (`--half`) half precision inference where possible
- - [X] (`--sampler dpm++2m`) [DPM-Solver](https://github.com/LuChengTHU/dpm-solver) samplers for faster diffusion
+ - [X] (`--sampler dpm++2m`) [DPM-Solver](https://github.com/LuChengTHU/dpm-solver) samplers for better diffusion
  - [X] (disable with `--low_vram`) option to toggle cpu offloading, for high vram users
 
 All changes in this fork are licensed under the **AGPL**. For avoidance beyond all doubt, the [following statement](https://en.wikipedia.org/wiki/Apache_License#Licensing_conditions) is added as a comment to all changed code files:
@@ -67,7 +67,7 @@ The installation process is identical to the original tortoise-tts repo.
 
 ```shell
 git clone https://github.com/152334H/tortoise-tts-fast
-cd tortoise-tts
+cd tortoise-tts-fast
 python -m pip install -r ./requirements.txt
 python setup.py install
 ```
