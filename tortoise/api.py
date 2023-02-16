@@ -209,7 +209,7 @@ class TextToSpeech:
             'kv_cache': self.autoregressive.inference_model.kv_cache,
         }
 
-    def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, enable_redaction=True, device=None, high_vram=False, kv_cache=True):
+    def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, enable_redaction=True, device=None, high_vram=False, kv_cache=True, ar_checkpoint=None):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -239,7 +239,8 @@ class TextToSpeech:
                                           model_dim=1024,
                                           heads=16, number_text_tokens=255, start_text_token=255, checkpointing=False,
                                           train_solo_embeddings=False).cpu().eval()
-            self.autoregressive.load_state_dict(torch.load(get_model_path('autoregressive.pth', models_dir)))
+            ar_path = ar_checkpoint or get_model_path('autoregressive.pth', models_dir)
+            self.autoregressive.load_state_dict(torch.load(ar_path))
             self.autoregressive.post_init_gpt2_config(kv_cache)
 
             self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,

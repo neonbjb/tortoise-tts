@@ -107,6 +107,12 @@ You can obtain outputs 100% identical to the original tortoise repo with the fol
 python tortoise/do_tts.py --preset ultra_fast_old --original_tortoise --text #...
 ```
 
+If you want to load a [fine-tuned autoregressive model](https://github.com/152334H/DL-Art-School), use the `--ar-checkpoint` argument:
+```sh
+python tortoise/do_tts.py --preset very_fast --ar-checkpoint /path/to/checkpoint.pth --text #...
+```
+(other inference scripts / webui are not supported yet)
+
 ## Webui
 An experimental [Streamlit](https://streamlit.io/) web UI is now available. To access, run:
 

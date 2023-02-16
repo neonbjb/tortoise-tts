@@ -28,7 +28,7 @@ if __name__ == '__main__':
     kwargs = nullable_kwargs(args)
     os.makedirs(args.output_path, exist_ok=True)
 
-    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache)
+    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache, ar_checkpoint=args.ar_checkpoint)
 
     selected_voices = args.voice.split(',')
     for k, selected_voice in enumerate(selected_voices):
