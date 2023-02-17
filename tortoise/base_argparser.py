@@ -24,6 +24,7 @@ ap.add_argument('--cvvp_amount', type=float, help='How much the CVVP model shoul
                 'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
 ap.add_argument('--autoregressive_samples', type=int, help='override the autoregressive_samples used for diffusion (default depends on --preset)')
 ap.add_argument('--original_tortoise', help='ensure results are identical to original tortoise-tts repo', default=False, action='store_true')
+ap.add_argument('--latent_averaging_mode', type=int, help='latent averaging mode (0/1/2)', default=0)
 ap.add_argument('--ar-checkpoint', type=str, help='specific autoregressive model checkpoint to load over the default')
 
 def nullable_kwargs(args, extras={}):
@@ -31,8 +32,11 @@ def nullable_kwargs(args, extras={}):
         'sampler': 'sampler',
         'steps': 'diffusion_iterations',
         'cond_free': 'cond_free',
-        'autoregressive_samples': 'num_autoregressive_samples'
-    } | extras
+        'autoregressive_samples': 'num_autoregressive_samples',
+        'latent_averaging_mode': 'latent_averaging_mode',
+    }# | extras
+    # for python3.8
+    mappings = {**mappings, **extras}
 
     kwargs = {}
     for attr,arg in mappings.items():

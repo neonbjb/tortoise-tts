@@ -23,6 +23,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(parents=[ap])
     parser.add_argument('--text', type=str, help='Text to speak.', default="The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them.")
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
+    parser.add_argument('--voices-dir', type=str, help='extra voices dir')
 
     args = parser.parse_args()
     kwargs = nullable_kwargs(args)
@@ -30,13 +31,14 @@ if __name__ == '__main__':
 
     tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache, ar_checkpoint=args.ar_checkpoint)
 
+    voices_dir = [args.voices_dir] if args.voices_dir else []
     selected_voices = args.voice.split(',')
     for k, selected_voice in enumerate(selected_voices):
         if '&' in selected_voice:
             voice_sel = selected_voice.split('&')
         else:
             voice_sel = [selected_voice]
-        voice_samples, conditioning_latents = load_voices(voice_sel)
+        voice_samples, conditioning_latents = load_voices(voice_sel, voices_dir)
 
         with timeit(f'Generating {args.candidates} candidates for voice {selected_voice} (seed={args.seed})'):
             gen, dbg_state = tts.tts_with_preset(
