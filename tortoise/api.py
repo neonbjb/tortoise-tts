@@ -207,6 +207,7 @@ class TextToSpeech:
             'high_vram': self.high_vram,
             'models_dir': self.models_dir,
             'kv_cache': self.autoregressive.inference_model.kv_cache,
+            'ar_checkpoint': self.ar_checkpoint
         }
 
     def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, enable_redaction=True, device=None, high_vram=False, kv_cache=True, ar_checkpoint=None):
@@ -221,6 +222,7 @@ class TextToSpeech:
                                  Default is true.
         :param device: Device to use when running the model. If omitted, the device will be automatically chosen.
         """
+        self.ar_checkpoint = ar_checkpoint
         self.models_dir = models_dir
         self.autoregressive_batch_size = pick_best_batch_size_for_gpu() if autoregressive_batch_size is None else autoregressive_batch_size
         self.enable_redaction = enable_redaction

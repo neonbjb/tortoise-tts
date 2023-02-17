@@ -6,6 +6,8 @@ import torch
 import torchaudio
 import streamlit as st
 
+from filepicker import st_file_selector
+
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
@@ -94,7 +96,7 @@ if __name__ == "__main__":
                 "should only be specified if you have custom checkpoints.",
                 value=MODELS_DIR,
             )
-
+            ar_checkpoint = st_file_selector(st, label="Select GPT Checkpoint", key='pth')
 
 
         with col2:
@@ -139,10 +141,11 @@ if __name__ == "__main__":
                 value=True,
             )
 
+    ar_checkpoint = None if ar_checkpoint[-4:] != '.pth' else ar_checkpoint
     if 'tts' not in st.session_state or st.session_state.tts._config() != {
-            'models_dir': model_dir, 'high_vram': high_vram, 'kv_cache': kv_cache
+            'models_dir': model_dir, 'high_vram': high_vram, 'kv_cache': kv_cache, 'ar_checkpoint': ar_checkpoint
     }:
-        st.session_state.tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache)
+        st.session_state.tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache, ar_checkpoint=ar_checkpoint)
     tts = st.session_state.tts
     if st.button("Start"):
         assert latent_averaging_mode

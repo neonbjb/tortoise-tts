@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     kwargs = nullable_kwargs(args)
-    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache)
+    tts = TextToSpeech(models_dir=args.model_dir, high_vram=args.high_vram, kv_cache=args.kv_cache, ar_checkpoint=args.ar_checkpoint)
 
     outpath = args.output_path
     selected_voices = args.voice.split(',')
