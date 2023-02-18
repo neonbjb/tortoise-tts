@@ -115,7 +115,6 @@ If you want to load a [fine-tuned autoregressive model](https://github.com/15233
 ```sh
 python tortoise/do_tts.py --preset very_fast --ar-checkpoint /path/to/checkpoint.pth --text #...
 ```
-(other inference scripts / webui are not supported yet)
 
 ## Webui
 An experimental [Streamlit](https://streamlit.io/) web UI is now available. To access, run:
