@@ -3,6 +3,7 @@
 - `--kv_cache` is now **fixed**, and produces outputs **identical to the original tortoise repo**. It is also enabled by default now because of this.
 - new: :sparkles: [streamlit webui](#Webui) by @Ryu
 - Want better voice cloning? We now have [tortoise fine-tuning](https://github.com/152334H/DL-Art-School); load fine-tuned GPT models with `--ar-checkpoint`!
+- added [voicefixer](https://github.com/haoheliu/voicefixer)
 
 [click me](#installation) to skip to installation && usage!
 

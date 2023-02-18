@@ -13,6 +13,7 @@ from base_argparser import ap, nullable_kwargs
 
 from contextlib import contextmanager
 from time import time
+from inference import save_gen_with_voicefix
 @contextmanager
 def timeit(desc=''):
     start = time()
@@ -48,9 +49,9 @@ if __name__ == '__main__':
             )
         if isinstance(gen, list):
             for j, g in enumerate(gen):
-                torchaudio.save(os.path.join(args.output_path, f'{selected_voice}_{k}_{j}.wav'), g.squeeze(0).cpu(), 24000)
+                save_gen_with_voicefix(g, os.path.join(args.output_path, f'{selected_voice}_{k}_{j}.wav'))
         else:
-            torchaudio.save(os.path.join(args.output_path, f'{selected_voice}_{k}.wav'), gen.squeeze(0).cpu(), 24000)
+            save_gen_with_voicefix(gen, os.path.join(args.output_path, f'{selected_voice}_{k}.wav'))
 
         if args.produce_debug_state:
             os.makedirs('debug_states', exist_ok=True)

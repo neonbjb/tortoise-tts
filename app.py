@@ -12,7 +12,7 @@ from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
 
-from scripts.inference import run_and_save_tts, infer_on_texts, split_and_recombine_text
+from tortoise.inference import run_and_save_tts, infer_on_texts, split_and_recombine_text, save_gen_with_voicefix
 
 from contextlib import contextmanager
 from pathlib import Path
@@ -151,14 +151,17 @@ if __name__ == "__main__":
         assert latent_averaging_mode
         assert preset
         assert voice
-        def show_generation(g, filename: str):
+        def show_generation(fp, filename: str):
+            '''
             audio_buffer = BytesIO()
+            save_gen_with_voicefix(g, audio_buffer, squeeze=False)
             torchaudio.save(audio_buffer, g, 24000, format='wav')
-            st.audio(audio_buffer, format="audio/wav")
+            '''
+            st.audio(str(fp), format="audio/wav")
             st.download_button(
                 "Download sample",
-                audio_buffer,
-                file_name=filename,
+                str(fp),
+                file_name=filename, # this doesn't actually seem to work lol
             )
         with st.spinner(f"Generating {candidates} candidates for voice {voice} (seed={seed}). You can see progress in the terminal"):
             os.makedirs(output_path, exist_ok=True)
@@ -199,19 +202,19 @@ if __name__ == "__main__":
                             **nullable_kwargs,
                         )
                     if len(text) < min_chars_to_split:
-                        audios = run_and_save_tts(call_tts, text, voice_path, return_deterministic_state=True)
-                        for i,audio in enumerate(audios):
-                            show_generation(audio, f'{selected_voice}-text-{i}.wav')
+                        filepaths = run_and_save_tts(call_tts, text, voice_path, return_deterministic_state=True, return_filepaths=True)
+                        for i,fp in enumerate(filepaths):
+                            show_generation(fp, f'{selected_voice}-text-{i}.wav')
                     else: 
                         desired_length = int(min_chars_to_split)
                         texts = split_and_recombine_text(text, desired_length, desired_length+100)
                         if candidates != 1:
                             st.warning("candidates != 1 while splitting text; only choosing the first candidate for each text fragment!", icon="⚠️")
-                        audio = infer_on_texts(
+                        filepath = infer_on_texts(
                             call_tts, texts, voice_path,
                             return_deterministic_state=True,
                             lines_to_regen=set(range(len(texts)))
                         )
-                        show_generation(audio, f'{selected_voice}-text.wav')
+                        show_generation(filepath, f'{selected_voice}-text.wav')
         if produce_debug_state:
             '''Debug states can be found in the output directory'''

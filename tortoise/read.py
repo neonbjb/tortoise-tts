@@ -12,6 +12,7 @@ from utils.audio import load_audio, load_voices
 from utils.text import split_and_recombine_text
 
 from base_argparser import ap, nullable_kwargs
+from inference import save_gen_with_voicefix
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(parents=[ap])
@@ -68,19 +69,18 @@ if __name__ == '__main__':
                 half=args.half, original_tortoise=args.original_tortoise, **kwargs
             )
             if args.candidates == 1:
-                gen = gen.squeeze(0).cpu()
-                torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen, 24000)
+                save_gen_with_voicefix(gen, os.path.join(voice_outpath, f'{j}.wav'))
             else:
                 candidate_dir = os.path.join(voice_outpath, str(j))
                 os.makedirs(candidate_dir, exist_ok=True)
                 for k, g in enumerate(gen):
-                    torchaudio.save(os.path.join(candidate_dir, f'{k}.wav'), g.squeeze(0).cpu(), 24000)
+                    save_gen_with_voicefix(g, os.path.join(candidate_dir, f'{k}.wav'))
                 gen = gen[0].squeeze(0).cpu()
             all_parts.append(gen)
 
         if args.candidates == 1:
             full_audio = torch.cat(all_parts, dim=-1)
-            torchaudio.save(os.path.join(voice_outpath, 'combined.wav'), full_audio, 24000)
+            save_gen_with_voicefix(full_audio, os.path.join(voice_outpath, 'combined.wav'), squeeze=False)
 
         if args.produce_debug_state:
             os.makedirs('debug_states', exist_ok=True)
@@ -95,5 +95,5 @@ if __name__ == '__main__':
                     wav_file = os.path.join(voice_outpath, str(line), f"{candidate}.wav")
                     audio_clips.append(load_audio(wav_file, 24000))
                 audio_clips = torch.cat(audio_clips, dim=-1)
-                torchaudio.save(os.path.join(voice_outpath, f"combined_{candidate:02d}.wav"), audio_clips, 24000)
+                save_gen_with_voicefix(audio_clips, os.path.join(voice_outpath, f'combined_{candidate:02d}.wav'), squeeze=False)
                 audio_clips = []

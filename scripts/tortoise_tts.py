@@ -158,7 +158,7 @@ Read a text file using multiple voices and save the audio clips to a directory:
     {parser.prog} -O /tmp/tts-results -v tom,emma <textfile.txt
 '''
 
-from .inference import (
+from tortoise.inference import (
     get_all_voices, parse_voice_str, voice_loader,
     parse_multiarg_text, split_text,
     validate_output_dir, check_pydub, get_seed
