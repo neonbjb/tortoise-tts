@@ -1,20 +1,18 @@
 # AGPL: a notification must be added stating that changes have been made to that file.
 
 import os
+from contextlib import contextmanager
+from pathlib import Path
+from time import time
 
 import streamlit as st
 
 from filepicker import st_file_selector
-
 from tortoise.api import MODELS_DIR, TextToSpeech
+from tortoise.inference import (infer_on_texts, run_and_save_tts,
+                                split_and_recombine_text)
 from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
-
-from tortoise.inference import run_and_save_tts, infer_on_texts, split_and_recombine_text
-
-from contextlib import contextmanager
-from pathlib import Path
-from time import time
 
 
 @contextmanager

@@ -14,11 +14,12 @@ import math
 import numpy as np
 import torch
 import torch as th
+from k_diffusion.sampling import sample_dpmpp_2m, sample_euler_ancestral
 from tqdm import tqdm
 
-from tortoise.dpm_solver_pytorch import NoiseScheduleVP, model_wrapper, DPM_Solver
+from tortoise.dpm_solver_pytorch import (DPM_Solver, NoiseScheduleVP,
+                                         model_wrapper)
 
-from k_diffusion.sampling import sample_euler_ancestral, sample_dpmpp_2m
 K_DIFFUSION_SAMPLERS = {'k_euler_a': sample_euler_ancestral, 'dpm++2m': sample_dpmpp_2m}
 SAMPLERS = ['dpm++2m', 'p', 'ddim']
 

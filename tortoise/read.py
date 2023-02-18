@@ -5,13 +5,11 @@ import os
 from time import time
 
 import torch
-
 from api import TextToSpeech
-from utils.audio import load_audio, load_voices
-from utils.text import split_and_recombine_text
-
 from base_argparser import ap, nullable_kwargs
 from inference import save_gen_with_voicefix
+from utils.audio import load_audio, load_voices
+from utils.text import split_and_recombine_text
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(parents=[ap])

@@ -1,9 +1,11 @@
-import sys
 import os
+import sys
 from random import randint
-from typing import Optional, Union, List, Set
-from tortoise.utils.audio import get_voices, load_voices, load_audio
+from typing import List, Optional, Set, Union
+
+from tortoise.utils.audio import get_voices, load_audio, load_voices
 from tortoise.utils.text import split_and_recombine_text
+
 
 def get_all_voices(extra_voice_dirs_str: str=''):
     extra_voice_dirs = extra_voice_dirs_str.split(',') if extra_voice_dirs_str else []
@@ -64,10 +66,12 @@ def check_pydub(play: bool):
 def get_seed(seed: Optional[int]):
     return randint(0, 2**32-1) if seed is None else seed
 
-from typing import Callable,Any
-import torch
 from pathlib import Path
+from typing import Any, Callable
+
+import torch
 import torchaudio
+
 
 def run_and_save_tts(call_tts, text, output_dir: Path, return_deterministic_state, return_filepaths=False):
     output_dir.mkdir(exist_ok=True)
@@ -112,6 +116,7 @@ def infer_on_texts(call_tts: Callable[[str],Any], texts: List[str], output_dir: 
     return base_p/'combined.wav' if return_filepath else resultant
 
 from voicefixer import VoiceFixer
+
 vfixer = VoiceFixer()
 def save_gen_with_voicefix(g, fpath, squeeze=True):
     torchaudio.save(fpath, g.squeeze(0).cpu() if squeeze else g, 24000, format='wav')

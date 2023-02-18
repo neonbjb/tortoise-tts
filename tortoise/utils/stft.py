@@ -30,13 +30,13 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import torch
-import numpy as np
-import torch.nn.functional as F
-from torch.autograd import Variable
-from scipy.signal import get_window
-from librosa.util import pad_center, tiny
 import librosa.util as librosa_util
+import numpy as np
+import torch
+import torch.nn.functional as F
+from librosa.util import pad_center, tiny
+from scipy.signal import get_window
+from torch.autograd import Variable
 
 
 def window_sumsquare(window, n_frames, hop_length=200, win_length=800,

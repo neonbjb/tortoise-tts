@@ -1,12 +1,14 @@
-import os
 import functools
 import math
+import os
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
-from tortoise.models.xtransformers import ContinuousTransformerWrapper, RelativePositionBias
+
+from tortoise.models.xtransformers import (ContinuousTransformerWrapper,
+                                           RelativePositionBias)
 
 
 def zero_module(module):

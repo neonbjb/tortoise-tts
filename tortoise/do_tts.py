@@ -2,17 +2,16 @@
 
 import argparse
 import os
-
-import torch
-
-from api import TextToSpeech
-from utils.audio import load_voices
-
-from base_argparser import ap, nullable_kwargs
-
 from contextlib import contextmanager
 from time import time
+
+import torch
+from api import TextToSpeech
+from base_argparser import ap, nullable_kwargs
 from inference import save_gen_with_voicefix
+from utils.audio import load_voices
+
+
 @contextmanager
 def timeit(desc=''):
     start = time()

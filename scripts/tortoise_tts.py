@@ -132,6 +132,7 @@ tuning_group.add_argument(
          'are the "mean" prediction of the diffusion network and will sound bland and smeared. ')
 
 from tortoise.utils.diffusion import SAMPLERS
+
 fast_group = parser.add_argument_group('new/speed options')
 fast_group.add_argument('--low_vram', dest='high_vram', help='re-enable default offloading behaviour of tortoise', default=True, action='store_false')
 fast_group.add_argument('--half', help='enable autocast to half precision for autoregressive model', default=False, action='store_true')
@@ -156,11 +157,9 @@ Read a text file using multiple voices and save the audio clips to a directory:
     {parser.prog} -O /tmp/tts-results -v tom,emma <textfile.txt
 '''
 
-from tortoise.inference import (
-    get_all_voices, parse_voice_str, voice_loader,
-    parse_multiarg_text, split_text,
-    validate_output_dir, check_pydub, get_seed
-)
+from tortoise.inference import (check_pydub, get_all_voices, get_seed,
+                                parse_multiarg_text, parse_voice_str,
+                                split_text, validate_output_dir, voice_loader)
 
 # show usage even when Ctrl+C is pressed early
 try:

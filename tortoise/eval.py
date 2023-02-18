@@ -2,8 +2,8 @@ import argparse
 import os
 
 import torchaudio
-
 from api import TextToSpeech
+
 from tortoise.utils.audio import load_required_audio
 
 if __name__ == '__main__':

@@ -1,7 +1,9 @@
 
 import torch
 import torchaudio
-from transformers import Wav2Vec2ForCTC, Wav2Vec2FeatureExtractor, Wav2Vec2CTCTokenizer
+from transformers import (Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor,
+                          Wav2Vec2ForCTC)
+
 
 def max_alignment(s1, s2, skip_character='~', record=None):
     """

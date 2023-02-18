@@ -6,7 +6,7 @@ from inspect import isfunction
 import torch
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from torch import nn, einsum
+from torch import einsum, nn
 
 DEFAULT_DIM_HEAD = 64
 

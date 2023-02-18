@@ -17,7 +17,9 @@ tif_file = st_file_selector(st, key = 'tif', label = 'Choose tif file')
 """
 
 import os
+
 import streamlit as st
+
 
 def update_dir(key):
     choice = st.session_state[key]

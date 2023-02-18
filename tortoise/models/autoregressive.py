@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import GPT2Config, GPT2PreTrainedModel, LogitsProcessorList
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
+
 from tortoise.models.arch_util import AttentionBlock
 from tortoise.utils.typical_sampling import TypicalLogitsWarper
 

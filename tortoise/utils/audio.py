@@ -1,15 +1,14 @@
 import os
 from glob import glob
-from typing import List, Dict
+from typing import Dict, List
 
 import librosa
+import numpy as np
 import torch
 import torchaudio
-import numpy as np
 from scipy.io.wavfile import read
 
 from tortoise.utils.stft import STFT
-
 
 BUILTIN_VOICES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../voices')
 
