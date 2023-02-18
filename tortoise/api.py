@@ -448,6 +448,7 @@ class TextToSpeech:
 
             diffusion_conds = []
 
+            DURS_CONST = 102400
             for ls in voice_samples:
                 # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
                 sample = (
@@ -456,7 +457,7 @@ class TextToSpeech:
                     else ls[1]
                 )
                 if latent_averaging_mode == 0:
-                    sample = pad_or_truncate(sample, 102400)
+                    sample = pad_or_truncate(sample, DURS_CONST)
                     cond_mel = wav_to_univnet_mel(
                         sample.to(self.device),
                         do_normalization=False,
@@ -464,12 +465,14 @@ class TextToSpeech:
                     )
                     diffusion_conds.append(cond_mel)
                 else:
+                    from math import ceil
                     if latent_averaging_mode == 2:
                         temp_diffusion_conds = []
-                    for chunk in range(sample.shape[1] // 102400):
+                    for chunk in range(ceil(sample.shape[1]/DURS_CONST)):
                         current_sample = sample[
-                            :, chunk * 102400 : (chunk + 1) * 102400
+                            :, chunk * DURS_CONST : (chunk + 1) * DURS_CONST
                         ]
+                        current_sample = pad_or_truncate(current_sample, DURS_CONST)
                         cond_mel = wav_to_univnet_mel(
                             current_sample.to(self.device),
                             do_normalization=False,
