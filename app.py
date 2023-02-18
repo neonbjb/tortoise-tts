@@ -26,7 +26,7 @@ def timeit(desc=""):
     yield
     print(f"{desc} took {time() - start:.2f} seconds")
 
-LATENT_MODES = ["Tortoise original (bad)", "average per 4.27s", "average per voice file"]
+LATENT_MODES = ["Tortoise original (bad)", "average per 4.27s (broken on small files)", "average per voice file (broken on small files)"]
 if __name__ == "__main__":
     text = st.text_area(
         "Text",
@@ -68,18 +68,18 @@ if __name__ == "__main__":
                 "Latent averaging mode",
                 LATENT_MODES,
                 help="How voice samples should be averaged together.",
-                index=1,
+                index=0,
             )
             sampler = st.radio(
                 "Sampler",
                 SAMPLERS,
-                help="override the sampler used for diffusion (default depends on preset)",
-                index=0
+                help="Diffusion sampler. Note that dpm++2m is experimental and typically requires more steps.",
+                index=1
             )
             steps = st.number_input(
                 "Steps",
                 help="Override the steps used for diffusion (default depends on preset)",
-                value=30,
+                value=10,
             )
             seed = st.number_input(
                 "Seed", help="Random seed which can be used to reproduce results.", value=-1
