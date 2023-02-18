@@ -96,7 +96,11 @@ if __name__ == "__main__":
                 **kwargs,
             )
             if args.candidates == 1:
-                save_gen_with_voicefix(gen, os.path.join(voice_outpath, f"{j}.wav"))
+                save_gen_with_voicefix(
+                    gen,
+                    os.path.join(voice_outpath, f"{j}.wav"),
+                    voicefixer=args.voicefixer,
+                )
             else:
                 candidate_dir = os.path.join(voice_outpath, str(j))
                 os.makedirs(candidate_dir, exist_ok=True)
@@ -108,7 +112,10 @@ if __name__ == "__main__":
         if args.candidates == 1:
             full_audio = torch.cat(all_parts, dim=-1)
             save_gen_with_voicefix(
-                full_audio, os.path.join(voice_outpath, "combined.wav"), squeeze=False
+                full_audio,
+                os.path.join(voice_outpath, "combined.wav"),
+                squeeze=False,
+                voicefixer=args.voicefixer,
             )
 
         if args.produce_debug_state:
@@ -130,5 +137,6 @@ if __name__ == "__main__":
                     audio_clips,
                     os.path.join(voice_outpath, f"combined_{candidate:02d}.wav"),
                     squeeze=False,
+                    voicefixer=args.voicefixer,
                 )
                 audio_clips = []

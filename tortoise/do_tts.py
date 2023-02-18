@@ -74,11 +74,15 @@ if __name__ == "__main__":
         if isinstance(gen, list):
             for j, g in enumerate(gen):
                 save_gen_with_voicefix(
-                    g, os.path.join(args.output_path, f"{selected_voice}_{k}_{j}.wav")
+                    g,
+                    os.path.join(args.output_path, f"{selected_voice}_{k}_{j}.wav"),
+                    voicefixer=args.voicefixer,
                 )
         else:
             save_gen_with_voicefix(
-                gen, os.path.join(args.output_path, f"{selected_voice}_{k}.wav")
+                gen,
+                os.path.join(args.output_path, f"{selected_voice}_{k}.wav"),
+                voicefixer=args.voicefixer,
             )
 
         if args.produce_debug_state:

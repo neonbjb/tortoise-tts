@@ -93,6 +93,11 @@ if __name__ == "__main__":
             )
             if seed == -1:
                 seed = None
+            voice_fixer = st.checkbox(
+                "Voice fixer",
+                help="Use `voicefixer` to improve audio quality. This is a post-processing step which can be applied to any output.",
+                value=True,
+            )
             """#### Directories"""
             output_path = st.text_input(
                 "Output Path", help="Where to store outputs.", value="results/"
@@ -234,6 +239,7 @@ if __name__ == "__main__":
                             voice_path,
                             return_deterministic_state=True,
                             return_filepaths=True,
+                            voicefixer=voice_fixer,
                         )
                         for i, fp in enumerate(filepaths):
                             show_generation(fp, f"{selected_voice}-text-{i}.wav")
@@ -253,6 +259,7 @@ if __name__ == "__main__":
                             voice_path,
                             return_deterministic_state=True,
                             lines_to_regen=set(range(len(texts))),
+                            voicefixer=voice_fixer,
                         )
                         show_generation(filepath, f"{selected_voice}-text.wav")
         if produce_debug_state:
