@@ -20,6 +20,7 @@ rotary-embedding-torch = "^0.2.1"
 transformers = "^4.26.1"
 torchaudio = "^0.13.1"
 k-diffusion = "^0.0.14"
+simple-parsing = "^0.0.21"
 
 [tool.poetry.dev-dependencies]
 black = "^23.1.0"
