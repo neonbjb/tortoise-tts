@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # AGPL: a notification must be added stating that changes have been made to that file.
 
-import argparse
 import os
 import sys
 import tempfile
 
+import simple_parsing as sp
 import torch
 import torchaudio
 
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import load_audio
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
+    parser = sp.ArgumentParser(
         description="TorToiSe is a text-to-speech program that is capable of synthesizing speech "
         "in multiple voices with realistic prosody and intonation."
     )
