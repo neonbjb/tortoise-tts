@@ -70,7 +70,7 @@ import torch
 from pathlib import Path
 import torchaudio
 
-def run_and_save_tts(call_tts, text, output_dir: Path, return_deterministic_state):
+def run_and_save_tts(call_tts, text, output_dir: Path, return_deterministic_state, return_filepaths=False):
     output_dir.mkdir(exist_ok=True)
     if return_deterministic_state:
         gen,dbg = call_tts(text)
@@ -80,11 +80,14 @@ def run_and_save_tts(call_tts, text, output_dir: Path, return_deterministic_stat
     #
     if not isinstance(gen, list): gen = [gen]
     gen = [g.squeeze(0).cpu() for g in gen]
+    fps = []
     for i,g in enumerate(gen):
-        torchaudio.save(output_dir/f'{i}.wav', g, 24000)
-    return gen
+        fps.append(output_dir / f'{i}.wav')
+        save_gen_with_voicefix(g, fps[-1], squeeze=False)
+        #torchaudio.save(output_dir/f'{i}.wav', g, 24000)
+    return fps if return_filepaths else gen
 
-def infer_on_texts(call_tts: Callable[[str],Any], texts: List[str], output_dir: Union[str,Path], return_deterministic_state: bool, lines_to_regen: Set[int], logger=print):
+def infer_on_texts(call_tts: Callable[[str],Any], texts: List[str], output_dir: Union[str,Path], return_deterministic_state: bool, lines_to_regen: Set[int], logger=print, return_filepath=False):
     audio_parts = []
     base_p = Path(output_dir)
     base_p.mkdir(exist_ok=True)
@@ -105,6 +108,17 @@ def infer_on_texts(call_tts: Callable[[str],Any], texts: List[str], output_dir: 
         audio_parts.append(run_and_save_tts(call_tts, text, line_p, return_deterministic_state)[0])
 
     resultant = torch.cat(audio_parts, dim=-1)
-    torchaudio.save(base_p/'combined.wav', resultant, 24000)
-    return resultant
+    save_gen_with_voicefix(resultant, base_p/'combined.wav', squeeze=False)
+    #torchaudio.save(base_p/'combined.wav', resultant, 24000)
+    return base_p/'combined.wav' if return_filepath else resultant
 
+from voicefixer import VoiceFixer
+vfixer = VoiceFixer()
+def save_gen_with_voicefix(g, fpath, squeeze=True):
+    torchaudio.save(fpath, g.squeeze(0).cpu() if squeeze else g, 24000, format='wav')
+    vfixer.restore(
+        input=fpath, output=fpath,
+        cuda=True,
+        mode=0,
+        #your_vocoder_func = convert_mel_to_wav # TODO test if integration with unvinet improves things
+    )
