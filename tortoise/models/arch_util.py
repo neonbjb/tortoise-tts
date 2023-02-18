@@ -7,8 +7,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
 
-from tortoise.models.xtransformers import (ContinuousTransformerWrapper,
-                                           RelativePositionBias)
+from tortoise.models.xtransformers import (
+    ContinuousTransformerWrapper,
+    RelativePositionBias,
+)
 
 
 def zero_module(module):
@@ -68,7 +70,9 @@ class QKVAttentionLegacy(nn.Module):
             "bct,bcs->bts", q * scale, k * scale
         )  # More stable with f16 than dividing afterwards
         if rel_pos is not None:
-            weight = rel_pos(weight.reshape(bs, self.n_heads, weight.shape[-2], weight.shape[-1])).reshape(bs * self.n_heads, weight.shape[-2], weight.shape[-1])
+            weight = rel_pos(
+                weight.reshape(bs, self.n_heads, weight.shape[-2], weight.shape[-1])
+            ).reshape(bs * self.n_heads, weight.shape[-2], weight.shape[-1])
         weight = torch.softmax(weight.float(), dim=-1).type(weight.dtype)
         if mask is not None:
             # The proper way to do this is to mask before the softmax using -inf, but that doesn't work properly on CPUs.
@@ -112,7 +116,13 @@ class AttentionBlock(nn.Module):
 
         self.proj_out = zero_module(nn.Conv1d(channels, channels, 1))
         if relative_pos_embeddings:
-            self.relative_pos_embeddings = RelativePositionBias(scale=(channels // self.num_heads) ** .5, causal=False, heads=num_heads, num_buckets=32, max_distance=64)
+            self.relative_pos_embeddings = RelativePositionBias(
+                scale=(channels // self.num_heads) ** 0.5,
+                causal=False,
+                heads=num_heads,
+                num_buckets=32,
+                max_distance=64,
+            )
         else:
             self.relative_pos_embeddings = None
 
@@ -182,15 +192,15 @@ class Downsample(nn.Module):
 
 class ResBlock(nn.Module):
     def __init__(
-            self,
-            channels,
-            dropout,
-            out_channels=None,
-            use_conv=False,
-            use_scale_shift_norm=False,
-            up=False,
-            down=False,
-            kernel_size=3,
+        self,
+        channels,
+        dropout,
+        out_channels=None,
+        use_conv=False,
+        use_scale_shift_norm=False,
+        up=False,
+        down=False,
+        kernel_size=3,
     ):
         super().__init__()
         self.channels = channels
@@ -222,7 +232,9 @@ class ResBlock(nn.Module):
             nn.SiLU(),
             nn.Dropout(p=dropout),
             zero_module(
-                nn.Conv1d(self.out_channels, self.out_channels, kernel_size, padding=padding)
+                nn.Conv1d(
+                    self.out_channels, self.out_channels, kernel_size, padding=padding
+                )
             ),
         )
 
@@ -249,37 +261,44 @@ class ResBlock(nn.Module):
 
 
 class AudioMiniEncoder(nn.Module):
-    def __init__(self,
-                 spec_dim,
-                 embedding_dim,
-                 base_channels=128,
-                 depth=2,
-                 resnet_blocks=2,
-                 attn_blocks=4,
-                 num_attn_heads=4,
-                 dropout=0,
-                 downsample_factor=2,
-                 kernel_size=3):
+    def __init__(
+        self,
+        spec_dim,
+        embedding_dim,
+        base_channels=128,
+        depth=2,
+        resnet_blocks=2,
+        attn_blocks=4,
+        num_attn_heads=4,
+        dropout=0,
+        downsample_factor=2,
+        kernel_size=3,
+    ):
         super().__init__()
-        self.init = nn.Sequential(
-            nn.Conv1d(spec_dim, base_channels, 3, padding=1)
-        )
+        self.init = nn.Sequential(nn.Conv1d(spec_dim, base_channels, 3, padding=1))
         ch = base_channels
         res = []
         for l in range(depth):
             for r in range(resnet_blocks):
                 res.append(ResBlock(ch, dropout, kernel_size=kernel_size))
-            res.append(Downsample(ch, use_conv=True, out_channels=ch*2, factor=downsample_factor))
+            res.append(
+                Downsample(
+                    ch, use_conv=True, out_channels=ch * 2, factor=downsample_factor
+                )
+            )
             ch *= 2
         self.res = nn.Sequential(*res)
         self.final = nn.Sequential(
-            normalization(ch),
-            nn.SiLU(),
-            nn.Conv1d(ch, embedding_dim, 1)
+            normalization(ch), nn.SiLU(), nn.Conv1d(ch, embedding_dim, 1)
         )
         attn = []
         for a in range(attn_blocks):
-            attn.append(AttentionBlock(embedding_dim, num_attn_heads,))
+            attn.append(
+                AttentionBlock(
+                    embedding_dim,
+                    num_attn_heads,
+                )
+            )
         self.attn = nn.Sequential(*attn)
         self.dim = embedding_dim
 
@@ -291,12 +310,24 @@ class AudioMiniEncoder(nn.Module):
         return h[:, :, 0]
 
 
-DEFAULT_MEL_NORM_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../data/mel_norms.pth')
+DEFAULT_MEL_NORM_FILE = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "../data/mel_norms.pth"
+)
 
 
 class TorchMelSpectrogram(nn.Module):
-    def __init__(self, filter_length=1024, hop_length=256, win_length=1024, n_mel_channels=80, mel_fmin=0, mel_fmax=8000,
-                 sampling_rate=22050, normalize=False, mel_norm_file=DEFAULT_MEL_NORM_FILE):
+    def __init__(
+        self,
+        filter_length=1024,
+        hop_length=256,
+        win_length=1024,
+        n_mel_channels=80,
+        mel_fmin=0,
+        mel_fmax=8000,
+        sampling_rate=22050,
+        normalize=False,
+        mel_norm_file=DEFAULT_MEL_NORM_FILE,
+    ):
         super().__init__()
         # These are the default tacotron values for the MEL spectrogram.
         self.filter_length = filter_length
@@ -306,11 +337,18 @@ class TorchMelSpectrogram(nn.Module):
         self.mel_fmin = mel_fmin
         self.mel_fmax = mel_fmax
         self.sampling_rate = sampling_rate
-        self.mel_stft = torchaudio.transforms.MelSpectrogram(n_fft=self.filter_length, hop_length=self.hop_length,
-                                                             win_length=self.win_length, power=2, normalized=normalize,
-                                                             sample_rate=self.sampling_rate, f_min=self.mel_fmin,
-                                                             f_max=self.mel_fmax, n_mels=self.n_mel_channels,
-                                                             norm="slaney")
+        self.mel_stft = torchaudio.transforms.MelSpectrogram(
+            n_fft=self.filter_length,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            power=2,
+            normalized=normalize,
+            sample_rate=self.sampling_rate,
+            f_min=self.mel_fmin,
+            f_max=self.mel_fmax,
+            n_mels=self.n_mel_channels,
+            norm="slaney",
+        )
         self.mel_norm_file = mel_norm_file
         if self.mel_norm_file is not None:
             self.mel_norms = torch.load(self.mel_norm_file)
@@ -318,7 +356,9 @@ class TorchMelSpectrogram(nn.Module):
             self.mel_norms = None
 
     def forward(self, inp):
-        if len(inp.shape) == 3:  # Automatically squeeze out the channels dimension if it is present (assuming mono-audio)
+        if (
+            len(inp.shape) == 3
+        ):  # Automatically squeeze out the channels dimension if it is present (assuming mono-audio)
             inp = inp.squeeze(1)
         assert len(inp.shape) == 2
         self.mel_stft = self.mel_stft.to(inp.device)
@@ -336,13 +376,16 @@ class CheckpointedLayer(nn.Module):
     Wraps a module. When forward() is called, passes kwargs that require_grad through torch.checkpoint() and bypasses
     checkpoint for all other args.
     """
+
     def __init__(self, wrap):
         super().__init__()
         self.wrap = wrap
 
     def forward(self, x, *args, **kwargs):
         for k, v in kwargs.items():
-            assert not (isinstance(v, torch.Tensor) and v.requires_grad)  # This would screw up checkpointing.
+            assert not (
+                isinstance(v, torch.Tensor) and v.requires_grad
+            )  # This would screw up checkpointing.
         partial = functools.partial(self.wrap, **kwargs)
         return partial(x, *args)
 
@@ -352,7 +395,14 @@ class CheckpointedXTransformerEncoder(nn.Module):
     Wraps a ContinuousTransformerWrapper and applies CheckpointedLayer to each layer and permutes from channels-mid
     to channels-last that XTransformer expects.
     """
-    def __init__(self, needs_permute=True, exit_permute=True, checkpoint=True, **xtransformer_kwargs):
+
+    def __init__(
+        self,
+        needs_permute=True,
+        exit_permute=True,
+        checkpoint=True,
+        **xtransformer_kwargs,
+    ):
         super().__init__()
         self.transformer = ContinuousTransformerWrapper(**xtransformer_kwargs)
         self.needs_permute = needs_permute
@@ -362,12 +412,14 @@ class CheckpointedXTransformerEncoder(nn.Module):
             return
         for i in range(len(self.transformer.attn_layers.layers)):
             n, b, r = self.transformer.attn_layers.layers[i]
-            self.transformer.attn_layers.layers[i] = nn.ModuleList([n, CheckpointedLayer(b), r])
+            self.transformer.attn_layers.layers[i] = nn.ModuleList(
+                [n, CheckpointedLayer(b), r]
+            )
 
     def forward(self, x, **kwargs):
         if self.needs_permute:
-            x = x.permute(0,2,1)
+            x = x.permute(0, 2, 1)
         h = self.transformer(x, **kwargs)
         if self.exit_permute:
-            h = h.permute(0,2,1)
+            h = h.permute(0, 2, 1)
         return h

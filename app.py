@@ -9,8 +9,11 @@ import streamlit as st
 
 from filepicker import st_file_selector
 from tortoise.api import MODELS_DIR, TextToSpeech
-from tortoise.inference import (infer_on_texts, run_and_save_tts,
-                                split_and_recombine_text)
+from tortoise.inference import (
+    infer_on_texts,
+    run_and_save_tts,
+    split_and_recombine_text,
+)
 from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
 
@@ -21,7 +24,12 @@ def timeit(desc=""):
     yield
     print(f"{desc} took {time() - start:.2f} seconds")
 
-LATENT_MODES = ["Tortoise original (bad)", "average per 4.27s (broken on small files)", "average per voice file (broken on small files)"]
+
+LATENT_MODES = [
+    "Tortoise original (bad)",
+    "average per 4.27s (broken on small files)",
+    "average per voice file (broken on small files)",
+]
 if __name__ == "__main__":
     text = st.text_area(
         "Text",
@@ -57,7 +65,9 @@ if __name__ == "__main__":
         with col1:
             """#### Model parameters"""
             candidates = st.number_input(
-                "Candidates", help="How many output candidates to produce per-voice.", value=3
+                "Candidates",
+                help="How many output candidates to produce per-voice.",
+                value=3,
             )
             latent_averaging_mode = st.radio(
                 "Latent averaging mode",
@@ -69,7 +79,7 @@ if __name__ == "__main__":
                 "Sampler",
                 SAMPLERS,
                 help="Diffusion sampler. Note that dpm++2m is experimental and typically requires more steps.",
-                index=1
+                index=1,
             )
             steps = st.number_input(
                 "Steps",
@@ -77,7 +87,9 @@ if __name__ == "__main__":
                 value=10,
             )
             seed = st.number_input(
-                "Seed", help="Random seed which can be used to reproduce results.", value=-1
+                "Seed",
+                help="Random seed which can be used to reproduce results.",
+                value=-1,
             )
             if seed == -1:
                 seed = None
@@ -91,8 +103,9 @@ if __name__ == "__main__":
                 "should only be specified if you have custom checkpoints.",
                 value=MODELS_DIR,
             )
-            ar_checkpoint = st_file_selector(st, label="Select GPT Checkpoint", key='pth')
-
+            ar_checkpoint = st_file_selector(
+                st, label="Select GPT Checkpoint", key="pth"
+            )
 
         with col2:
             """#### Optimizations"""
@@ -112,7 +125,9 @@ if __name__ == "__main__":
                 value=True,
             )
             cond_free = st.checkbox(
-                "Conditioning Free", help="Force conditioning free diffusion", value=True
+                "Conditioning Free",
+                help="Force conditioning free diffusion",
+                value=True,
             )
             no_cond_free = st.checkbox(
                 "Force Not Conditioning Free",
@@ -126,7 +141,7 @@ if __name__ == "__main__":
                 help="Minimum number of characters to split text on",
                 min_value=50,
                 value=200,
-                step=1
+                step=1,
             )
 
             """#### Debug"""
@@ -136,29 +151,41 @@ if __name__ == "__main__":
                 value=True,
             )
 
-    ar_checkpoint = None if ar_checkpoint[-4:] != '.pth' else ar_checkpoint
-    if 'tts' not in st.session_state or st.session_state.tts._config() != {
-            'models_dir': model_dir, 'high_vram': high_vram, 'kv_cache': kv_cache, 'ar_checkpoint': ar_checkpoint
+    ar_checkpoint = None if ar_checkpoint[-4:] != ".pth" else ar_checkpoint
+    if "tts" not in st.session_state or st.session_state.tts._config() != {
+        "models_dir": model_dir,
+        "high_vram": high_vram,
+        "kv_cache": kv_cache,
+        "ar_checkpoint": ar_checkpoint,
     }:
-        st.session_state.tts = TextToSpeech(models_dir=model_dir, high_vram=high_vram, kv_cache=kv_cache, ar_checkpoint=ar_checkpoint)
+        st.session_state.tts = TextToSpeech(
+            models_dir=model_dir,
+            high_vram=high_vram,
+            kv_cache=kv_cache,
+            ar_checkpoint=ar_checkpoint,
+        )
     tts = st.session_state.tts
     if st.button("Start"):
         assert latent_averaging_mode
         assert preset
         assert voice
+
         def show_generation(fp, filename: str):
-            '''
+            """
             audio_buffer = BytesIO()
             save_gen_with_voicefix(g, audio_buffer, squeeze=False)
             torchaudio.save(audio_buffer, g, 24000, format='wav')
-            '''
+            """
             st.audio(str(fp), format="audio/wav")
             st.download_button(
                 "Download sample",
                 str(fp),
-                file_name=filename, # this doesn't actually seem to work lol
+                file_name=filename,  # this doesn't actually seem to work lol
             )
-        with st.spinner(f"Generating {candidates} candidates for voice {voice} (seed={seed}). You can see progress in the terminal"):
+
+        with st.spinner(
+            f"Generating {candidates} candidates for voice {voice} (seed={seed}). You can see progress in the terminal"
+        ):
             os.makedirs(output_path, exist_ok=True)
 
             selected_voices = voice.split(",")
@@ -182,6 +209,7 @@ if __name__ == "__main__":
                         )
                         if v is not None
                     }
+
                     def call_tts(text: str):
                         return tts.tts_with_preset(
                             text,
@@ -193,23 +221,39 @@ if __name__ == "__main__":
                             return_deterministic_state=True,
                             cvvp_amount=0.0,
                             half=half,
-                            latent_averaging_mode=LATENT_MODES.index(latent_averaging_mode),
+                            latent_averaging_mode=LATENT_MODES.index(
+                                latent_averaging_mode
+                            ),
                             **nullable_kwargs,
                         )
+
                     if len(text) < min_chars_to_split:
-                        filepaths = run_and_save_tts(call_tts, text, voice_path, return_deterministic_state=True, return_filepaths=True)
-                        for i,fp in enumerate(filepaths):
-                            show_generation(fp, f'{selected_voice}-text-{i}.wav')
-                    else: 
-                        desired_length = int(min_chars_to_split)
-                        texts = split_and_recombine_text(text, desired_length, desired_length+100)
-                        if candidates != 1:
-                            st.warning("candidates != 1 while splitting text; only choosing the first candidate for each text fragment!", icon="⚠️")
-                        filepath = infer_on_texts(
-                            call_tts, texts, voice_path,
+                        filepaths = run_and_save_tts(
+                            call_tts,
+                            text,
+                            voice_path,
                             return_deterministic_state=True,
-                            lines_to_regen=set(range(len(texts)))
+                            return_filepaths=True,
                         )
-                        show_generation(filepath, f'{selected_voice}-text.wav')
+                        for i, fp in enumerate(filepaths):
+                            show_generation(fp, f"{selected_voice}-text-{i}.wav")
+                    else:
+                        desired_length = int(min_chars_to_split)
+                        texts = split_and_recombine_text(
+                            text, desired_length, desired_length + 100
+                        )
+                        if candidates != 1:
+                            st.warning(
+                                "candidates != 1 while splitting text; only choosing the first candidate for each text fragment!",
+                                icon="⚠️",
+                            )
+                        filepath = infer_on_texts(
+                            call_tts,
+                            texts,
+                            voice_path,
+                            return_deterministic_state=True,
+                            lines_to_regen=set(range(len(texts))),
+                        )
+                        show_generation(filepath, f"{selected_voice}-text.wav")
         if produce_debug_state:
-            '''Debug states can be found in the output directory'''
+            """Debug states can be found in the output directory"""
