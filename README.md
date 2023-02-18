@@ -29,6 +29,8 @@ All results listed were generated with a slightly undervolted RTX 3090 on Ubuntu
 python tortoise/do_tts.py --voice emma --seed 42 --text "$TEXT"
 ```
 
+### **NOTE**: samples here are somewhat old; they don't have `voicefixer` applied.
+
 Original TorToiSe [repo](https://github.com/neonbjb/tortoise-tts):
 | speed (B) | speed (A) | preset | sample | 
 |-|-|-|-|
