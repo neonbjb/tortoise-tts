@@ -72,8 +72,7 @@ The installation process is identical to the original tortoise-tts repo.
 ```shell
 git clone https://github.com/152334H/tortoise-tts-fast
 cd tortoise-tts-fast
-python -m pip install -r ./requirements.txt
-python setup.py install
+python -m pip install -e .
 ```
 
 Note that if you have the original tortoise installed,
