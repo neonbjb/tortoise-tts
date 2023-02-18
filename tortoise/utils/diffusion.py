@@ -6,7 +6,7 @@ https://github.com/hojonathanho/diffusion/blob/1e0dceb3b3495bbe19116a5e1b3596cd0
 
 Docstrings have been added, as well as DDIM sampling and a new collection of beta schedules.
 """
-# AGPL: a notification must be added stating that changes have been made to that file. 
+# AGPL: a notification must be added stating that changes have been made to that file.
 
 import enum
 import math
@@ -14,14 +14,14 @@ import math
 import numpy as np
 import torch
 import torch as th
-from tqdm import tqdm, trange
+from k_diffusion.sampling import sample_dpmpp_2m, sample_euler_ancestral
+from tqdm import tqdm
 
-from tortoise.dpm_solver_pytorch import NoiseScheduleVP, model_wrapper, DPM_Solver
+from tortoise.dpm_solver_pytorch import DPM_Solver, NoiseScheduleVP, model_wrapper
 
-from k_diffusion.sampling import sample_euler_ancestral, sample_dpmpp_2m
-from k_diffusion.sampling import get_sigmas_karras
-K_DIFFUSION_SAMPLERS = {'k_euler_a': sample_euler_ancestral, 'dpm++2m': sample_dpmpp_2m}
-SAMPLERS = ['dpm++2m', 'p', 'ddim']
+K_DIFFUSION_SAMPLERS = {"k_euler_a": sample_euler_ancestral, "dpm++2m": sample_dpmpp_2m}
+SAMPLERS = ["dpm++2m", "p", "ddim"]
+
 
 def normal_kl(mean1, logvar1, mean2, logvar2):
     """
@@ -150,9 +150,9 @@ class ModelMeanType(enum.Enum):
     Which type of output the model predicts.
     """
 
-    PREVIOUS_X = 'previous_x'  # the model predicts x_{t-1}
-    START_X = 'start_x'  # the model predicts x_0
-    EPSILON = 'epsilon'  # the model predicts epsilon
+    PREVIOUS_X = "previous_x"  # the model predicts x_{t-1}
+    START_X = "start_x"  # the model predicts x_0
+    EPSILON = "epsilon"  # the model predicts epsilon
 
 
 class ModelVarType(enum.Enum):
@@ -163,17 +163,19 @@ class ModelVarType(enum.Enum):
     values between FIXED_SMALL and FIXED_LARGE, making its job easier.
     """
 
-    LEARNED = 'learned'
-    FIXED_SMALL = 'fixed_small'
-    FIXED_LARGE = 'fixed_large'
-    LEARNED_RANGE = 'learned_range'
+    LEARNED = "learned"
+    FIXED_SMALL = "fixed_small"
+    FIXED_LARGE = "fixed_large"
+    LEARNED_RANGE = "learned_range"
 
 
 class LossType(enum.Enum):
-    MSE = 'mse'  # use raw MSE loss (and KL when learning variances)
-    RESCALED_MSE = 'rescaled_mse'  # use raw MSE loss (with RESCALED_KL when learning variances)
-    KL = 'kl'  # use the variational lower-bound
-    RESCALED_KL = 'rescaled_kl'  # like KL, but rescale to estimate the full VLB
+    MSE = "mse"  # use raw MSE loss (and KL when learning variances)
+    RESCALED_MSE = (
+        "rescaled_mse"  # use raw MSE loss (with RESCALED_KL when learning variances)
+    )
+    KL = "kl"  # use the variational lower-bound
+    RESCALED_KL = "rescaled_kl"  # like KL, but rescale to estimate the full VLB
 
     def is_vb(self):
         return self == LossType.KL or self == LossType.RESCALED_KL
@@ -203,11 +205,11 @@ class GaussianDiffusion:
         model_mean_type,
         model_var_type,
         loss_type,
-        rescale_timesteps=False, # this is generally False
+        rescale_timesteps=False,  # this is generally False
         conditioning_free=False,
         conditioning_free_k=1,
         ramp_conditioning_free=True,
-        sampler='ddim'
+        sampler="ddim",
     ):
         self.sampler = sampler
         self.model_mean_type = ModelMeanType(model_mean_type)
@@ -346,19 +348,23 @@ class GaussianDiffusion:
 
         assert self.model_var_type == ModelVarType.LEARNED_RANGE
         assert self.model_mean_type == ModelMeanType.EPSILON
-        assert denoised_fn == None
+        assert denoised_fn is None
         assert clip_denoised is True
         B, C = x.shape[:2]
         assert t.shape == (B,)
         model_output = model(x, self._scale_timesteps(t), **model_kwargs)
         if self.conditioning_free:
-            model_output_no_conditioning = model(x, self._scale_timesteps(t), conditioning_free=True, **model_kwargs)
+            model_output_no_conditioning = model(
+                x, self._scale_timesteps(t), conditioning_free=True, **model_kwargs
+            )
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
             model_output, model_var_values = th.split(model_output, C, dim=1)
             if self.conditioning_free:
-                model_output_no_conditioning, _ = th.split(model_output_no_conditioning, C, dim=1)
+                model_output_no_conditioning, _ = th.split(
+                    model_output_no_conditioning, C, dim=1
+                )
             if self.model_var_type == ModelVarType.LEARNED:
                 assert False
                 model_log_variance = model_var_values
@@ -392,7 +398,9 @@ class GaussianDiffusion:
         if self.conditioning_free:
             if self.ramp_conditioning_free:
                 assert t.shape[0] == 1  # This should only be used in inference.
-                cfk = self.conditioning_free_k * (1 - self._scale_timesteps(t)[0].item() / self.num_timesteps)
+                cfk = self.conditioning_free_k * (
+                    1 - self._scale_timesteps(t)[0].item() / self.num_timesteps
+                )
             else:
                 cfk = self.conditioning_free_k
             model_output = (1 + cfk) * model_output - cfk * model_output_no_conditioning
@@ -550,28 +558,43 @@ class GaussianDiffusion:
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
 
     def k_diffusion_sample_loop(
-        self, k_sampler, pbar, model, shape, noise=None, # all given
-        clip_denoised=True, denoised_fn=None, cond_fn=None, device=None, # ALL UNUSED
-        model_kwargs=None, #{'precomputed_aligned_embeddings': precomputed_embeddings},
-        progress=False,  #unused as well
+        self,
+        k_sampler,
+        pbar,
+        model,
+        shape,
+        noise=None,  # all given
+        clip_denoised=True,
+        denoised_fn=None,
+        cond_fn=None,
+        device=None,  # ALL UNUSED
+        model_kwargs=None,  # {'precomputed_aligned_embeddings': precomputed_embeddings},
+        progress=False,  # unused as well
     ):
         assert isinstance(model_kwargs, dict)
         if device is None:
             device = next(model.parameters()).device
         s_in = noise.new_ones([noise.shape[0]])
+
         def model_split(*args, **kwargs):
             model_output = model(*args, **kwargs)
-            model_epsilon, model_var = th.split(model_output, model_output.shape[1]//2, dim=1)
+            model_epsilon, model_var = th.split(
+                model_output, model_output.shape[1] // 2, dim=1
+            )
             return model_epsilon, model_var
+
         #
-        '''
+        """
         print(self.betas)
         print(th.tensor(self.betas))
         noise_schedule = NoiseScheduleVP(schedule='discrete', betas=th.tensor(self.betas))
-        '''
-        noise_schedule = NoiseScheduleVP(schedule='linear', continuous_beta_0=0.1 / 4, continuous_beta_1=20. / 4)
+        """
+        noise_schedule = NoiseScheduleVP(
+            schedule="linear", continuous_beta_0=0.1 / 4, continuous_beta_1=20.0 / 4
+        )
+
         def model_fn_prewrap(x, t, *args, **kwargs):
-            '''
+            """
                 x_in = torch.cat([x] * 2)
                 t_in = torch.cat([t_continuous] * 2)
                 c_in = torch.cat([unconditional_condition, condition])
@@ -579,31 +602,34 @@ class GaussianDiffusion:
             print(t)
             print(self.timestep_map)
             exit()
-            '''
-            '''
+            """
+            """
             model_output = model(x, self._scale_timesteps(t*4000), **model_kwargs)
             out = self.p_mean_variance(model, x, t*4000, model_kwargs=model_kwargs)
             return out['pred_xstart']
-            '''
-            x,_ = x.chunk(2)
-            t,_ = (t*1000).chunk(2)
-            res = torch.cat([
-                model_split(x, t, conditioning_free=True, **model_kwargs)[0],
-                model_split(x, t, **model_kwargs)[0]
-            ])
+            """
+            x, _ = x.chunk(2)
+            t, _ = (t * 1000).chunk(2)
+            res = torch.cat(
+                [
+                    model_split(x, t, conditioning_free=True, **model_kwargs)[0],
+                    model_split(x, t, **model_kwargs)[0],
+                ]
+            )
             pbar.update(1)
             return res
+
         model_fn = model_wrapper(
             model_fn_prewrap,
             noise_schedule,
-            model_type='noise',  # "noise" or "x_start" or "v" or "score"
+            model_type="noise",  # "noise" or "x_start" or "v" or "score"
             model_kwargs=model_kwargs,
             guidance_type="classifier-free",
             condition=th.Tensor(1),
             unconditional_condition=th.Tensor(1),
             guidance_scale=self.conditioning_free_k,
         )
-        '''
+        """
         model_fn = model_wrapper(
             model_fn_prewrap,
             noise_schedule,
@@ -619,7 +645,7 @@ class GaussianDiffusion:
             skip_type="time_uniform",
             method="singlestep",
         )
-        '''
+        """
         dpm_solver = DPM_Solver(model_fn, noise_schedule, algorithm_type="dpmsolver++")
         x_sample = dpm_solver.sample(
             noise,
@@ -631,11 +657,8 @@ class GaussianDiffusion:
         #'''
         return x_sample
 
-
-
-
         # HF DIFFUSION ATTEMPT
-        '''
+        """
         from .hf_diffusion import EulerAncestralDiscreteScheduler
         Scheduler = EulerAncestralDiscreteScheduler()
         Scheduler.set_timesteps(100)
@@ -646,7 +669,7 @@ class GaussianDiffusion:
             model_epsilon, _model_var = th.split(model_output, model_output.shape[1]//2, dim=1)
             noise, _x0 = Scheduler.step(model_epsilon, timestep, noise)
         return noise
-        '''
+        """
 
         # KARRAS DIFFUSION ATTEMPT
         """
@@ -693,15 +716,19 @@ class GaussianDiffusion:
 
     def sample_loop(self, *args, **kwargs):
         s = self.sampler
-        if s == 'p':
+        if s == "p":
             return self.p_sample_loop(*args, **kwargs)
-        elif s == 'ddim':
+        elif s == "ddim":
             return self.ddim_sample_loop(*args, **kwargs)
-        elif s == 'dpm++2m':
-            if self.conditioning_free != True: raise RuntimeError("cond_free must be true")
+        elif s == "dpm++2m":
+            if self.conditioning_free is not True:
+                raise RuntimeError("cond_free must be true")
             with tqdm(total=self.num_timesteps) as pbar:
-                return self.k_diffusion_sample_loop(K_DIFFUSION_SAMPLERS[s], pbar, *args, **kwargs)
-        else: raise RuntimeError("sampler not impl")
+                return self.k_diffusion_sample_loop(
+                    K_DIFFUSION_SAMPLERS[s], pbar, *args, **kwargs
+                )
+        else:
+            raise RuntimeError("sampler not impl")
 
     def p_sample_loop(
         self,
@@ -835,7 +862,7 @@ class GaussianDiffusion:
         noise = th.randn_like(x)
         mean_pred = (
             out["pred_xstart"] * th.sqrt(alpha_bar_prev)
-            + th.sqrt(1 - alpha_bar_prev - sigma ** 2) * eps
+            + th.sqrt(1 - alpha_bar_prev - sigma**2) * eps
         )
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
@@ -1037,7 +1064,7 @@ class GaussianDiffusion:
             model_outputs = model(x_t, self._scale_timesteps(t), **model_kwargs)
             if isinstance(model_outputs, tuple):
                 model_output = model_outputs[0]
-                terms['extra_outputs'] = model_outputs[1:]
+                terms["extra_outputs"] = model_outputs[1:]
             else:
                 model_output = model_outputs
 
@@ -1064,9 +1091,9 @@ class GaussianDiffusion:
                     terms["vb"] *= self.num_timesteps / 1000.0
 
             if self.model_mean_type == ModelMeanType.PREVIOUS_X:
-                target = self.q_posterior_mean_variance(
-                    x_start=x_start, x_t=x_t, t=t
-                )[0]
+                target = self.q_posterior_mean_variance(x_start=x_start, x_t=x_t, t=t)[
+                    0
+                ]
                 x_start_pred = torch.zeros(x_start)  # Not supported.
             elif self.model_mean_type == ModelMeanType.START_X:
                 target = x_start
@@ -1088,7 +1115,16 @@ class GaussianDiffusion:
 
         return terms
 
-    def autoregressive_training_losses(self, model, x_start, t, model_output_keys, gd_out_key, model_kwargs=None, noise=None):
+    def autoregressive_training_losses(
+        self,
+        model,
+        x_start,
+        t,
+        model_output_keys,
+        gd_out_key,
+        model_kwargs=None,
+        noise=None,
+    ):
         """
         Compute training losses for a single timestep.
 
@@ -1110,7 +1146,9 @@ class GaussianDiffusion:
         if self.loss_type == LossType.KL or self.loss_type == LossType.RESCALED_KL:
             assert False  # not currently supported for this type of diffusion.
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_outputs = model(x_t, x_start, self._scale_timesteps(t), **model_kwargs)
+            model_outputs = model(
+                x_t, x_start, self._scale_timesteps(t), **model_kwargs
+            )
             terms.update({k: o for k, o in zip(model_output_keys, model_outputs)})
             model_output = terms[gd_out_key]
             if self.model_var_type in [
@@ -1119,7 +1157,10 @@ class GaussianDiffusion:
             ]:
                 B, C = x_t.shape[:2]
                 assert model_output.shape == (B, C, 2, *x_t.shape[2:])
-                model_output, model_var_values = model_output[:, :, 0], model_output[:, :, 1]
+                model_output, model_var_values = (
+                    model_output[:, :, 0],
+                    model_output[:, :, 1],
+                )
                 # Learn the variance using the variational bound, but don't let
                 # it affect our mean prediction.
                 frozen_out = th.cat([model_output.detach(), model_var_values], dim=1)
@@ -1136,9 +1177,9 @@ class GaussianDiffusion:
                     terms["vb"] *= self.num_timesteps / 1000.0
 
             if self.model_mean_type == ModelMeanType.PREVIOUS_X:
-                target = self.q_posterior_mean_variance(
-                    x_start=x_start, x_t=x_t, t=t
-                )[0]
+                target = self.q_posterior_mean_variance(x_start=x_start, x_t=x_t, t=t)[
+                    0
+                ]
                 x_start_pred = torch.zeros(x_start)  # Not supported.
             elif self.model_mean_type == ModelMeanType.START_X:
                 target = x_start
@@ -1301,7 +1342,9 @@ class SpacedDiffusion(GaussianDiffusion):
     def autoregressive_training_losses(
         self, model, *args, **kwargs
     ):  # pylint: disable=signature-differs
-        return super().autoregressive_training_losses(self._wrap_model(model, True), *args, **kwargs)
+        return super().autoregressive_training_losses(
+            self._wrap_model(model, True), *args, **kwargs
+        )
 
     def condition_mean(self, cond_fn, *args, **kwargs):
         return super().condition_mean(self._wrap_model(cond_fn), *args, **kwargs)
@@ -1310,7 +1353,9 @@ class SpacedDiffusion(GaussianDiffusion):
         return super().condition_score(self._wrap_model(cond_fn), *args, **kwargs)
 
     def _wrap_model(self, model, autoregressive=False):
-        if isinstance(model, _WrappedModel) or isinstance(model, _WrappedAutoregressiveModel):
+        if isinstance(model, _WrappedModel) or isinstance(
+            model, _WrappedAutoregressiveModel
+        ):
             return model
         mod = _WrappedAutoregressiveModel if autoregressive else _WrappedModel
         return mod(
@@ -1406,6 +1451,7 @@ class _WrappedAutoregressiveModel:
         if self.rescale_timesteps:
             new_ts = new_ts.float() * (1000.0 / self.original_num_steps)
         return self.model(x, x0, new_ts, **kwargs)
+
 
 def _extract_into_tensor(arr, timesteps, broadcast_shape):
     """
