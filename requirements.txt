@@ -1,3 +1,5 @@
+streamlit
+voicefixer
 accelerate==0.16.0; python_full_version >= "3.7.0" \
     --hash=sha256:27aa39b2076560b3ee674b9650c237c58520b3fd7907e5da1f922cf6868c1576 \
     --hash=sha256:d13e30f3e6debfb46cada7b931af85560619b6a6a839d0cafeeab6ed7c6a498d
