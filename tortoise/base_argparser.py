@@ -99,6 +99,12 @@ ap.add_argument(
     type=str,
     help="specific autoregressive model checkpoint to load over the default",
 )
+ap.add_argument(
+    "--voicefixer",
+    type=bool,
+    default=True,
+    help="enable/disable voicefixer",
+)
 
 
 def nullable_kwargs(args, extras={}):
