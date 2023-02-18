@@ -30,9 +30,9 @@ def update_dir(key):
 
 def st_file_selector(st_placeholder, path='.', label='Select a file/folder', key = 'selected'):
     if key+'curr_dir' not in st.session_state:
-        base_path = '.' if path == None or path == '' else path
+        base_path = '.' if path is None or path == '' else path
         base_path = base_path if os.path.isdir(base_path) else os.path.dirname(base_path)
-        base_path = '.' if base_path == None or base_path == '' else base_path
+        base_path = '.' if base_path is None or base_path == '' else base_path
 
         files = sorted(os.listdir(base_path))
         files.insert(0, '..')

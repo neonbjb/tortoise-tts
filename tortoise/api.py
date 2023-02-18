@@ -2,7 +2,6 @@
 
 import os
 import random
-import uuid
 from time import time
 from urllib import request
 

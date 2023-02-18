@@ -2,7 +2,6 @@ import sys
 import os
 from random import randint
 from typing import Optional, Union, List, Set
-from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import get_voices, load_voices, load_audio
 from tortoise.utils.text import split_and_recombine_text
 
@@ -74,7 +73,7 @@ def run_and_save_tts(call_tts, text, output_dir: Path, return_deterministic_stat
     output_dir.mkdir(exist_ok=True)
     if return_deterministic_state:
         gen,dbg = call_tts(text)
-        torch.save(dbg, output_dir / f'dbg.pt')
+        torch.save(dbg, output_dir / 'dbg.pt')
     else:
         gen = call_tts(text)
     #

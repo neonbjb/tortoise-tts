@@ -2,8 +2,6 @@
 
 import os
 
-import torch
-import torchaudio
 import streamlit as st
 
 from filepicker import st_file_selector
@@ -12,12 +10,11 @@ from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
 
-from tortoise.inference import run_and_save_tts, infer_on_texts, split_and_recombine_text, save_gen_with_voicefix
+from tortoise.inference import run_and_save_tts, infer_on_texts, split_and_recombine_text
 
 from contextlib import contextmanager
 from pathlib import Path
 from time import time
-from io import BytesIO
 
 
 @contextmanager

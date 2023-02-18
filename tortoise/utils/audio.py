@@ -23,7 +23,7 @@ def load_wav_to_torch(full_path):
     elif data.dtype == np.float16 or data.dtype == np.float32:
         norm_fix = 1.
     else:
-        raise NotImplemented(f"Provided data dtype not supported: {data.dtype}")
+        raise NotImplementedError(f"Provided data dtype not supported: {data.dtype}")
     return (torch.FloatTensor(data.astype(np.float32)) / norm_fix, sampling_rate)
 
 def check_audio(audio, audiopath: str):

@@ -4,7 +4,6 @@ import argparse
 import os
 
 import torch
-import torchaudio
 
 from api import TextToSpeech
 from utils.audio import load_voices

@@ -14,12 +14,11 @@ import math
 import numpy as np
 import torch
 import torch as th
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
 from tortoise.dpm_solver_pytorch import NoiseScheduleVP, model_wrapper, DPM_Solver
 
 from k_diffusion.sampling import sample_euler_ancestral, sample_dpmpp_2m
-from k_diffusion.sampling import get_sigmas_karras
 K_DIFFUSION_SAMPLERS = {'k_euler_a': sample_euler_ancestral, 'dpm++2m': sample_dpmpp_2m}
 SAMPLERS = ['dpm++2m', 'p', 'ddim']
 
@@ -346,7 +345,7 @@ class GaussianDiffusion:
 
         assert self.model_var_type == ModelVarType.LEARNED_RANGE
         assert self.model_mean_type == ModelMeanType.EPSILON
-        assert denoised_fn == None
+        assert denoised_fn is None
         assert clip_denoised is True
         B, C = x.shape[:2]
         assert t.shape == (B,)
@@ -698,7 +697,7 @@ class GaussianDiffusion:
         elif s == 'ddim':
             return self.ddim_sample_loop(*args, **kwargs)
         elif s == 'dpm++2m':
-            if self.conditioning_free != True: raise RuntimeError("cond_free must be true")
+            if self.conditioning_free is not True: raise RuntimeError("cond_free must be true")
             with tqdm(total=self.num_timesteps) as pbar:
                 return self.k_diffusion_sample_loop(K_DIFFUSION_SAMPLERS[s], pbar, *args, **kwargs)
         else: raise RuntimeError("sampler not impl")

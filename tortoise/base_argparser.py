@@ -1,5 +1,5 @@
 import argparse
-from api import TextToSpeech, MODELS_DIR
+from api import MODELS_DIR
 
 from utils.diffusion import SAMPLERS
 

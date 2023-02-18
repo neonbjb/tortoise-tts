@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 import math
 
 
@@ -132,7 +131,8 @@ class NoiseScheduleVP:
         elif self.schedule == 'linear':
             return -0.25 * t ** 2 * (self.beta_1 - self.beta_0) - 0.5 * t * self.beta_0
         elif self.schedule == 'cosine':
-            log_alpha_fn = lambda s: torch.log(torch.cos((s + self.cosine_s) / (1. + self.cosine_s) * math.pi / 2.))
+            def log_alpha_fn(s):
+                return torch.log(torch.cos((s + self.cosine_s) / (1.0 + self.cosine_s) * math.pi / 2.0))
             log_alpha_t =  log_alpha_fn(t) - self.cosine_log_alpha_0
             return log_alpha_t
 
@@ -170,7 +170,8 @@ class NoiseScheduleVP:
             return t.reshape((-1,))
         else:
             log_alpha = -0.5 * torch.logaddexp(-2. * lamb, torch.zeros((1,)).to(lamb))
-            t_fn = lambda log_alpha_t: torch.arccos(torch.exp(log_alpha_t + self.cosine_log_alpha_0)) * 2. * (1. + self.cosine_s) / math.pi - self.cosine_s
+            def t_fn(log_alpha_t):
+                return (torch.arccos(torch.exp(log_alpha_t + self.cosine_log_alpha_0)) * 2.0 * (1.0 + self.cosine_s) / math.pi - self.cosine_s)
             t = t_fn(log_alpha)
             return t
 
@@ -992,12 +993,16 @@ class DPM_Solver:
         nfe = 0
         if order == 2:
             r1 = 0.5
-            lower_update = lambda x, s, t: self.dpm_solver_first_update(x, s, t, return_intermediate=True)
-            higher_update = lambda x, s, t, **kwargs: self.singlestep_dpm_solver_second_update(x, s, t, r1=r1, solver_type=solver_type, **kwargs)
+            def lower_update(x, s, t):
+                return self.dpm_solver_first_update(x, s, t, return_intermediate=True)
+            def higher_update(x, s, t, **kwargs):
+                return self.singlestep_dpm_solver_second_update(x, s, t, r1=r1, solver_type=solver_type, **kwargs)
         elif order == 3:
             r1, r2 = 1. / 3., 2. / 3.
-            lower_update = lambda x, s, t: self.singlestep_dpm_solver_second_update(x, s, t, r1=r1, return_intermediate=True, solver_type=solver_type)
-            higher_update = lambda x, s, t, **kwargs: self.singlestep_dpm_solver_third_update(x, s, t, r1=r1, r2=r2, solver_type=solver_type, **kwargs)
+            def lower_update(x, s, t):
+                return self.singlestep_dpm_solver_second_update(x, s, t, r1=r1, return_intermediate=True, solver_type=solver_type)
+            def higher_update(x, s, t, **kwargs):
+                return self.singlestep_dpm_solver_third_update(x, s, t, r1=r1, r2=r2, solver_type=solver_type, **kwargs)
         else:
             raise ValueError("For adaptive step size solver, order must be 2 or 3, got {}".format(order))
         while torch.abs((s - t_0)).mean() > t_err:
@@ -1005,7 +1010,8 @@ class DPM_Solver:
             x_lower, lower_noise_kwargs = lower_update(x, s, t)
             x_higher = higher_update(x, s, t, **lower_noise_kwargs)
             delta = torch.max(torch.ones_like(x).to(x) * atol, rtol * torch.max(torch.abs(x_lower), torch.abs(x_prev)))
-            norm_fn = lambda v: torch.sqrt(torch.square(v.reshape((v.shape[0], -1))).mean(dim=-1, keepdim=True))
+            def norm_fn(v):
+                return torch.sqrt(torch.square(v.reshape((v.shape[0], -1))).mean(dim=-1, keepdim=True))
             E = norm_fn((x_higher - x_lower) / delta).max()
             if torch.all(E <= 1.):
                 x = x_higher
