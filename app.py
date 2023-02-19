@@ -7,7 +7,6 @@ from time import time
 
 import streamlit as st
 
-from filepicker import st_file_selector
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.inference import (
     infer_on_texts,
@@ -16,7 +15,8 @@ from tortoise.inference import (
 )
 from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
-
+from app_utils.filepicker import st_file_selector
+from app_utils.conf import TortoiseConfig
 
 @contextmanager
 def timeit(desc=""):
@@ -31,20 +31,35 @@ LATENT_MODES = [
     "average per voice file (broken on small files)",
 ]
 if __name__ == "__main__":
+    conf = TortoiseConfig()
+    ar_checkpoint = st_file_selector(
+        st, path=conf.AR_CHECKPOINT, label="Select GPT Checkpoint", key="pth"
+    )
     text = st.text_area(
         "Text",
         help="Text to speak.",
         value="The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them.",
     )
+    extra_voices_dir = st.text_input(
+        "Extra Voices Directory",
+        help="Where to find extra voices for zero-shot VC",
+        value=conf.EXTRA_VOICES_DIR,
+    )
 
-    voices = os.listdir("tortoise/voices") + ["random"]
-    voices.remove("cond_latent_example")
+    voices = ["random"]
+    if os.path.isdir(extra_voices_dir):
+        voices.extend(os.listdir(extra_voices_dir))
+        extra_voices_ls = [extra_voices_dir]
+    else:
+        extra_voices_ls = []
+    voices.extend([v for v in os.listdir("tortoise/voices") if v != 'cond_latent_example'])
+
     voice = st.selectbox(
         "Voice",
         voices,
         help="Selects the voice to use for generation. See options in voices/ directory (and add your own!) "
         "Use the & character to join two voices together. Use a comma to perform inference on multiple voices.",
-        index=len(voices) - 1,
+        index=0,
     )
     preset = st.selectbox(
         "Preset",
@@ -108,16 +123,13 @@ if __name__ == "__main__":
                 "should only be specified if you have custom checkpoints.",
                 value=MODELS_DIR,
             )
-            ar_checkpoint = st_file_selector(
-                st, label="Select GPT Checkpoint", key="pth"
-            )
 
         with col2:
             """#### Optimizations"""
             high_vram = not st.checkbox(
                 "Low VRAM",
                 help="Re-enable default offloading behaviour of tortoise",
-                value=True,
+                value=conf.LOW_VRAM,
             )
             half = st.checkbox(
                 "Half-Precision",
@@ -155,6 +167,8 @@ if __name__ == "__main__":
                 help="Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.",
                 value=True,
             )
+    if st.button("Update Basic Settings"):
+        conf.update(EXTRA_VOICES_DIR=extra_voices_dir, LOW_VRAM=not high_vram, AR_CHECKPOINT=ar_checkpoint)
 
     ar_checkpoint = None if ar_checkpoint[-4:] != ".pth" else ar_checkpoint
     if "tts" not in st.session_state or st.session_state.tts._config() != {
@@ -199,7 +213,7 @@ if __name__ == "__main__":
                     voice_sel = selected_voice.split("&")
                 else:
                     voice_sel = [selected_voice]
-                voice_samples, conditioning_latents = load_voices(voice_sel)
+                voice_samples, conditioning_latents = load_voices(voice_sel, extra_voices_ls)
 
                 voice_path = Path(os.path.join(output_path, selected_voice))
 
@@ -258,6 +272,7 @@ if __name__ == "__main__":
                             texts,
                             voice_path,
                             return_deterministic_state=True,
+                            return_filepath=True,
                             lines_to_regen=set(range(len(texts))),
                             voicefixer=voice_fixer,
                         )

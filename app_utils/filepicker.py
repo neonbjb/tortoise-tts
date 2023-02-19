@@ -32,7 +32,7 @@ def update_dir(key):
         files.insert(0, ".")
         st.session_state[key + "files"] = files
 
-
+i_will_regret_this = 0
 def st_file_selector(
     st_placeholder, path=".", label="Select a file/folder", key="selected"
 ):
@@ -48,12 +48,16 @@ def st_file_selector(
         files.insert(0, ".")
         st.session_state[key + "files"] = files
         st.session_state[key + "curr_dir"] = base_path
+        if os.path.isfile(path):
+            global i_will_regret_this
+            i_will_regret_this = st.session_state[key+"files"].index(os.path.basename(path))
     else:
         base_path = st.session_state[key + "curr_dir"]
 
     selected_file = st_placeholder.selectbox(
         label=label,
         options=st.session_state[key + "files"],
+        index=i_will_regret_this,
         key=key,
         on_change=lambda: update_dir(key),
     )
