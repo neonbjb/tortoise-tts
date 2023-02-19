@@ -32,7 +32,10 @@ def update_dir(key):
         files.insert(0, ".")
         st.session_state[key + "files"] = files
 
-i_will_regret_this = 0 #TODO: don't use some global var
+
+i_will_regret_this = 0  # TODO: don't use some global var
+
+
 def st_file_selector(
     st_placeholder, path=".", label="Select a file/folder", key="selected"
 ):
@@ -50,7 +53,9 @@ def st_file_selector(
         st.session_state[key + "curr_dir"] = base_path
         if os.path.isfile(path):
             global i_will_regret_this
-            i_will_regret_this = st.session_state[key+"files"].index(os.path.basename(path))
+            i_will_regret_this = st.session_state[key + "files"].index(
+                os.path.basename(path)
+            )
     else:
         base_path = st.session_state[key + "curr_dir"]
 

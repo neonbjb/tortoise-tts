@@ -133,7 +133,7 @@ def infer_on_texts(
             files = list(line_p.glob("*.wav"))
             if files:
                 logger(f"loading existing audio fragments for [{text_idx}]")
-                audio_chunks.append([load_audio(str(f),24000) for f in files])
+                audio_chunks.append([load_audio(str(f), 24000) for f in files])
                 continue
             else:
                 logger(f"no existing audio fragment for [{text_idx}]")

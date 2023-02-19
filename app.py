@@ -5,7 +5,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from tortoise.api import MODELS_DIR, TextToSpeech
+from tortoise.api import MODELS_DIR
 from tortoise.inference import (
     infer_on_texts,
     run_and_save_tts,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         value=conf.EXTRA_VOICES_DIR,
     )
 
-    voices, extra_voices_ls =  list_voices(extra_voices_dir)
+    voices, extra_voices_ls = list_voices(extra_voices_dir)
 
     voice = st.selectbox(
         "Voice",
@@ -160,11 +160,15 @@ if __name__ == "__main__":
                 value=True,
             )
     if st.button("Update Basic Settings"):
-        conf.update(EXTRA_VOICES_DIR=extra_voices_dir, LOW_VRAM=not high_vram, AR_CHECKPOINT=ar_checkpoint)
+        conf.update(
+            EXTRA_VOICES_DIR=extra_voices_dir,
+            LOW_VRAM=not high_vram,
+            AR_CHECKPOINT=ar_checkpoint,
+        )
 
     ar_checkpoint = None if ar_checkpoint[-4:] != ".pth" else ar_checkpoint
     tts = load_model(model_dir, high_vram, kv_cache, ar_checkpoint)
-    
+
     if st.button("Start"):
         assert latent_averaging_mode
         assert preset
@@ -194,7 +198,9 @@ if __name__ == "__main__":
                     voice_sel = selected_voice.split("&")
                 else:
                     voice_sel = [selected_voice]
-                voice_samples, conditioning_latents = load_voice_conditionings(voice_sel, extra_voices_ls)
+                voice_samples, conditioning_latents = load_voice_conditionings(
+                    voice_sel, extra_voices_ls
+                )
 
                 voice_path = Path(os.path.join(output_path, selected_voice))
 

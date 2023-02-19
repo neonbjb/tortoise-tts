@@ -466,9 +466,10 @@ class TextToSpeech:
                     diffusion_conds.append(cond_mel)
                 else:
                     from math import ceil
+
                     if latent_averaging_mode == 2:
                         temp_diffusion_conds = []
-                    for chunk in range(ceil(sample.shape[1]/DURS_CONST)):
+                    for chunk in range(ceil(sample.shape[1] / DURS_CONST)):
                         current_sample = sample[
                             :, chunk * DURS_CONST : (chunk + 1) * DURS_CONST
                         ]
