@@ -1,9 +1,7 @@
 # AGPL: a notification must be added stating that changes have been made to that file.
 
 import os
-from contextlib import contextmanager
 from pathlib import Path
-from time import time
 
 import streamlit as st
 
@@ -13,16 +11,16 @@ from tortoise.inference import (
     run_and_save_tts,
     split_and_recombine_text,
 )
-from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
 from app_utils.filepicker import st_file_selector
 from app_utils.conf import TortoiseConfig
 
-@contextmanager
-def timeit(desc=""):
-    start = time()
-    yield
-    print(f"{desc} took {time() - start:.2f} seconds")
+from app_utils.funcs import (
+    timeit,
+    load_model,
+    list_voices,
+    load_voice_conditionings,
+)
 
 
 LATENT_MODES = [
@@ -46,13 +44,7 @@ if __name__ == "__main__":
         value=conf.EXTRA_VOICES_DIR,
     )
 
-    voices = ["random"]
-    if os.path.isdir(extra_voices_dir):
-        voices.extend(os.listdir(extra_voices_dir))
-        extra_voices_ls = [extra_voices_dir]
-    else:
-        extra_voices_ls = []
-    voices.extend([v for v in os.listdir("tortoise/voices") if v != 'cond_latent_example'])
+    voices, extra_voices_ls =  list_voices(extra_voices_dir)
 
     voice = st.selectbox(
         "Voice",
@@ -171,19 +163,8 @@ if __name__ == "__main__":
         conf.update(EXTRA_VOICES_DIR=extra_voices_dir, LOW_VRAM=not high_vram, AR_CHECKPOINT=ar_checkpoint)
 
     ar_checkpoint = None if ar_checkpoint[-4:] != ".pth" else ar_checkpoint
-    if "tts" not in st.session_state or st.session_state.tts._config() != {
-        "models_dir": model_dir,
-        "high_vram": high_vram,
-        "kv_cache": kv_cache,
-        "ar_checkpoint": ar_checkpoint,
-    }:
-        st.session_state.tts = TextToSpeech(
-            models_dir=model_dir,
-            high_vram=high_vram,
-            kv_cache=kv_cache,
-            ar_checkpoint=ar_checkpoint,
-        )
-    tts = st.session_state.tts
+    tts = load_model(model_dir, high_vram, kv_cache, ar_checkpoint)
+    
     if st.button("Start"):
         assert latent_averaging_mode
         assert preset
@@ -213,7 +194,7 @@ if __name__ == "__main__":
                     voice_sel = selected_voice.split("&")
                 else:
                     voice_sel = [selected_voice]
-                voice_samples, conditioning_latents = load_voices(voice_sel, extra_voices_ls)
+                voice_samples, conditioning_latents = load_voice_conditionings(voice_sel, extra_voices_ls)
 
                 voice_path = Path(os.path.join(output_path, selected_voice))
 
