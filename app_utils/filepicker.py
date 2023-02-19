@@ -32,7 +32,7 @@ def update_dir(key):
         files.insert(0, ".")
         st.session_state[key + "files"] = files
 
-i_will_regret_this = 0
+i_will_regret_this = 0 #TODO: don't use some global var
 def st_file_selector(
     st_placeholder, path=".", label="Select a file/folder", key="selected"
 ):

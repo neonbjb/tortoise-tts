@@ -118,10 +118,10 @@ def infer_on_texts(
     return_deterministic_state: bool,
     lines_to_regen: Set[int],
     logger=print,
-    return_filepath=False,
+    return_filepaths=False,
     voicefixer=True,
 ):
-    audio_parts = []
+    audio_chunks = []
     base_p = Path(output_dir)
     base_p.mkdir(exist_ok=True)
 
@@ -130,31 +130,36 @@ def infer_on_texts(
         line_p.mkdir(exist_ok=True)
         #
         if text_idx not in lines_to_regen:
-            p = line_p / "0.wav"
-            if p.exists():
-                logger(f"loading existing audio fragment {p}")
-                audio_parts.append(load_audio(str(p), 24000))
+            files = list(line_p.glob("*.wav"))
+            if files:
+                logger(f"loading existing audio fragments for [{text_idx}]")
+                audio_chunks.append([load_audio(str(f),24000) for f in files])
                 continue
             else:
-                logger(f"no existing audio fragment {p}")
+                logger(f"no existing audio fragment for [{text_idx}]")
         #
         logger(f"generating audio for text {text_idx}: {text}")
-        audio_parts.append(
+        audio_chunks.append(
             run_and_save_tts(
                 call_tts,
                 text,
                 line_p,
                 return_deterministic_state,
                 voicefixer=voicefixer,
-            )[0]
+            )
         )
 
-    resultant = torch.cat(audio_parts, dim=-1)
-    save_gen_with_voicefix(
-        resultant, base_p / "combined.wav", squeeze=False, voicefixer=False
-    )  # do not run fix on combined!!
-    # torchaudio.save(base_p/'combined.wav', resultant, 24000)
-    return base_p / "combined.wav" if return_filepath else resultant
+    fnames = []
+    results = []
+    for i in range(len(audio_chunks[0])):
+        resultant = torch.cat([c[i] for c in audio_chunks], dim=-1)
+        fnames.append(base_p / f"combined-{i}.wav")
+        save_gen_with_voicefix(
+            resultant, fnames[-1], squeeze=False, voicefixer=False
+        )  # do not run fix on combined!!
+        results.append(resultant)
+        # torchaudio.save(base_p/'combined.wav', resultant, 24000)
+    return fnames if return_filepaths else results
 
 
 from voicefixer import VoiceFixer

@@ -243,20 +243,16 @@ if __name__ == "__main__":
                         texts = split_and_recombine_text(
                             text, desired_length, desired_length + 100
                         )
-                        if candidates != 1:
-                            st.warning(
-                                "candidates != 1 while splitting text; only choosing the first candidate for each text fragment!",
-                                icon="⚠️",
-                            )
-                        filepath = infer_on_texts(
+                        filepaths = infer_on_texts(
                             call_tts,
                             texts,
                             voice_path,
                             return_deterministic_state=True,
-                            return_filepath=True,
+                            return_filepaths=True,
                             lines_to_regen=set(range(len(texts))),
                             voicefixer=voice_fixer,
                         )
-                        show_generation(filepath, f"{selected_voice}-text.wav")
+                        for i, fp in enumerate(filepaths):
+                            show_generation(fp, f"{selected_voice}-text-{i}.wav")
         if produce_debug_state:
             """Debug states can be found in the output directory"""
