@@ -23,6 +23,7 @@ def load_model(
     high_vram,
     kv_cache,
     ar_checkpoint,
+    diff_checkpoint,
 ):
     gc.collect()
     return TextToSpeech(
@@ -30,6 +31,7 @@ def load_model(
         high_vram=high_vram,
         kv_cache=kv_cache,
         ar_checkpoint=ar_checkpoint,
+        diff_checkpoint=diff_checkpoint,
     )
 
 

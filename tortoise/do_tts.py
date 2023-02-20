@@ -44,6 +44,7 @@ if __name__ == "__main__":
         high_vram=args.high_vram,
         kv_cache=args.kv_cache,
         ar_checkpoint=args.ar_checkpoint,
+        diff_checkpoint=args.diff_checkpoint,
     )
 
     voices_dir = [args.voices_dir] if args.voices_dir else []

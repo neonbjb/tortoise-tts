@@ -100,6 +100,11 @@ ap.add_argument(
     help="specific autoregressive model checkpoint to load over the default",
 )
 ap.add_argument(
+    "--diff-checkpoint",
+    type=str,
+    help="specific diffusion model checkpoint to load over the default",
+)
+ap.add_argument(
     "--voicefixer",
     type=bool,
     default=True,

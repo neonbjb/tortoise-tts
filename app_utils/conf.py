@@ -28,4 +28,5 @@ class PersistentSettings(BaseModel):
 class TortoiseConfig(PersistentSettings):
     EXTRA_VOICES_DIR: str = ""
     AR_CHECKPOINT: str = "."
+    DIFF_CHECKPOINT: str = "."
     LOW_VRAM: bool = True

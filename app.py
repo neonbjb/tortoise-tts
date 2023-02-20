@@ -33,6 +33,9 @@ if __name__ == "__main__":
     ar_checkpoint = st_file_selector(
         st, path=conf.AR_CHECKPOINT, label="Select GPT Checkpoint", key="pth"
     )
+    diff_checkpoint = st_file_selector(
+        st, path=conf.DIFF_CHECKPOINT, label="Select Diffusion Checkpoint", key="pth"
+    )
     text = st.text_area(
         "Text",
         help="Text to speak.",
@@ -164,10 +167,12 @@ if __name__ == "__main__":
             EXTRA_VOICES_DIR=extra_voices_dir,
             LOW_VRAM=not high_vram,
             AR_CHECKPOINT=ar_checkpoint,
+            DIFF_CHECKPOINT=diff_checkpoint,
         )
 
     ar_checkpoint = None if ar_checkpoint[-4:] != ".pth" else ar_checkpoint
-    tts = load_model(model_dir, high_vram, kv_cache, ar_checkpoint)
+    diff_checkpoint = None if diff_checkpoint[-4:] != ".pth" else diff_checkpoint
+    tts = load_model(model_dir, high_vram, kv_cache, ar_checkpoint, diff_checkpoint)
 
     if st.button("Start"):
         assert latent_averaging_mode
