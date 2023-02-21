@@ -12,7 +12,7 @@ from tortoise.inference import (
     split_and_recombine_text,
 )
 from tortoise.utils.diffusion import SAMPLERS
-from app_utils.filepicker import st_file_selector
+from app_utils.filepicker import st_file_selector, st_file_selector2
 from app_utils.conf import TortoiseConfig
 
 from app_utils.funcs import (
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     ar_checkpoint = st_file_selector(
         st, path=conf.AR_CHECKPOINT, label="Select GPT Checkpoint", key="pth"
     )
-    diff_checkpoint = st_file_selector(
-        st, path=conf.DIFF_CHECKPOINT, label="Select Diffusion Checkpoint", key="pth"
+    diff_checkpoint = st_file_selector2(
+        st, path=conf.DIFF_CHECKPOINT, label="Select Diffusion Checkpoint", key="pth-diff"
     )
     text = st.text_area(
         "Text",

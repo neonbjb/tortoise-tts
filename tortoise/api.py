@@ -289,7 +289,7 @@ class TextToSpeech:
         :param diff_checkpoint: Path to a checkpoint file for the diffusion model. If omitted, uses default
         """
         self.ar_checkpoint = ar_checkpoint
-        self.diff_checkpoint = diff_checkpoint # TODO: check if this is even needed
+        self.diff_checkpoint = diff_checkpoint  # TODO: check if this is even needed
         self.models_dir = models_dir
         self.autoregressive_batch_size = (
             pick_best_batch_size_for_gpu()
@@ -328,7 +328,9 @@ class TextToSpeech:
             self.autoregressive.load_state_dict(torch.load(ar_path))
             self.autoregressive.post_init_gpt2_config(kv_cache)
 
-            diff_path = diff_checkpoint or get_model_path("diffusion_decoder.pth", models_dir)
+            diff_path = diff_checkpoint or get_model_path(
+                "diffusion_decoder.pth", models_dir
+            )
             self.diffusion = (
                 DiffusionTts(
                     model_channels=1024,
