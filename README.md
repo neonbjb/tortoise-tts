@@ -67,18 +67,31 @@ B (188 characters)
 Half precision currently significantly worsens outputs, so I do not recommend enabling it unless you are happy with the samples linked. Using `cond_free` with half precision seems to produce decent outputs.
 
 ## Installation
+There are two methods for installation.
+
+### pure python install
+
 The installation process is identical to the original tortoise-tts repo.
 
 ```shell
 git clone https://github.com/152334H/tortoise-tts-fast
 cd tortoise-tts-fast
-python -m pip install -e .
+pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+python3 -m pip install -e .
 ```
 
 Note that if you have the original tortoise installed,
 * You will need to uninstall it (`pip uninstall tortoise`)
 * You will need to install the new requirements (`pip install -r requirements.txt`)
 * You may want to install this repository as a symbolic link (`pip install -e .`), as this repository will be updated frequently
+
+### poetry install
+First, [install Poetry](https://python-poetry.org/docs/). Then, run:
+
+```shell
+poetry install
+poetry shell
+```
 
 #### pytorch issues
 If you are experiencing errors related to GPU usage (or lackthereof), please see the instructions on [the pytorch website](https://pytorch.org/get-started/locally/) to install pytorch with proper GPU support.
