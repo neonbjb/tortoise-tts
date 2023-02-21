@@ -1,4 +1,5 @@
 import shelve
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
@@ -30,3 +31,10 @@ class TortoiseConfig(PersistentSettings):
     AR_CHECKPOINT: str = "."
     DIFF_CHECKPOINT: str = "."
     LOW_VRAM: bool = True
+
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        if not Path(self.AR_CHECKPOINT).is_file():
+            self.AR_CHECKPOINT = "."
+        if not Path(self.DIFF_CHECKPOINT).is_file():
+            self.DIFF_CHECKPOINT = "."
