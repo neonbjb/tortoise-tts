@@ -102,6 +102,7 @@ if __name__ == "__main__":
                     os.path.join(voice_outpath, f"{j}.wav"),
                     voicefixer=args.voicefixer,
                 )
+                gen = gen.squeeze(0).cpu()
             else:
                 candidate_dir = os.path.join(voice_outpath, str(j))
                 os.makedirs(candidate_dir, exist_ok=True)
