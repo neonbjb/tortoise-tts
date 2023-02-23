@@ -52,7 +52,7 @@ def st_file_selector(
         st.session_state[key + "curr_dir"] = base_path
         st.session_state[key + "index"] = (
             st.session_state[key + "files"].index(os.path.basename(path))
-            if os.path.isfile(path)
+            if os.path.isfile(path) and path[-4:] == '.pth'
             else 0
         )
     else:
