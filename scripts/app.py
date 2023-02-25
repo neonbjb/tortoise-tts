@@ -30,7 +30,9 @@ LATENT_MODES = [
     "average per 4.27s (broken on small files)",
     "average per voice file (broken on small files)",
 ]
-if __name__ == "__main__":
+
+
+def main():
     text = st.text_area(
         "Text",
         help="Text to speak.",
@@ -257,3 +259,7 @@ if __name__ == "__main__":
                         show_generation(filepath, f"{selected_voice}-text.wav")
         if produce_debug_state:
             """Debug states can be found in the output directory"""
+
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,5 @@
 ### recent updates
+
 - `--sampler dpm++2m` is now **fixed**, and actually uses dpm++2m. see [here](https://github.com/152334H/tortoise-tts-fast/issues/2) for more discussion
 - `--kv_cache` is now **fixed**, and produces outputs **identical to the original tortoise repo**. It is also enabled by default now because of this.
 - new: :sparkles: [streamlit webui](#Webui) by @Ryu
@@ -10,50 +11,55 @@
 ---
 
 # Speeding up TorToiSe inference 5x
+
 This is a working project to drastically boost the performance of TorToiSe, without modifying the base models. **Expect speedups of _5~10x_**, and hopefully 20x or larger when this project is complete.
 
 This repo adds the following config options for TorToiSe for faster inference:
- - [X] (`--kv_cache`) enabling of [KV cache](https://kipp.ly/blog/transformer-inference-arithmetic/#kv-cache) for MUCH faster GPT sampling
- - [X] (`--half`) half precision inference where possible
- - [X] (`--sampler dpm++2m`) [DPM-Solver](https://github.com/LuChengTHU/dpm-solver) samplers for better diffusion
- - [X] (disable with `--low_vram`) option to toggle cpu offloading, for high vram users
+
+- [x] (`--kv_cache`) enabling of [KV cache](https://kipp.ly/blog/transformer-inference-arithmetic/#kv-cache) for MUCH faster GPT sampling
+- [x] (`--half`) half precision inference where possible
+- [x] (`--sampler dpm++2m`) [DPM-Solver](https://github.com/LuChengTHU/dpm-solver) samplers for better diffusion
+- [x] (disable with `--low_vram`) option to toggle cpu offloading, for high vram users
 
 All changes in this fork are licensed under the **AGPL**. For avoidance beyond all doubt, the [following statement](https://en.wikipedia.org/wiki/Apache_License#Licensing_conditions) is added as a comment to all changed code files:
 
 > `AGPL: a notification must be added stating that changes have been made to that file. `
 
 ## Current results
+
 All results listed were generated with a slightly undervolted RTX 3090 on Ubuntu 22.04, with the following base command:
 
 ```sh
-python tortoise/do_tts.py --voice emma --seed 42 --text "$TEXT"
+./script/tortoise-tts.py --voice emma --seed 42 --text "$TEXT"
 ```
 
 ### **NOTE**: samples here are somewhat old; they don't have `voicefixer` applied.
 
 Original TorToiSe [repo](https://github.com/neonbjb/tortoise-tts):
-| speed (B) | speed (A) | preset | sample | 
+| speed (B) | speed (A) | preset | sample |
 |-|-|-|-|
 | 112.81s | 14.94s | ultra_fast | [here](optimized_examples/A/tortoise_original-with_original_vram/) |
 
 New [repo](https://github.com/152334H/tortoise-tts), with `--preset ultra_fast`:
 | speed (B) | speed (A) | GPT kv-cache | sampler | steps | cond-free diffusion | autocast to fp16 | samples (vs orig repo) |
 |-|-|-|-|-|-|-|-|
-|  118.61   |   11.20   | ❌           | DDIM    |   30  | ❌                  | ❌               | [identical](optimized_examples/A/tortoise_original/) |
-|    9.98   |    4.17   | ✅           | DDIM    |   30  | ❌                  | ❌               | [identical](optimized_examples/A/tortoise_original-kv_cache/) |
-|   14.32   |    5.58   | ✅           | DPM++2M |   30  | ✅                  | ❌               | [**best**](optimized_examples/A/very_fast-ar16/) |
-|    7.51   |    3.26   | ✅           | DDIM    |   10  | ✅                  | ❌               | [~identical](optimized_examples/A/ultra_fast-kv_cache/) |
-|    7.12   |    3.30   | ✅           | DDIM    |   10  | ✅                  | ✅               | [okayish](optimized_examples/A/ultra_fast-kv_cache-half/) |
-|    7.21   |    3.27   | ✅           | DDIM    |   10  | ❌                  | ✅               | [bad](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
+| 118.61 | 11.20 | ❌ | DDIM | 30 | ❌ | ❌ | [identical](optimized_examples/A/tortoise_original/) |
+| 9.98 | 4.17 | ✅ | DDIM | 30 | ❌ | ❌ | [identical](optimized_examples/A/tortoise_original-kv_cache/) |
+| 14.32 | 5.58 | ✅ | DPM++2M | 30 | ✅ | ❌ | [**best**](optimized_examples/A/very_fast-ar16/) |
+| 7.51 | 3.26 | ✅ | DDIM | 10 | ✅ | ❌ | [~identical](optimized_examples/A/ultra_fast-kv_cache/) |
+| 7.12 | 3.30 | ✅ | DDIM | 10 | ✅ | ✅ | [okayish](optimized_examples/A/ultra_fast-kv_cache-half/) |
+| 7.21 | 3.27 | ✅ | DDIM | 10 | ❌ | ✅ | [bad](optimized_examples/A/ultra_fast-kv_cache-half-no_cond_tree/) |
 
-Results measure the time taken to run **`tts.tts_with_preset(...)`** in `do_tts.py`.
+Results measure the time taken to run **`tts.tts_with_preset(...)`** using the CLI.
 
 The example texts used were:
 
 A (70 characters)
+
 > I'm looking for contributors who can do optimizations better than me.
 
 B (188 characters)
+
 > Then took the other, as just as fair,
 >
 > And having perhaps the better claim,
@@ -67,6 +73,7 @@ B (188 characters)
 Half precision currently significantly worsens outputs, so I do not recommend enabling it unless you are happy with the samples linked. Using `cond_free` with half precision seems to produce decent outputs.
 
 ## Installation
+
 The installation process is identical to the original tortoise-tts repo.
 
 ```shell
@@ -76,46 +83,51 @@ python -m pip install -e .
 ```
 
 Note that if you have the original tortoise installed,
-* You will need to uninstall it (`pip uninstall tortoise`)
-* You will need to install the new requirements (`pip install -r requirements.txt`)
-* You may want to install this repository as a symbolic link (`pip install -e .`), as this repository will be updated frequently
+
+- You will need to uninstall it (`pip uninstall tortoise`)
+- You will need to install the new requirements (`pip install -r requirements.txt`)
+- You may want to install this repository as a symbolic link (`pip install -e .`), as this repository will be updated frequently
 
 #### pytorch issues
+
 If you are experiencing errors related to GPU usage (or lackthereof), please see the instructions on [the pytorch website](https://pytorch.org/get-started/locally/) to install pytorch with proper GPU support.
 
 ## CLI Usage
+
 For maximum speed (and worst quality), you can try:
 
 ```sh
-python tortoise/do_tts.py --half --no_cond_free --preset ultra_fast --text #...
+./script/tortoise-tts.py --half --no_cond_free --preset ultra_fast --text #...
 # or, to only generate 1 sample:
-python tortoise/do_tts.py --half --no_cond_free --preset single_sample --candidates 1 --text #...
+./script/tortoise-tts.py --half --no_cond_free --preset single_sample --candidates 1 --text #...
 ```
 
 But in most cases, these settings should perform decently && fast:
 
 ```sh
-python tortoise/do_tts.py --preset ultra_fast --text # ...
+./script/tortoise-tts.py --preset ultra_fast --text # ...
 ```
 
 For better quality, you might want the `very_fast` preset:
 
 ```sh
-python tortoise/do_tts.py --preset very_fast --text # ...
+./script/tortoise-tts.py --preset very_fast --text # ...
 ```
 
 You can obtain outputs 100% identical to the original tortoise repo with the following command:
 
 ```sh
-python tortoise/do_tts.py --preset ultra_fast_old --original_tortoise --text #...
+./script/tortoise-tts.py --preset ultra_fast_old --original_tortoise --text #...
 ```
 
 If you want to load a [fine-tuned autoregressive model](https://github.com/152334H/DL-Art-School), use the `--ar-checkpoint` argument:
+
 ```sh
-python tortoise/do_tts.py --preset very_fast --ar-checkpoint /path/to/checkpoint.pth --text #...
+./script/tortoise-tts.py --preset very_fast --ar-checkpoint /path/to/checkpoint.pth --text #...
 ```
 
 ## Webui
+
 An experimental [Streamlit](https://streamlit.io/) web UI is now available. To access, run:
 
 ```bash
@@ -127,20 +139,24 @@ $ streamlit run app.py
 ![](./static/webui_advanced.png)
 
 ## Future plans
+
 Optimization related:
+
 - [ ] add more k-diffusion samplers; optimize diffusion step count
 - [ ] **add TensorRT model**. 90% of inference time is spent in the GPT model; compiling it should produce great speedups, but it requires:
-    - [ ] a less hacky `transformers` model definition (see `GPT2InferenceModel`)
-    - [ ] an ORTModelForCausalLM implementation for tortoise
-    - [ ] tensorRT runtime
+  - [ ] a less hacky `transformers` model definition (see `GPT2InferenceModel`)
+  - [ ] an ORTModelForCausalLM implementation for tortoise
+  - [ ] tensorRT runtime
 - [ ] try half precision in the vocoder + diffuser
 
 QoL related:
+
 - [ ] display samples on github pages, where you can do audio embeddings
 - [ ] refactor api & CLI args with saner defaults and names
 - [ ] improved webui integration
 
 ## Motivation
+
 As stated by an [11Labs](https://beta.elevenlabs.io) developer:
 
 ![](https://cdn.discordapp.com/attachments/1070203929410940988/1071295918269272124/Screenshot_20230204-130541_Discord.png)
@@ -158,25 +174,29 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
-A (*very*) rough draft of the Tortoise paper is now available in doc format. I would definitely appreciate any comments, suggestions or reviews:
+A (_very_) rough draft of the Tortoise paper is now available in doc format. I would definitely appreciate any comments, suggestions or reviews:
 https://docs.google.com/document/d/13O_eyY65i6AkNrN_LdPhpUjGhyTNKYHvDrIvHnHe1GA
 
 ### Version history
 
 #### v2.4; 2022/5/17
+
 - Removed CVVP model. Found that it does not, in fact, make an appreciable difference in the output.
 - Add better debugging support; existing tools now spit out debug files which can be used to reproduce bad runs.
 
 #### v2.3; 2022/5/12
+
 - New CLVP-large model for further improved decoding guidance.
 - Improvements to read.py and do_tts.py (new options)
 
 #### v2.2; 2022/5/5
+
 - Added several new voices from the training set.
 - Automated redaction. Wrap the text you want to use to prompt the model but not be spoken in brackets.
 - Bug fixes
 
 #### v2.1; 2022/5/2
+
 - Added ability to produce totally random voices.
 - Added ability to download voice conditioning latent via a script, and then use a user-provided conditioning latent.
 - Added ability to use your own pretrained models.
@@ -221,11 +241,12 @@ python setup.py install
 
 If you are on windows, you will also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
 
-### do_tts.py
+### tortoise-tts.py
 
 This script allows you to speak a single phrase with one or more voices.
+
 ```shell
-python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast
+./script/tortoise-tts.py --text "I'm going to speak this" --voice random --preset fast
 ```
 
 ### read.py
@@ -270,7 +291,7 @@ For the those in the ML space: this is created by projecting a random vector ont
 
 ### Provided voices
 
-This repo comes with several pre-packaged voices. Voices prepended with "train_" came from the training set and perform
+This repo comes with several pre-packaged voices. Voices prepended with "train\_" came from the training set and perform
 far better than the others. If your goal is high quality speech, I recommend you pick one of them. If you want to see
 what Tortoise can do for zero-shot mimicking, take a look at the others.
 
@@ -308,7 +329,7 @@ set the defaults to the best overall settings I was able to find. For specific u
 these settings (and it's very likely that I missed something!)
 
 These settings are not available in the normal scripts packaged with Tortoise. They are available, however, in the API. See
-```api.tts``` for a full list.
+`api.tts` for a full list.
 
 ### Prompt engineering
 

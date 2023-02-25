@@ -175,6 +175,12 @@ if __name__ == "__main__":
         description="TorToiSe is a text-to-speech program that is capable of synthesizing speech "
         "in multiple voices with realistic prosody and intonation."
     )
+    # bugs out for some reason
+    # parser.add_argument(
+    #     "--web",
+    #     action="store_true",
+    #     help="launch the webui (doesn't pass it the other arguments)",
+    # )
     parser.add_arguments(General, "general")
     parser.add_arguments(Output, "output")
     parser.add_arguments(MultiOutput, "multi_output")
@@ -205,11 +211,22 @@ if __name__ == "__main__":
         if e.code == 0:
             print(usage_examples)
         sys.exit(e.code)
+    # bugs out for some reason
+    # if args.web:
+    #     from importlib import import_module
+    #     app = import_module("app")
+    #     sys.exit(app.main())
 
-    from tortoise.inference import (check_pydub, get_all_voices, get_seed,
-                                    parse_multiarg_text, parse_voice_str,
-                                    split_text, validate_output_dir,
-                                    voice_loader)
+    from tortoise.inference import (
+        check_pydub,
+        get_all_voices,
+        get_seed,
+        parse_multiarg_text,
+        parse_voice_str,
+        split_text,
+        validate_output_dir,
+        voice_loader,
+    )
 
     # get voices
     all_voices, extra_voice_dirs = get_all_voices(args.general.voices_dir)
