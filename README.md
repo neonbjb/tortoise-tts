@@ -131,7 +131,7 @@ If you want to load a [fine-tuned autoregressive model](https://github.com/15233
 An experimental [Streamlit](https://streamlit.io/) web UI is now available. To access, run:
 
 ```bash
-$ streamlit run app.py
+$ streamlit run script/app.py
 ```
 
 ![](./static/webui_simple.png)
@@ -249,12 +249,10 @@ This script allows you to speak a single phrase with one or more voices.
 ./script/tortoise-tts.py --text "I'm going to speak this" --voice random --preset fast
 ```
 
-### read.py
-
-This script provides tools for reading large amounts of text.
+For reading large amounts of text:
 
 ```shell
-python tortoise/read.py --textfile <your text to be read> --voice random
+./script/tortoise-tts.py --voice random --preset fast < textfile.txt
 ```
 
 This will break up the textfile into sentences, and then convert them to speech one at a time. It will output a series
