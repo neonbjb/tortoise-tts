@@ -6,7 +6,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 import torch
 import torchaudio
@@ -24,18 +24,20 @@ class General:
     text: str = field(positional=True, nargs="*", metavar="text")
     """Text to speak. If omitted, text is read from stdin."""
 
-    voice: str = field(default='random', alias=['-v'])
+    voice: str = field(default="random", alias=["-v"])
     """Selects the voice to use for generation. Use the & character to join two voices together.
     Use a comma to perform inference on multiple voices. Set to "all" to use all available voices.
     Note that multiple voices require the --output-dir option to be set."""
 
-    voices_dir: Optional[str] = field(default=None, alias=['-V'])
+    voices_dir: Optional[str] = field(default=None, alias=["-V"])
     """Path to directory containing extra voices to be loaded. Use a comma to specify multiple directories."""
 
-    preset: Literal["ultra_fast", "fast", "standard", "high_quality"] = field(default="fast", alias=['-p'])
+    preset: Literal["ultra_fast", "fast", "standard", "high_quality"] = field(
+        default="fast", alias=["-p"]
+    )
     """Which voice quality preset to use."""
 
-    quiet: bool = field(default=False, alias=['-q'])
+    quiet: bool = field(default=False, alias=["-q"])
     """Suppress all output."""
 
 
@@ -43,16 +45,16 @@ class General:
 class Output:
     """Output options"""
 
-    list_voices: bool = field(default=False, alias=['-l'])
+    list_voices: bool = field(default=False, alias=["-l"])
     """List available voices and exit."""
 
-    play: bool = field(default=False, alias=['-P'])
+    play: bool = field(default=False, alias=["-P"])
     """Play the audio (requires pydub)."""
 
-    output: Optional[Path] = field(default=None, alias=['-o'])
+    output: Optional[Path] = field(default=None, alias=["-o"])
     """Save the audio to a file."""
 
-    output_dir: Path = field(default=Path("results/"), alias=['-O'])
+    output_dir: Path = field(default=Path("results/"), alias=["-O"])
     """Save the audio to a directory as individual segments."""
 
 
@@ -147,6 +149,7 @@ class Tuning:
     """Controls the variance of the noise fed into the diffusion model. [0,1]. Values at 0
     are the "mean" prediction of the diffusion network and will sound bland and smeared."""
 
+
 @dataclass
 class Speed:
     """New/speed options"""
@@ -203,16 +206,10 @@ if __name__ == "__main__":
             print(usage_examples)
         sys.exit(e.code)
 
-    from tortoise.inference import (
-        check_pydub,
-        get_all_voices,
-        get_seed,
-        parse_multiarg_text,
-        parse_voice_str,
-        split_text,
-        validate_output_dir,
-        voice_loader,
-    )
+    from tortoise.inference import (check_pydub, get_all_voices, get_seed,
+                                    parse_multiarg_text, parse_voice_str,
+                                    split_text, validate_output_dir,
+                                    voice_loader)
 
     # get voices
     all_voices, extra_voice_dirs = get_all_voices(args.general.voices_dir)
@@ -227,7 +224,9 @@ if __name__ == "__main__":
     text = parse_multiarg_text(args.general.text)
     texts = split_text(text, args.advanced.text_split)
 
-    output_dir = validate_output_dir(args.output.output_dir, selected_voices, args.multi_output.candidates)
+    output_dir = validate_output_dir(
+        args.output.output_dir, selected_voices, args.multi_output.candidates
+    )
 
     # error out early if pydub isn't installed
     pydub = check_pydub(args.output.play)
@@ -280,7 +279,9 @@ if __name__ == "__main__":
 
     total_clips = len(texts) * len(selected_voices)
     regenerate_clips = (
-        [int(x) for x in args.multi_output.regenerate.split(",")] if args.multi_output.regenerate else None
+        [int(x) for x in args.multi_output.regenerate.split(",")]
+        if args.multi_output.regenerate
+        else None
     )
     for voice_idx, (voice, voice_samples, conditioning_latents) in enumerate(
         voice_generator
@@ -316,12 +317,16 @@ if __name__ == "__main__":
                     audio_parts.append(audio)
                 if args.output.output_dir:
                     filename = f"{clip_name}_{candidate_idx:02d}.wav"
-                    torchaudio.save(os.path.join(args.output.output_dir, filename), audio, 24000)
+                    torchaudio.save(
+                        os.path.join(args.output.output_dir, filename), audio, 24000
+                    )
 
         audio = torch.cat(audio_parts, dim=-1)
         if args.output.output_dir:
             filename = f'{"-".join(voice)}_combined.wav'
-            torchaudio.save(os.path.join(args.output.output_dir, filename), audio, 24000)
+            torchaudio.save(
+                os.path.join(args.output.output_dir, filename), audio, 24000
+            )
         elif args.output.output:
             filename = args.output.output or os.tmp
             torchaudio.save(args.output.output, audio, 24000)
