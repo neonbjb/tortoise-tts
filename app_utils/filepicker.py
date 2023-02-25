@@ -22,8 +22,10 @@ import streamlit as st
 
 
 def update_dir(key):
+    global i_will_regret_this, i_will_regret_this2
     choice = st.session_state[key]
     if os.path.isdir(os.path.join(st.session_state[key + "curr_dir"], choice)):
+        st.session_state[key + "index"] = 0
         st.session_state[key + "curr_dir"] = os.path.normpath(
             os.path.join(st.session_state[key + "curr_dir"], choice)
         )
@@ -48,12 +50,18 @@ def st_file_selector(
         files.insert(0, ".")
         st.session_state[key + "files"] = files
         st.session_state[key + "curr_dir"] = base_path
+        st.session_state[key + "index"] = (
+            st.session_state[key + "files"].index(os.path.basename(path))
+            if os.path.isfile(path)
+            else 0
+        )
     else:
         base_path = st.session_state[key + "curr_dir"]
 
     selected_file = st_placeholder.selectbox(
         label=label,
         options=st.session_state[key + "files"],
+        index=st.session_state[key + "index"],
         key=key,
         on_change=lambda: update_dir(key),
     )

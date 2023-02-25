@@ -40,6 +40,9 @@ class General:
     quiet: bool = field(default=False, alias=["-q"])
     """Suppress all output."""
 
+    voicefixer: bool = field(default=True)
+    """Enable/Disable voicefixer"""
+
 
 @dataclass
 class Output:
@@ -226,6 +229,7 @@ if __name__ == "__main__":
         split_text,
         validate_output_dir,
         voice_loader,
+        save_gen_with_voicefix
     )
 
     # get voices
@@ -334,9 +338,7 @@ if __name__ == "__main__":
                     audio_parts.append(audio)
                 if args.output.output_dir:
                     filename = f"{clip_name}_{candidate_idx:02d}.wav"
-                    torchaudio.save(
-                        os.path.join(args.output.output_dir, filename), audio, 24000
-                    )
+                    save_gen_with_voicefix(audio, os.path.join(args.output.output_dir, filename), squeeze=False, voicefixer=args.general.voicefixer)
 
         audio = torch.cat(audio_parts, dim=-1)
         if args.output.output_dir:

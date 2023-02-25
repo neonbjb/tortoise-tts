@@ -1,28 +1,26 @@
 # AGPL: a notification must be added stating that changes have been made to that file.
 
 import os
-from contextlib import contextmanager
 from pathlib import Path
-from time import time
 
 import streamlit as st
 
-from filepicker import st_file_selector
-from tortoise.api import MODELS_DIR, TextToSpeech
+from tortoise.api import MODELS_DIR
 from tortoise.inference import (
     infer_on_texts,
     run_and_save_tts,
     split_and_recombine_text,
 )
-from tortoise.utils.audio import load_voices
 from tortoise.utils.diffusion import SAMPLERS
+from app_utils.filepicker import st_file_selector
+from app_utils.conf import TortoiseConfig
 
-
-@contextmanager
-def timeit(desc=""):
-    start = time()
-    yield
-    print(f"{desc} took {time() - start:.2f} seconds")
+from app_utils.funcs import (
+    timeit,
+    load_model,
+    list_voices,
+    load_voice_conditionings,
+)
 
 
 LATENT_MODES = [
@@ -33,20 +31,35 @@ LATENT_MODES = [
 
 
 def main():
+    conf = TortoiseConfig()
+    ar_checkpoint = st_file_selector(
+        st, path=conf.AR_CHECKPOINT, label="Select GPT Checkpoint", key="pth"
+    )
+    diff_checkpoint = st_file_selector(
+        st,
+        path=conf.DIFF_CHECKPOINT,
+        label="Select Diffusion Checkpoint",
+        key="pth-diff",
+    )
     text = st.text_area(
         "Text",
         help="Text to speak.",
         value="The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them.",
     )
+    extra_voices_dir = st.text_input(
+        "Extra Voices Directory",
+        help="Where to find extra voices for zero-shot VC",
+        value=conf.EXTRA_VOICES_DIR,
+    )
 
-    voices = os.listdir("tortoise/voices") + ["random"]
-    voices.remove("cond_latent_example")
+    voices, extra_voices_ls = list_voices(extra_voices_dir)
+
     voice = st.selectbox(
         "Voice",
         voices,
         help="Selects the voice to use for generation. See options in voices/ directory (and add your own!) "
         "Use the & character to join two voices together. Use a comma to perform inference on multiple voices.",
-        index=len(voices) - 1,
+        index=0,
     )
     preset = st.selectbox(
         "Preset",
@@ -95,6 +108,11 @@ def main():
             )
             if seed == -1:
                 seed = None
+            voice_fixer = st.checkbox(
+                "Voice fixer",
+                help="Use `voicefixer` to improve audio quality. This is a post-processing step which can be applied to any output.",
+                value=True,
+            )
             """#### Directories"""
             output_path = st.text_input(
                 "Output Path", help="Where to store outputs.", value="results/"
@@ -105,16 +123,13 @@ def main():
                 "should only be specified if you have custom checkpoints.",
                 value=MODELS_DIR,
             )
-            ar_checkpoint = st_file_selector(
-                st, label="Select GPT Checkpoint", key="pth"
-            )
 
         with col2:
             """#### Optimizations"""
             high_vram = not st.checkbox(
                 "Low VRAM",
                 help="Re-enable default offloading behaviour of tortoise",
-                value=True,
+                value=conf.LOW_VRAM,
             )
             half = st.checkbox(
                 "Half-Precision",
@@ -152,21 +167,18 @@ def main():
                 help="Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.",
                 value=True,
             )
+    if st.button("Update Basic Settings"):
+        conf.update(
+            EXTRA_VOICES_DIR=extra_voices_dir,
+            LOW_VRAM=not high_vram,
+            AR_CHECKPOINT=ar_checkpoint,
+            DIFF_CHECKPOINT=diff_checkpoint,
+        )
 
     ar_checkpoint = None if ar_checkpoint[-4:] != ".pth" else ar_checkpoint
-    if "tts" not in st.session_state or st.session_state.tts._config() != {
-        "models_dir": model_dir,
-        "high_vram": high_vram,
-        "kv_cache": kv_cache,
-        "ar_checkpoint": ar_checkpoint,
-    }:
-        st.session_state.tts = TextToSpeech(
-            models_dir=model_dir,
-            high_vram=high_vram,
-            kv_cache=kv_cache,
-            ar_checkpoint=ar_checkpoint,
-        )
-    tts = st.session_state.tts
+    diff_checkpoint = None if diff_checkpoint[-4:] != ".pth" else diff_checkpoint
+    tts = load_model(model_dir, high_vram, kv_cache, ar_checkpoint, diff_checkpoint)
+
     if st.button("Start"):
         assert latent_averaging_mode
         assert preset
@@ -196,7 +208,9 @@ def main():
                     voice_sel = selected_voice.split("&")
                 else:
                     voice_sel = [selected_voice]
-                voice_samples, conditioning_latents = load_voices(voice_sel)
+                voice_samples, conditioning_latents = load_voice_conditionings(
+                    voice_sel, extra_voices_ls
+                )
 
                 voice_path = Path(os.path.join(output_path, selected_voice))
 
@@ -236,6 +250,7 @@ def main():
                             voice_path,
                             return_deterministic_state=True,
                             return_filepaths=True,
+                            voicefixer=voice_fixer,
                         )
                         for i, fp in enumerate(filepaths):
                             show_generation(fp, f"{selected_voice}-text-{i}.wav")
@@ -244,19 +259,17 @@ def main():
                         texts = split_and_recombine_text(
                             text, desired_length, desired_length + 100
                         )
-                        if candidates != 1:
-                            st.warning(
-                                "candidates != 1 while splitting text; only choosing the first candidate for each text fragment!",
-                                icon="⚠️",
-                            )
-                        filepath = infer_on_texts(
+                        filepaths = infer_on_texts(
                             call_tts,
                             texts,
                             voice_path,
                             return_deterministic_state=True,
+                            return_filepaths=True,
                             lines_to_regen=set(range(len(texts))),
+                            voicefixer=voice_fixer,
                         )
-                        show_generation(filepath, f"{selected_voice}-text.wav")
+                        for i, fp in enumerate(filepaths):
+                            show_generation(fp, f"{selected_voice}-text-{i}.wav")
         if produce_debug_state:
             """Debug states can be found in the output directory"""
 

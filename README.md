@@ -74,12 +74,17 @@ Half precision currently significantly worsens outputs, so I do not recommend en
 
 ## Installation
 
+There are two methods for installation.
+
+### pure python install
+
 The installation process is identical to the original tortoise-tts repo.
 
 ```shell
 git clone https://github.com/152334H/tortoise-tts-fast
 cd tortoise-tts-fast
-python -m pip install -e .
+pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+python3 -m pip install -e .
 ```
 
 Note that if you have the original tortoise installed,
@@ -87,6 +92,15 @@ Note that if you have the original tortoise installed,
 - You will need to uninstall it (`pip uninstall tortoise`)
 - You will need to install the new requirements (`pip install -r requirements.txt`)
 - You may want to install this repository as a symbolic link (`pip install -e .`), as this repository will be updated frequently
+
+### poetry install
+
+First, [install Poetry](https://python-poetry.org/docs/). Then, run:
+
+```shell
+poetry install
+poetry shell
+```
 
 #### pytorch issues
 

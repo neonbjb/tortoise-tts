@@ -254,6 +254,7 @@ class TextToSpeech:
     """
 
     def _config(self):
+        raise RuntimeError("This is depreciated")
         return {
             "high_vram": self.high_vram,
             "models_dir": self.models_dir,
@@ -270,6 +271,7 @@ class TextToSpeech:
         high_vram=False,
         kv_cache=True,
         ar_checkpoint=None,
+        diff_checkpoint=None,
     ):
         """
         Constructor
@@ -281,8 +283,13 @@ class TextToSpeech:
                                  (but are still rendered by the model). This can be used for prompt engineering.
                                  Default is true.
         :param device: Device to use when running the model. If omitted, the device will be automatically chosen.
+        :param high_vram: If true, the model will use more VRAM but will run faster.
+        :param kv_cache: If true, the autoregressive model will cache key value attention pairs to speed up generation.
+        :param ar_checkpoint: Path to a checkpoint file for the autoregressive model. If omitted, uses default
+        :param diff_checkpoint: Path to a checkpoint file for the diffusion model. If omitted, uses default
         """
         self.ar_checkpoint = ar_checkpoint
+        self.diff_checkpoint = diff_checkpoint  # TODO: check if this is even needed
         self.models_dir = models_dir
         self.autoregressive_batch_size = (
             pick_best_batch_size_for_gpu()
@@ -321,6 +328,9 @@ class TextToSpeech:
             self.autoregressive.load_state_dict(torch.load(ar_path))
             self.autoregressive.post_init_gpt2_config(kv_cache)
 
+            diff_path = diff_checkpoint or get_model_path(
+                "diffusion_decoder.pth", models_dir
+            )
             self.diffusion = (
                 DiffusionTts(
                     model_channels=1024,
@@ -338,9 +348,7 @@ class TextToSpeech:
                 .cpu()
                 .eval()
             )
-            self.diffusion.load_state_dict(
-                torch.load(get_model_path("diffusion_decoder.pth", models_dir))
-            )
+            self.diffusion.load_state_dict(torch.load(diff_path))
 
         self.clvp = (
             CLVP(
@@ -466,9 +474,10 @@ class TextToSpeech:
                     diffusion_conds.append(cond_mel)
                 else:
                     from math import ceil
+
                     if latent_averaging_mode == 2:
                         temp_diffusion_conds = []
-                    for chunk in range(ceil(sample.shape[1]/DURS_CONST)):
+                    for chunk in range(ceil(sample.shape[1] / DURS_CONST)):
                         current_sample = sample[
                             :, chunk * DURS_CONST : (chunk + 1) * DURS_CONST
                         ]
