@@ -28,7 +28,9 @@ LATENT_MODES = [
     "average per 4.27s (broken on small files)",
     "average per voice file (broken on small files)",
 ]
-if __name__ == "__main__":
+
+
+def main():
     conf = TortoiseConfig()
     ar_checkpoint = st_file_selector(
         st, path=conf.AR_CHECKPOINT, label="Select GPT Checkpoint", key="pth"
@@ -270,3 +272,7 @@ if __name__ == "__main__":
                             show_generation(fp, f"{selected_voice}-text-{i}.wav")
         if produce_debug_state:
             """Debug states can be found in the output directory"""
+
+
+if __name__ == "__main__":
+    main()
