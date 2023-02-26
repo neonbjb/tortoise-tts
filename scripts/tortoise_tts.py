@@ -242,6 +242,8 @@ if __name__ == "__main__":
     voice_generator = voice_loader(selected_voices, extra_voice_dirs)
 
     # parse text
+    if not args.general.text:
+        print("reading text from stdin!")
     text = parse_multiarg_text(args.general.text)
     texts = split_text(text, args.advanced.text_split)
 
