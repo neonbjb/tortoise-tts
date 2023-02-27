@@ -74,6 +74,8 @@ Half precision currently significantly worsens outputs, so I do not recommend en
 
 ## Installation
 
+### AMD INSTALLATION IS NOT SUPPORTED, please don't try it
+
 There are two methods for installation.
 
 ### pure python install
