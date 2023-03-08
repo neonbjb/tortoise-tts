@@ -6,8 +6,14 @@ import json
 from enum import Enum
 from typing import Optional, Callable
 from dataclasses import dataclass
-from BigVGAN.models import BigVGAN as BVGModel
-from BigVGAN.env import AttrDict
+try:
+    from BigVGAN.models import BigVGAN as BVGModel
+    from BigVGAN.env import AttrDict
+except ImportError:
+    raise ImportError(
+        "BigVGAN not installed, can't use BigVGAN vocoder\n"
+        "Please see the installation instructions on README."
+    )
 
 MAX_WAV_VALUE = 32768.0
 

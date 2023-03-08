@@ -104,8 +104,12 @@ class Advanced:
     batch_size: Optional[int] = None
     """Batch size to use for inference. If omitted, the batch size is set based on available GPU memory."""
 
-    vocoder: Literal["Univnet", "BigVGAN", "BigVGAN_Base"] = "Univnet"
-    """Pretrained vocoder to be used."""
+    vocoder: Literal["Univnet", "BigVGAN", "BigVGAN_Base"] = "BigVGAN_Base"
+    """Pretrained vocoder to be used.
+    Univnet - tortoise original
+    BigVGAN - 112M model
+    BigVGAN_Base - 14M model
+    """
 
     ar_checkpoint: Optional[str] = None
     """Path to a checkpoint to use for the autoregressive model. If omitted, the default checkpoint is used."""
