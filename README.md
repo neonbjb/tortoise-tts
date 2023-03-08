@@ -2,6 +2,7 @@
 
 ### recent updates
 
+- BigVGAN-base is now used in place of Univnet by default.
 - `--sampler dpm++2m` is now **fixed**, and actually uses dpm++2m. see [here](https://github.com/152334H/tortoise-tts-fast/issues/2) for more discussion
 - `--kv_cache` is now **fixed**, and produces outputs **identical to the original tortoise repo**. It is also enabled by default now because of this.
 - new: :sparkles: [streamlit webui](#Webui) by @Ryu
@@ -89,6 +90,7 @@ git clone https://github.com/152334H/tortoise-tts-fast
 cd tortoise-tts-fast
 pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 python3 -m pip install -e .
+pip3 install git+https://github.com/152334H/BigVGAN.git
 ```
 
 Note that if you have the original tortoise installed,
