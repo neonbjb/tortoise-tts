@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.utils.checkpoint import checkpoint
 
 from tortoise.models.arch_util import Upsample, Downsample, normalization, zero_module, AttentionBlock
 
@@ -64,14 +63,6 @@ class ResBlock(nn.Module):
             self.skip_connection = nn.Conv1d(dims, channels, self.out_channels, 1)
 
     def forward(self, x):
-        if self.do_checkpoint:
-            return checkpoint(
-                self._forward, x
-            )
-        else:
-            return self._forward(x)
-
-    def _forward(self, x):
         if self.updown:
             in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
             h = in_rest(x)
@@ -125,7 +116,7 @@ class AudioMiniEncoder(nn.Module):
         h = self.res(h)
         h = self.final(h)
         for blk in self.attn:
-            h = checkpoint(blk, h)
+            h = blk(h)
         return h[:, :, 0]
 
 

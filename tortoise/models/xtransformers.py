@@ -1,16 +1,12 @@
-import functools
 import math
-import torch
-from torch import nn, einsum
-import torch.nn.functional as F
+from collections import namedtuple
 from functools import partial
 from inspect import isfunction
-from collections import namedtuple
 
-from einops import rearrange, repeat, reduce
-from einops.layers.torch import Rearrange
-
-from torch.utils.checkpoint import checkpoint
+import torch
+import torch.nn.functional as F
+from einops import rearrange, repeat
+from torch import nn, einsum
 
 DEFAULT_DIM_HEAD = 64
 
@@ -969,16 +965,16 @@ class AttentionLayers(nn.Module):
                     layer_past = None
 
             if layer_type == 'a':
-                out, inter, k, v = checkpoint(block, x, None, mask, None, attn_mask, self.pia_pos_emb, rotary_pos_emb,
+                out, inter, k, v = block(x, None, mask, None, attn_mask, self.pia_pos_emb, rotary_pos_emb,
                                         prev_attn, layer_mem, layer_past)
             elif layer_type == 'c':
                 if exists(full_context):
-                    out, inter, k, v = checkpoint(block, x, full_context[cross_attn_count], mask, context_mask, None, None,
+                    out, inter, k, v = block(x, full_context[cross_attn_count], mask, context_mask, None, None,
                                             None, prev_attn, None, layer_past)
                 else:
-                    out, inter, k, v = checkpoint(block, x, context, mask, context_mask, None, None, None, prev_attn, None, layer_past)
+                    out, inter, k, v = block(x, context, mask, context_mask, None, None, None, prev_attn, None, layer_past)
             elif layer_type == 'f':
-                out = checkpoint(block, x)
+                out = block(x)
 
             if layer_type == 'a' or layer_type == 'c' and present_key_values is not None:
                 present_key_values.append((k.detach(), v.detach()))

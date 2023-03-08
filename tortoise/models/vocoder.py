@@ -223,7 +223,11 @@ class LVCBlock(torch.nn.Module):
 
 
 class UnivNetGenerator(nn.Module):
-    """UnivNet Generator"""
+    """
+    UnivNet Generator
+    
+    Originally from https://github.com/mindslab-ai/univnet/blob/master/model/generator.py.
+    """
 
     def __init__(self, noise_dim=64, channel_size=32, dilations=[1,3,9,27], strides=[8,8,4], lReLU_slope=.2, kpnet_conv_size=3,
                  # Below are MEL configurations options that this generator requires.

@@ -132,3 +132,4 @@ dmypy.json
 .models/*
 .custom/*
 results/*
+debug_states/*

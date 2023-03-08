@@ -7,7 +7,14 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
-### New features
+A (*very*) rough draft of the Tortoise paper is now available in doc format. I would definitely appreciate any comments, suggestions or reviews:
+https://docs.google.com/document/d/13O_eyY65i6AkNrN_LdPhpUjGhyTNKYHvDrIvHnHe1GA
+
+### Version history
+
+#### v2.4; 2022/5/17
+- Removed CVVP model. Found that it does not, in fact, make an appreciable difference in the output.
+- Add better debugging support; existing tools now spit out debug files which can be used to reproduce bad runs.
 
 #### v2.3; 2022/5/12
 - New CLVP-large model for further improved decoding guidance.
@@ -35,6 +42,8 @@ sampling rates. On a K80, expect to generate a medium sized sentence every 2 min
 
 See [this page](http://nonint.com/static/tortoise_v2_examples.html) for a large list of example outputs.
 
+Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
+
 ## Usage guide
 
 ### Colab
@@ -44,7 +53,7 @@ https://colab.research.google.com/drive/1wVVqUPqwiDBUVeWWOUNglpGhU3hg_cbR?usp=sh
 
 ### Local Installation
 
-If you want to use this on your own computer, you must have an NVIDIA GPU. 
+If you want to use this on your own computer, you must have an NVIDIA GPU.
 
 First, install pytorch using these instructions: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/).
 On Windows, I **highly** recommend using the Conda installation path. I have been told that if you do not do this, you
@@ -55,6 +64,7 @@ Next, install TorToiSe and it's dependencies:
 ```shell
 git clone https://github.com/neonbjb/tortoise-tts.git
 cd tortoise-tts
+python -m pip install -r ./requirements.txt
 python setup.py install
 ```
 
@@ -75,7 +85,7 @@ This script provides tools for reading large amounts of text.
 python tortoise/read.py --textfile <your text to be read> --voice random
 ```
 
-This will break up the textfile into sentences, and then convert them to speech one at a time. It will output a series 
+This will break up the textfile into sentences, and then convert them to speech one at a time. It will output a series
 of spoken clips as they are generated. Once all the clips are generated, it will combine them into a single file and
 output that as well.
 
@@ -89,7 +99,7 @@ Tortoise can be used programmatically, like so:
 ```python
 reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
 tts = api.TextToSpeech()
-pcm_audio = tts.tts_with_preset("your text here", reference_clips, preset='fast')
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
 ```
 
 ## Voice customization guide
@@ -100,7 +110,7 @@ These reference clips are recordings of a speaker that you provide to guide spee
 
 ### Random voice
 
-I've included a feature which randomly generates a voice. These voices don't actually exist and will be random every time you run 
+I've included a feature which randomly generates a voice. These voices don't actually exist and will be random every time you run
 it. The results are quite fascinating and I recommend you play around with it!
 
 You can use the random voice by passing in 'random' as the voice name. Tortoise will take care of the rest.
@@ -111,7 +121,7 @@ For the those in the ML space: this is created by projecting a random vector ont
 
 This repo comes with several pre-packaged voices. Voices prepended with "train_" came from the training set and perform
 far better than the others. If your goal is high quality speech, I recommend you pick one of them. If you want to see
-what Tortoise can do for zero-shot mimicing, take a look at the others.
+what Tortoise can do for zero-shot mimicking, take a look at the others.
 
 ### Adding a new voice
 
@@ -158,11 +168,11 @@ prompt "\[I am really sad,\] Please feed me." will only speak the words "Please 
 
 ### Playing with the voice latent
 
-Tortoise ingests reference clips by feeding them through individually through a small submodel that produces a point latent, 
-then taking the mean of all of the produced latents. The experimentation I have done has indicated that these point latents 
+Tortoise ingests reference clips by feeding them through individually through a small submodel that produces a point latent,
+then taking the mean of all of the produced latents. The experimentation I have done has indicated that these point latents
 are quite expressive, affecting everything from tone to speaking rate to speech abnormalities.
 
-This lends itself to some neat tricks. For example, you can combine feed two different voices to tortoise and it will output 
+This lends itself to some neat tricks. For example, you can combine feed two different voices to tortoise and it will output
 what it thinks the "average" of those two voices sounds like.
 
 #### Generating conditioning latents from voices
@@ -201,13 +211,13 @@ positives.
 
 ## Model architecture
 
-Tortoise TTS is inspired by OpenAI's DALLE, applied to speech data and using a better decoder. It is made up of 5 separate 
+Tortoise TTS is inspired by OpenAI's DALLE, applied to speech data and using a better decoder. It is made up of 5 separate
 models that work together. I've assembled a write-up of the system architecture here:
 [https://nonint.com/2022/04/25/tortoise-architectural-design-doc/](https://nonint.com/2022/04/25/tortoise-architectural-design-doc/)
 
 ## Training
 
-These models were trained on my "homelab" server with 8 RTX 3090s over the course of several months. They were trained on a dataset consisting of 
+These models were trained on my "homelab" server with 8 RTX 3090s over the course of several months. They were trained on a dataset consisting of
 ~50k hours of speech data, most of which was transcribed by [ocotillo](http://www.github.com/neonbjb/ocotillo). Training was done on my own
 [DLAS](https://github.com/neonbjb/DL-Art-School) trainer.
 
@@ -243,14 +253,14 @@ of the model increases multiplicatively. On enterprise-grade hardware, this is n
 exceptionally wide buses that can accommodate this bandwidth. I cannot afford enterprise hardware, though, so I am stuck.
 
 I want to mention here
-that I think Tortoise could do be a **lot** better. The three major components of Tortoise are either vanilla Transformer Encoder stacks
+that I think Tortoise could be a **lot** better. The three major components of Tortoise are either vanilla Transformer Encoder stacks
 or Decoder stacks. Both of these types of models have a rich experimental history with scaling in the NLP realm. I see no reason
 to believe that the same is not true of TTS.
 
 The largest model in Tortoise v2 is considerably smaller than GPT-2 large. It is 20x smaller that the original DALLE transformer.
 Imagine what a TTS model trained at or near GPT-3 or DALLE scale could achieve.
 
-If you are an ethical organization with computational resources to spare interested in seeing what this model could do 
+If you are an ethical organization with computational resources to spare interested in seeing what this model could do
 if properly scaled out, please reach out to me! I would love to collaborate on this.
 
 ## Acknowledgements
@@ -262,6 +272,7 @@ credit a few of the amazing folks in the community that have helped make this ha
 - [Ramesh et al](https://arxiv.org/pdf/2102.12092.pdf) who authored the DALLE paper, which is the inspiration behind Tortoise.
 - [Nichol and Dhariwal](https://arxiv.org/pdf/2102.09672.pdf) who authored the (revision of) the code that drives the diffusion model.
 - [Jang et al](https://arxiv.org/pdf/2106.07889.pdf) who developed and open-sourced univnet, the vocoder this repo uses.
+- [Kim and Jung](https://github.com/mindslab-ai/univnet) who implemented univnet pytorch model.
 - [lucidrains](https://github.com/lucidrains) who writes awesome open source pytorch models, many of which are used here.
 - [Patrick von Platen](https://huggingface.co/patrickvonplaten) whose guides on setting up wav2vec were invaluable to building my dataset.
 

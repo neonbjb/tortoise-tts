@@ -7,13 +7,15 @@ from transformers import Wav2Vec2ForCTC, Wav2Vec2FeatureExtractor, Wav2Vec2CTCTo
 from tortoise.utils.audio import load_audio
 
 
-def max_alignment(s1, s2, skip_character='~', record={}):
+def max_alignment(s1, s2, skip_character='~', record=None):
     """
     A clever function that aligns s1 to s2 as best it can. Wherever a character from s1 is not found in s2, a '~' is
     used to replace that character.
 
     Finally got to use my DP skills!
     """
+    if record is None:
+        record = {}
     assert skip_character not in s1, f"Found the skip character {skip_character} in the provided string, {s1}"
     if len(s1) == 0:
         return ''
@@ -47,17 +49,18 @@ class Wav2VecAlignment:
     """
     Uses wav2vec2 to perform audio<->text alignment.
     """
-    def __init__(self):
+    def __init__(self, device='cuda'):
         self.model = Wav2Vec2ForCTC.from_pretrained("jbetker/wav2vec2-large-robust-ft-libritts-voxpopuli").cpu()
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(f"facebook/wav2vec2-large-960h")
         self.tokenizer = Wav2Vec2CTCTokenizer.from_pretrained('jbetker/tacotron-symbols')
+        self.device = device
 
     def align(self, audio, expected_text, audio_sample_rate=24000):
         orig_len = audio.shape[-1]
 
         with torch.no_grad():
-            self.model = self.model.cuda()
-            audio = audio.to('cuda')
+            self.model = self.model.to(self.device)
+            audio = audio.to(self.device)
             audio = torchaudio.functional.resample(audio, audio_sample_rate, 16000)
             clip_norm = (audio - audio.mean()) / torch.sqrt(audio.var() + 1e-7)
             logits = self.model(clip_norm).logits
@@ -145,4 +148,3 @@ class Wav2VecAlignment:
             start, stop = nri
             output_audio.append(audio[:, alignments[start]:alignments[stop]])
         return torch.cat(output_audio, dim=-1)
-

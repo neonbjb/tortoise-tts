@@ -1,6 +1,6 @@
 tqdm
 rotary_embedding_torch
-transformers
+transformers==4.19
 tokenizers
 inflect
 progressbar
@@ -10,3 +10,9 @@ scipy==0.10.1
 librosa==0.9.1
 numba==0.48.0
 ffmpeg
+numpy==1.20.0
+numba==0.48.0
+torchaudio
+threadpoolctl
+llvmlite
+appdirs
