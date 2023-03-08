@@ -4,10 +4,12 @@ transformers==4.19
 tokenizers
 inflect
 progressbar
-einops
+einops==0.4.1
 unidecode
-scipy
-librosa
+scipy==0.10.1
+librosa==0.9.1
+numba==0.48.0
+ffmpeg
 numpy==1.20.0
 numba==0.48.0
 torchaudio
