@@ -2,7 +2,7 @@
 
 ### recent updates
 
-- BigVGAN-base is now used in place of Univnet by default.
+- BigVGAN-base is now used in place of Univnet by default. (thank you to @deviandice for the example implementation)
 - `--sampler dpm++2m` is now **fixed**, and actually uses dpm++2m. see [here](https://github.com/152334H/tortoise-tts-fast/issues/2) for more discussion
 - `--kv_cache` is now **fixed**, and produces outputs **identical to the original tortoise repo**. It is also enabled by default now because of this.
 - new: :sparkles: [streamlit webui](#Webui) by @Ryu
