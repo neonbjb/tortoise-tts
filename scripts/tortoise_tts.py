@@ -103,6 +103,15 @@ class Advanced:
     batch_size: Optional[int] = None
     """Batch size to use for inference. If omitted, the batch size is set based on available GPU memory."""
 
+    ar_checkpoint: Optional[str] = None
+    """Path to a checkpoint to use for the autoregressive model. If omitted, the default checkpoint is used."""
+
+    clvp_checkpoint: Optional[str] = None
+    """Path to a checkpoint to use for the CLVP model. If omitted, the default checkpoint is used."""
+
+    diff_checkpoint: Optional[str] = None
+    """Path to a checkpoint to use for the diffusion model. If omitted, the default checkpoint is used."""
+
 
 @dataclass
 class Tuning:
@@ -266,6 +275,9 @@ if __name__ == "__main__":
         autoregressive_batch_size=args.advanced.batch_size,
         high_vram=not args.speed.low_vram,
         kv_cache=not args.speed.no_cache,
+        ar_checkpoint=args.advanced.ar_checkpoint,
+        clvp_checkpoint=args.advanced.clvp_checkpoint,
+        diff_checkpoint=args.advanced.diff_checkpoint,
     )
 
     gen_settings = {

@@ -271,6 +271,7 @@ class TextToSpeech:
         high_vram=False,
         kv_cache=True,
         ar_checkpoint=None,
+        clvp_checkpoint=None,
         diff_checkpoint=None,
     ):
         """
@@ -286,6 +287,7 @@ class TextToSpeech:
         :param high_vram: If true, the model will use more VRAM but will run faster.
         :param kv_cache: If true, the autoregressive model will cache key value attention pairs to speed up generation.
         :param ar_checkpoint: Path to a checkpoint file for the autoregressive model. If omitted, uses default
+        :param clvp_checkpoint: Path to a checkpoint file for the CLVP model. If omitted, uses default
         :param diff_checkpoint: Path to a checkpoint file for the diffusion model. If omitted, uses default
         """
         self.ar_checkpoint = ar_checkpoint
@@ -368,7 +370,8 @@ class TextToSpeech:
             .cpu()
             .eval()
         )
-        self.clvp.load_state_dict(torch.load(get_model_path("clvp2.pth", models_dir)))
+        clvp_path = clvp_checkpoint or get_model_path("clvp2.pth", models_dir)
+        self.clvp.load_state_dict(torch.load(clvp_path))
         self.cvvp = None  # CVVP model is only loaded if used.
 
         self.vocoder = UnivNetGenerator().cpu()
