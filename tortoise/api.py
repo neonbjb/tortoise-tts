@@ -18,7 +18,7 @@ from tortoise.models.clvp import CLVP
 from tortoise.models.cvvp import CVVP
 from tortoise.models.diffusion_decoder import DiffusionTts
 from tortoise.models.random_latent_generator import RandomLatentConverter
-from tortoise.models.vocoder import UnivNetGenerator
+from tortoise.models.vocoder import VocConf
 from tortoise.utils.audio import denormalize_tacotron_mel, wav_to_univnet_mel
 from tortoise.utils.diffusion import (
     SpacedDiffusion,
@@ -43,6 +43,8 @@ MODELS = {
     "vocoder.pth": "https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/vocoder.pth",
     "rlg_auto.pth": "https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_auto.pth",
     "rlg_diffuser.pth": "https://huggingface.co/jbetker/tortoise-tts-v2/resolve/main/.models/rlg_diffuser.pth",
+    "bigvgan_base_24khz_100band_g.pth": "/dev/null",
+    "bigvgan_24khz_100band_g.pth": "/dev/null",
 }
 
 from contextlib import contextmanager
@@ -273,6 +275,7 @@ class TextToSpeech:
         ar_checkpoint=None,
         clvp_checkpoint=None,
         diff_checkpoint=None,
+        vocoder=VocConf.Univnet,
     ):
         """
         Constructor
@@ -374,12 +377,14 @@ class TextToSpeech:
         self.clvp.load_state_dict(torch.load(clvp_path))
         self.cvvp = None  # CVVP model is only loaded if used.
 
-        self.vocoder = UnivNetGenerator().cpu()
+        self.vocoder = vocoder.value.constructor().cpu()
         self.vocoder.load_state_dict(
-            torch.load(
-                get_model_path("vocoder.pth", models_dir),
-                map_location=torch.device("cpu"),
-            )["model_g"]
+            vocoder.value.optionally_index(
+                torch.load(
+                    get_model_path(vocoder.value.model_path, models_dir),
+                    map_location=torch.device("cpu"),
+                )
+            )
         )
         self.vocoder.eval(inference=True)
 

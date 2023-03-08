@@ -2,6 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import json
+from enum import Enum
+from typing import Optional, Callable
+from dataclasses import dataclass
+from BigVGAN.models import BigVGAN as BVGModel
+from BigVGAN.env import AttrDict
+
 MAX_WAV_VALUE = 32768.0
 
 
@@ -387,6 +394,29 @@ class UnivNetGenerator(nn.Module):
         audio = audio[:, :, : -(self.hop_length * 10)]
         audio = audio.clamp(min=-1, max=1)
         return audio
+
+from pathlib import Path
+STATIC_DIR = Path(__file__).parent.parent.parent/'static'
+assert STATIC_DIR.is_dir()
+def BVGWithConf(fname: str):
+    json_config = json.loads(
+        (STATIC_DIR/fname).read_text()
+    )
+    return lambda: BVGModel(AttrDict(json_config))
+
+@dataclass
+class VocType:
+    constructor: Callable[[], nn.Module]
+    model_path: str
+    subkey: Optional[str] = None
+    def optionally_index(self, model_dict):
+        if self.subkey is not None:
+            return model_dict[self.subkey]
+        return model_dict
+class VocConf(Enum):
+    Univnet = VocType(UnivNetGenerator, "vocoder.pth", 'model_g')
+    BigVGAN_Base = VocType(BVGWithConf("bigvgan_base_24khz_100band_config.json"), "bigvgan_base_24khz_100band_g.pth", 'generator')
+    BigVGAN = VocType(BVGWithConf("bigvgan_24khz_100band_config.json"), "bigvgan_24khz_100band_g.pth", 'generator')
 
 
 if __name__ == "__main__":

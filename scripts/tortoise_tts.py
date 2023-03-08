@@ -15,6 +15,7 @@ from simple_parsing import ArgumentParser, field
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import load_audio
 from tortoise.utils.diffusion import SAMPLERS
+from tortoise.models.vocoder import VocConf
 
 
 @dataclass
@@ -102,6 +103,9 @@ class Advanced:
 
     batch_size: Optional[int] = None
     """Batch size to use for inference. If omitted, the batch size is set based on available GPU memory."""
+
+    vocoder: Literal["Univnet", "BigVGAN", "BigVGAN_Base"] = "Univnet"
+    """Pretrained vocoder to be used."""
 
     ar_checkpoint: Optional[str] = None
     """Path to a checkpoint to use for the autoregressive model. If omitted, the default checkpoint is used."""
@@ -266,6 +270,7 @@ if __name__ == "__main__":
     seed = get_seed(args.advanced.seed)
     verbose = not args.general.quiet
 
+    vocoder = getattr(VocConf, args.advanced.vocoder)
     if verbose:
         print("Loading tts...")
     tts = TextToSpeech(
@@ -278,6 +283,7 @@ if __name__ == "__main__":
         ar_checkpoint=args.advanced.ar_checkpoint,
         clvp_checkpoint=args.advanced.clvp_checkpoint,
         diff_checkpoint=args.advanced.diff_checkpoint,
+        vocoder=vocoder,
     )
 
     gen_settings = {
