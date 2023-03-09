@@ -48,8 +48,7 @@ Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
 
 ### Colab
 
-Colab is the easiest way to try this out. I've put together a notebook you can use here:
-https://colab.research.google.com/drive/1wVVqUPqwiDBUVeWWOUNglpGhU3hg_cbR?usp=sharing
+The original colab no longer works by a combination of Google's tendency to forward-break things and Python's package management system. I do not intend to keep fixing it so it has been removed. Apologies!
 
 ### Local Installation
 
