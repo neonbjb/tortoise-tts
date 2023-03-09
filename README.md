@@ -49,7 +49,7 @@ Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
 ### Colab
 
 Colab is the easiest way to try this out. I've put together a notebook you can use here:
-https://colab.research.google.com/drive/1wVVqUPqwiDBUVeWWOUNglpGhU3hg_cbR?usp=sharing
+https://colab.research.google.com/github/neonbjb/tortoise-tts/blob/main/tortoise_tts.ipynb
 
 ### Local Installation
 
