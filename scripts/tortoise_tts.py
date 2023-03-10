@@ -104,7 +104,7 @@ class Advanced:
     batch_size: Optional[int] = None
     """Batch size to use for inference. If omitted, the batch size is set based on available GPU memory."""
 
-    vocoder: Literal["Univnet", "BigVGAN", "BigVGAN_Base"] = "BigVGAN_Base"
+    vocoder: Literal["Univnet", "BigVGAN", "BigVGAN_Base"] = "BigVGAN"
     """Pretrained vocoder to be used.
     Univnet - tortoise original
     BigVGAN - 112M model
@@ -367,13 +367,17 @@ if __name__ == "__main__":
         audio = torch.cat(audio_parts, dim=-1)
         if args.output.output_dir:
             filename = f'{"-".join(voice)}_combined.wav'
-            torchaudio.save(
-                os.path.join(args.output.output_dir, filename), audio, 24000
+            save_gen_with_voicefix(
+                audio,
+                os.path.join(args.output.output_dir, filename),
+                squeeze=False,
+                voicefixer=args.general.voicefixer,
             )
         elif args.output.output:
             filename = args.output.output or os.tmp
-            torchaudio.save(args.output.output, audio, 24000)
+            save_gen_with_voicefix(audio, filename, squeeze=False, voicefixer=args.general.voicefixer)
         elif args.output.play:
+            print("WARNING: cannot use voicefixer with --play")
             f = tempfile.NamedTemporaryFile(suffix=".wav", delete=True)
             torchaudio.save(f.name, audio, 24000)
             pydub.playback.play(pydub.AudioSegment.from_wav(f.name))
