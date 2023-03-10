@@ -104,7 +104,7 @@ class Advanced:
     batch_size: Optional[int] = None
     """Batch size to use for inference. If omitted, the batch size is set based on available GPU memory."""
 
-    vocoder: Literal["Univnet", "BigVGAN", "BigVGAN_Base"] = "BigVGAN"
+    vocoder: Literal["Univnet", "BigVGAN", "BigVGAN_Base"] = "BigVGAN_Base"
     """Pretrained vocoder to be used.
     Univnet - tortoise original
     BigVGAN - 112M model
