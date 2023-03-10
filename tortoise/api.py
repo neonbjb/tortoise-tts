@@ -485,7 +485,7 @@ class TextToSpeech:
         """
         # Use generally found best tuning knobs for generation.
         settings = {
-            "temperature": 0.8,
+            "temperature": 0.2,
             "length_penalty": 1.0,
             "repetition_penalty": 2.0,
             "top_p": 0.8,
