@@ -117,33 +117,33 @@ If you are experiencing errors related to GPU usage (or lackthereof), please see
 For maximum speed (and worst quality), you can try:
 
 ```sh
-./script/tortoise-tts.py --half --no_cond_free --preset ultra_fast --text #...
+./script/tortoise-tts.py --half --no_cond_free --preset ultra_fast #...
 # or, to only generate 1 sample:
-./script/tortoise-tts.py --half --no_cond_free --preset single_sample --candidates 1 --text #...
+./script/tortoise-tts.py --half --no_cond_free --preset single_sample --candidates 1 #...
 ```
 
 But in most cases, these settings should perform decently && fast:
 
 ```sh
-./script/tortoise-tts.py --preset ultra_fast --text # ...
+./script/tortoise-tts.py --preset ultra_fast # ...
 ```
 
 For better quality, you might want the `very_fast` preset:
 
 ```sh
-./script/tortoise-tts.py --preset very_fast --text # ...
+./script/tortoise-tts.py --preset very_fast # ...
 ```
 
 You can obtain outputs 100% identical to the original tortoise repo with the following command:
 
 ```sh
-./script/tortoise-tts.py --preset ultra_fast_old --original_tortoise --text #...
+./script/tortoise-tts.py --preset ultra_fast_old --original_tortoise #...
 ```
 
 If you want to load a [fine-tuned autoregressive model](https://github.com/152334H/DL-Art-School), use the `--ar-checkpoint` argument:
 
 ```sh
-./script/tortoise-tts.py --preset very_fast --ar-checkpoint /path/to/checkpoint.pth --text #...
+./script/tortoise-tts.py --preset very_fast --ar-checkpoint /path/to/checkpoint.pth #...
 ```
 
 ## Webui
