@@ -2,7 +2,7 @@ tqdm
 rotary_embedding_torch
 transformers==4.19
 tokenizers
-inflect
+inflect>=0.2.0,<=6.0.2
 progressbar
 einops==0.4.1
 unidecode
