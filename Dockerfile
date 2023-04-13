@@ -5,6 +5,7 @@ ENV PYTHON_VERSION=3.8
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get -qq update \
     && apt-get -qq install --no-install-recommends \
+    libsndfile1-dev \
     git \
     python${PYTHON_VERSION} \
     python${PYTHON_VERSION}-venv \
@@ -16,8 +17,6 @@ RUN ln -s -f /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
     ln -s -f /usr/bin/pip3 /usr/bin/pip
 
 RUN pip install --upgrade pip
-
-RUN apt-get update && apt-get -y install libsndfile1-dev 
 
 # 2. Copy files
 COPY . /src
