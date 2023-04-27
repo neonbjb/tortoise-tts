@@ -152,7 +152,7 @@ Download models and put them in a models folder
 Mount it as a volume in your container
 It's also useful to mount another volume for the outputs so create an outputs folder too
 ```shell
- docker run -v models:/src/models outputs:/outputs  -e "TORTOISE_MODELS_DIR=/src/models"  --rm --gpus all tortoisetts python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast --output_path /outputs
+ docker run -v models:/src/models outputs:/outputs  -e "TORTOISE_MODELS_DIR=/src/models"  --rm --gpus all tortoise_tts:latest python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast --output_path /outputs
 ```
 
 ## Advanced Usage
