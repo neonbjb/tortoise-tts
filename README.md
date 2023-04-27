@@ -54,20 +54,27 @@ The original colab no longer works by a combination of Google's tendency to forw
 
 If you want to use this on your own computer, you must have an NVIDIA GPU.
 
-First, install pytorch using these instructions: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/).
 On Windows, I **highly** recommend using the Conda installation path. I have been told that if you do not do this, you
 will spend a lot of time chasing dependency problems.
 
-Next, install TorToiSe and it's dependencies:
+First, [install miniconda](https://docs.conda.io/en/latest/miniconda.html).
+
+Then run the following commands, using anaconda prompt as the terminal (or any other terminal configured to work with conda)
 
 ```shell
+conda create --name tortoise python=3.9 numba inflect
+conda activate tortoise
+conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 git clone https://github.com/neonbjb/tortoise-tts.git
 cd tortoise-tts
-python -m pip install -r ./requirements.txt
 python setup.py install
 ```
 
-If you are on windows, you will also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
+Optionally, pytorch can be installed in the base environment, so that other conda environments can use it too. To do this, simply send the `conda install pytorch...` line before activating the tortoise environment.
+
+> **Note:** When you want to use tortoise-tts, you will always have to ensure the `tortoise` conda environment is activated.
+
+If you are on windows, you may also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
 
 ### do_tts.py
 
