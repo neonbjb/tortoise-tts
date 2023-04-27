@@ -146,6 +146,15 @@ good clips:
 5. Try to find clips that are spoken in such a way as you wish your output to sound like. For example, if you want to hear your target voice read an audiobook, try to find clips of them reading a book.
 6. The text being spoken in the clips does not matter, but diverse text does seem to perform better.
 
+### Using it with Docker
+To use Gpu with Docker [install the appropriate drivers and the NVIDIA Container Runtime](https://docs.docker.com/config/containers/resource_constraints/#gpu). 
+Download models and put them in a models folder
+Mount it as a volume in your container
+It's also useful to mount another volume for the outputs so create an outputs folder too
+```shell
+ docker run -v models:/src/models outputs:/outputs  -e "TORTOISE_MODELS_DIR=/src/models"  --rm --gpus all tortoisetts python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast --output_path /outputs
+```
+
 ## Advanced Usage
 
 ### Generation settings
