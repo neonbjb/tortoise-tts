@@ -214,10 +214,7 @@ class TextToSpeech:
         self.models_dir = models_dir
         self.autoregressive_batch_size = pick_best_batch_size_for_gpu() if autoregressive_batch_size is None else autoregressive_batch_size
         self.enable_redaction = enable_redaction
-        if device is None:
-            logging.warning("No device specified. This will default to the first GPU if available, otherwise CPU.")
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.device = device
+        self._set_device(device)
         if self.enable_redaction:
             self.aligner = Wav2VecAlignment()
 
@@ -253,6 +250,14 @@ class TextToSpeech:
         # Random latent generators (RLGs) are loaded lazily.
         self.rlg_auto = None
         self.rlg_diffusion = None
+
+    def _set_device(self, device):
+        if device is None:
+            logging.warning("No device specified. This will default to the first GPU if available, otherwise CPU.")
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        if device == 'cpu' or (isinstance(device, torch.device) and device.type == 'cpu'):
+            logging.warning("Running on CPU. This will be painfully slow. You've been warned.")
+        self.device = device
 
     def load_cvvp(self):
         """Load CVVP model."""
