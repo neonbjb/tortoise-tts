@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 import uuid
@@ -214,6 +215,7 @@ class TextToSpeech:
         self.autoregressive_batch_size = pick_best_batch_size_for_gpu() if autoregressive_batch_size is None else autoregressive_batch_size
         self.enable_redaction = enable_redaction
         if device is None:
+            logging.warning("No device specified. This will default to the first GPU if available, otherwise CPU.")
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.device = device
         if self.enable_redaction:
