@@ -146,6 +146,8 @@ good clips:
 
 ### Using it with Docker
 To use Gpu with Docker [install the appropriate drivers and the NVIDIA Container Runtime](https://docs.docker.com/config/containers/resource_constraints/#gpu). 
+If you have a modern GPU like RTX 4090 you can build yout docker image using Dockerfile.moderngpu file. 
+If you have an older GPU like K80 or V100 you can use the other Dockerfile .
 Download models and put them in a models folder
 Mount it as a volume in your container
 It's also useful to mount another volume for the outputs so create an outputs folder too
