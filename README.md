@@ -7,8 +7,7 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
-A (*very*) rough draft of the Tortoise paper is now available in doc format. I would definitely appreciate any comments, suggestions or reviews:
-https://docs.google.com/document/d/13O_eyY65i6AkNrN_LdPhpUjGhyTNKYHvDrIvHnHe1GA
+I *finally* converted the "doc" to a arxiv entry: https://arxiv.org/abs/2305.07243
 
 ### Version history
 
@@ -48,8 +47,7 @@ Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
 
 ### Colab
 
-Colab is the easiest way to try this out. I've put together a notebook you can use here:
-https://colab.research.google.com/drive/1wVVqUPqwiDBUVeWWOUNglpGhU3hg_cbR?usp=sharing
+The original colab no longer works by a combination of Google's tendency to forward-break things and Python's package management system. I do not intend to keep fixing it so it has been removed. Apologies!
 
 ### Local Installation
 
@@ -262,7 +260,7 @@ of the model increases multiplicatively. On enterprise-grade hardware, this is n
 exceptionally wide buses that can accommodate this bandwidth. I cannot afford enterprise hardware, though, so I am stuck.
 
 I want to mention here
-that I think Tortoise could do be a **lot** better. The three major components of Tortoise are either vanilla Transformer Encoder stacks
+that I think Tortoise could be a **lot** better. The three major components of Tortoise are either vanilla Transformer Encoder stacks
 or Decoder stacks. Both of these types of models have a rich experimental history with scaling in the NLP realm. I see no reason
 to believe that the same is not true of TTS.
 
