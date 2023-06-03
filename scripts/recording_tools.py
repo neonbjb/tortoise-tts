@@ -3,6 +3,7 @@ import time
 from pydub import AudioSegment
 from scipy.signal import resample
 from tqdm import tqdm
+import os
 import sounddevice as sd
 import soundfile as sf
 
@@ -19,13 +20,13 @@ def countdown(count: int):
         time.sleep(0.001)
 
 def record_until_keypress(
-        output_folder: str,
+        voice_name: str,
         samplerate: int=22050,
         channels: int=1):
     """Record audio in chunks until interrupted, then chop into 10s fragments.
 
     Args:
-        output_folder (str): Path to the voice folder where the chunks will be saved.
+        voice_name (str): The name of the voice that records.
         samplerate (int, optional): Target sample rate. Defaults to 22050.
         channels (int, optional): The number of channels (1=mono, 2=stereo). Defaults to 1.
     """
@@ -34,7 +35,7 @@ def record_until_keypress(
     i=0
     try:
         while True:
-            recording =sd.rec(
+            recording = sd.rec(
                 int(samplerate * DURATION), samplerate=samplerate, channels=channels, blocking=True)
             i+=1
             print(f"Chunk #{i} was recorded")
@@ -42,6 +43,11 @@ def record_until_keypress(
     except KeyboardInterrupt:
         print("Recording stopped.")
 
+    output_folder = f'../tortoise/voices/{voice_name}/'
+    try:
+        os.mkdir(output_folder)
+    except FileExistsError:
+        pass
     for i, rec in enumerate(recordings):
         fname = f'{output_folder}/{i+1}.wav'
         try:
@@ -125,6 +131,9 @@ if __name__ == "__main__":
         '--file_path',
         help='Path to the file to process')
     parser.add_argument(
+        '--voice_name',
+        help='The name of the voice that will record')
+    parser.add_argument(
         '--output_folder',
         help='Folder to save the chunks')
     parser.add_argument(
@@ -141,6 +150,7 @@ if __name__ == "__main__":
         help='Seconds between recordings')
 
     args = parser.parse_args()
+    print(args.no_convert)
 
     if args.command == 'record':
         record_audio(
@@ -153,4 +163,4 @@ if __name__ == "__main__":
             args.output_folder,
             no_conversion=args.no_convert)
     elif args.command == 'keypress':
-        record_until_keypress(args.file_path)
+        record_until_keypress(args.voice_name)
