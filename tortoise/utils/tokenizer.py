@@ -132,7 +132,7 @@ def basic_cleaners(text):
 
 
 def transliteration_cleaners(text):
-  '''Pipeline for non-English text that transliterates to ASCII.'''
+  '''Pipeline for non-English text that transliterate to ASCII.'''
   text = convert_to_ascii(text)
   text = lowercase(text)
   text = collapse_whitespace(text)
