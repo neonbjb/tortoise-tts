@@ -148,11 +148,12 @@ good clips:
 To use Gpu with Docker [install the appropriate drivers and the NVIDIA Container Runtime](https://docs.docker.com/config/containers/resource_constraints/#gpu). 
 If you have a modern GPU like RTX 4090 you can build yout docker image using Dockerfile.moderngpu file. 
 If you have an older GPU like K80 or V100 you can use the other Dockerfile .
-Download models and put them in a models folder
+Download models and put them in a models folder, create an empty transformers folder to serve as download cache for huggingface transformers.
 Mount it as a volume in your container
 It's also useful to mount another volume for the outputs so create an outputs folder too
+
 ```shell
- docker run -v models:/src/models outputs:/outputs  -e "TORTOISE_MODELS_DIR=/src/models"  --rm --gpus all tortoise_tts:latest python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast --output_path /outputs
+ docker run -v models:/src/models outputs:/outputs  -e "TORTOISE_MODELS_DIR=/src/models" -e "TRANSFORMERS_CACHE=/src/models/transformers"  --rm --gpus all tortoise_tts:latest python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast --output_path /outputs
 ```
 
 ## Advanced Usage
