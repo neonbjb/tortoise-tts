@@ -6,7 +6,7 @@ inflect
 progressbar
 einops==0.4.1
 unidecode
-scipy==0.10.1
+scipy==1.10.1
 librosa==0.9.1
 numba==0.48.0
 ffmpeg
