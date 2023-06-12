@@ -182,16 +182,17 @@ def pick_best_batch_size_for_gpu():
     Tries to pick a batch size that will fit in your GPU. These sizes aren't guaranteed to work, but they should give
     you a good shot.
     """
-    if torch.cuda.is_available():
-        _, available = torch.cuda.mem_get_info()
-        availableGb = available / (1024 ** 3)
-        if availableGb > 14:
-            return 16
-        elif availableGb > 10:
-            return 8
-        elif availableGb > 7:
-            return 4
-    return 1
+    if not torch.cuda.is_available():
+        return 1
+    
+    _, available = torch.cuda.mem_get_info()
+    availableGb = available / (1024 ** 3)
+    if availableGb > 14:
+        return 16
+    if availableGb > 10:
+        return 8
+    if availableGb > 7:
+        return 4
 
 
 class TextToSpeech:
