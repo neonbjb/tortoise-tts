@@ -135,7 +135,7 @@ class Wav2VecAlignment:
         non_redacted_intervals = []
         last_point = 0
         for i in range(len(fully_split)):
-            if i % 2 == 0:
+            if i % 2 == 0 and fully_split[i] != "": # Check for empty string fixes index error
                 end_interval = max(0, last_point + len(fully_split[i]) - 1)
                 non_redacted_intervals.append((last_point, end_interval))
             last_point += len(fully_split[i])
