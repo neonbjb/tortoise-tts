@@ -7,7 +7,7 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
-I *finally* converted the "doc" to a arxiv entry: https://arxiv.org/abs/2305.07243
+Manuscript: https://arxiv.org/abs/2305.07243
 
 ### Version history
 
@@ -44,10 +44,6 @@ See [this page](http://nonint.com/static/tortoise_v2_examples.html) for a large 
 Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
 
 ## Usage guide
-
-### Colab
-
-The original colab no longer works by a combination of Google's tendency to forward-break things and Python's package management system. I do not intend to keep fixing it so it has been removed. Apologies!
 
 ### Local Installation
 
@@ -122,15 +118,6 @@ Tortoise was specifically trained to be a multi-speaker model. It accomplishes t
 
 These reference clips are recordings of a speaker that you provide to guide speech generation. These clips are used to determine many properties of the output, such as the pitch and tone of the voice, speaking speed, and even speaking defects like a lisp or stuttering. The reference clip is also used to determine non-voice related aspects of the audio output like volume, background noise, recording quality and reverb.
 
-### Random voice
-
-I've included a feature which randomly generates a voice. These voices don't actually exist and will be random every time you run
-it. The results are quite fascinating and I recommend you play around with it!
-
-You can use the random voice by passing in 'random' as the voice name. Tortoise will take care of the rest.
-
-For the those in the ML space: this is created by projecting a random vector onto the voice conditioning latent space.
-
 ### Provided voices
 
 This repo comes with several pre-packaged voices. Voices prepended with "train_" came from the training set and perform
@@ -201,13 +188,6 @@ Alternatively, use the api.TextToSpeech.get_conditioning_latents() to fetch the 
 After you've played with them, you can use them to generate speech by creating a subdirectory in voices/ with a single
 ".pth" file containing the pickled conditioning latents as a tuple (autoregressive_latent, diffusion_latent).
 
-### Send me feedback!
-
-Probabilistic models like Tortoise are best thought of as an "augmented search" - in this case, through the space of possible
-utterances of a specific string of text. The impact of community involvement in perusing these spaces (such as is being done with
-GPT-3 or CLIP) has really surprised me. If you find something neat that you can do with Tortoise that isn't documented here,
-please report it to me! I would be glad to publish it to this page.
-
 ## Tortoise-detect
 
 Out of concerns that this model might be misused, I've built a classifier that tells the likelihood that an audio clip
@@ -271,11 +251,13 @@ that I think Tortoise could be a **lot** better. The three major components of T
 or Decoder stacks. Both of these types of models have a rich experimental history with scaling in the NLP realm. I see no reason
 to believe that the same is not true of TTS.
 
-The largest model in Tortoise v2 is considerably smaller than GPT-2 large. It is 20x smaller that the original DALLE transformer.
-Imagine what a TTS model trained at or near GPT-3 or DALLE scale could achieve.
+## LFHelp
 
-If you are an ethical organization with computational resources to spare interested in seeing what this model could do
-if properly scaled out, please reach out to me! I would love to collaborate on this.
+I need someone to help maintain this repo. Making sure software keeps running as the world changes around it has never been something that excites me, and Tortoise has a gathered a lot of dependency problems over the last year (so much so that I had to remove the colab demo link because it kept breaking). If you're interesting in helping maintain this repo, please reach out! Perks include:
+- Cool resume item
+- Hopefully helping a lot of people out
+- Dealing with people complaining how free software isn't working good enough
+- Dealing with a curmudgeony middle-aged AI "guy" with more work than time :)
 
 ## Acknowledgements
 
