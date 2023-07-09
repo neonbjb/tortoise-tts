@@ -251,15 +251,6 @@ that I think Tortoise could be a **lot** better. The three major components of T
 or Decoder stacks. Both of these types of models have a rich experimental history with scaling in the NLP realm. I see no reason
 to believe that the same is not true of TTS.
 
-## LFHelp
-
-I need someone to help maintain this repo. Making sure software keeps running as the world changes around it has never been something that excites me, and Tortoise has a gathered a lot of dependency problems over the last year (so much so that I had to remove the colab demo link because it kept breaking). If you're interesting in helping maintain this repo, please reach out! Perks include:
-- Cool resume item
-- Hopefully helping a lot of people out
-- If you can figure out a way to monetize this work (e.g. Patreon or other donations site) - you can take all the money
-- Dealing with people complaining how free software isn't working good enough
-- Dealing with a curmudgeony middle-aged AI "guy" with more work than time :)
-
 ## Acknowledgements
 
 This project has garnered more praise than I expected. I am standing on the shoulders of giants, though, and I want to
