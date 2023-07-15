@@ -252,12 +252,9 @@ class TextToSpeech:
         self.rlg_diffusion = None
     @contextmanager
     def temporary_cuda(self, model):
-        if self.high_vram:
-            yield model
-        else:
-            m = model.to(self.device)
-            yield m
-            m = model.cpu()
+        m = model.to(self.device)
+        yield m
+        m = model.cpu()
     
     def load_cvvp(self):
         """Load CVVP model."""
