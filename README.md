@@ -112,6 +112,36 @@ tts = api.TextToSpeech()
 pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
 ```
 
+To use deepspeed:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(use_deepspeed=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
+
+To use kv cache:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(kv_cache=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
+
+To run model in float16:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(half=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
+for Faster runs use all three:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(use_deepspeed=True, kv_cache=True, half=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
 ## Voice customization guide
 
 Tortoise was specifically trained to be a multi-speaker model. It accomplishes this by consulting reference clips.
