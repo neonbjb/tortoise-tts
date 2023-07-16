@@ -198,7 +198,7 @@ class TextToSpeech:
     """
 
     def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, 
-                 enable_redaction=True, kv_cache=False, use_deepspeed=False, half=True, device=None):
+                 enable_redaction=True, kv_cache=False, use_deepspeed=False, half=False, device=None):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -218,7 +218,7 @@ class TextToSpeech:
             self.aligner = Wav2VecAlignment()
 
         self.tokenizer = VoiceBpeTokenizer()
-
+        self.half = half
         if os.path.exists(f'{models_dir}/autoregressive.ptt'):
             # Assume this is a traced directory.
             self.autoregressive = torch.jit.load(f'{models_dir}/autoregressive.ptt')
@@ -229,7 +229,7 @@ class TextToSpeech:
                                           heads=16, number_text_tokens=255, start_text_token=255, checkpointing=False,
                                           train_solo_embeddings=False).cpu().eval()
             self.autoregressive.load_state_dict(torch.load(get_model_path('autoregressive.pth', models_dir)))
-            self.autoregressive.post_init_gpt2_config(use_deepspeed=use_deepspeed, kv_cache=kv_cache)
+            self.autoregressive.post_init_gpt2_config(use_deepspeed=use_deepspeed, kv_cache=kv_cache, half=self.half)
             
             self.diffusion = DiffusionTts(model_channels=1024, num_layers=10, in_channels=100, out_channels=200,
                                           in_latent_channels=1024, in_tokens=8193, dropout=0, use_fp16=False, num_heads=16,
@@ -341,7 +341,6 @@ class TextToSpeech:
             cvvp_amount=.0,
             # diffusion generation parameters follow
             diffusion_iterations=100, cond_free=True, cond_free_k=2, diffusion_temperature=1.0,
-            half=True,
             **hf_generate_kwargs):
         """
         Produces an audio clip of the given text being spoken with the given reference voice.
@@ -414,7 +413,7 @@ class TextToSpeech:
             if verbose:
                 print("Generating autoregressive samples..")
             with self.temporary_cuda(self.autoregressive
-            ) as autoregressive, torch.autocast(device_type="cuda", dtype=torch.float16, enabled=half):
+            ) as autoregressive, torch.autocast(device_type="cuda", dtype=torch.float16, enabled=self.half):
                 for b in tqdm(range(num_batches), disable=not verbose):
                     codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
                                                                 do_sample=True,
@@ -431,7 +430,7 @@ class TextToSpeech:
 
             clip_results = []
             with self.temporary_cuda(self.clvp) as clvp, torch.autocast(
-                device_type="cuda", dtype=torch.float16, enabled=half
+                device_type="cuda", dtype=torch.float16, enabled=self.half
             ):
                 if cvvp_amount > 0:
                     if self.cvvp is None:
@@ -471,7 +470,7 @@ class TextToSpeech:
             with self.temporary_cuda(
                 self.autoregressive
             ) as autoregressive, torch.autocast(
-                device_type="cuda", dtype=torch.float16, enabled=half
+                device_type="cuda", dtype=torch.float16, enabled=self.half
             ):
                 best_latents = autoregressive(auto_conditioning.repeat(k, 1), text_tokens.repeat(k, 1),
                                                 torch.tensor([text_tokens.shape[-1]], device=text_tokens.device), best_results,
