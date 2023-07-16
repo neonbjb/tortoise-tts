@@ -40,7 +40,35 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
         self.embeddings = embeddings
         self.lm_head = nn.Sequential(norm, linear)
         self.kv_cache = kv_cache
+        
+        # Model parallel
+        self.model_parallel = False
+        self.device_map = None
+        self.cached_mel_emb = None
+    def parallelize(self, device_map=None):
+        self.device_map = (
+            get_device_map(len(self.transformer.h), range(torch.cuda.device_count()))
+            if device_map is None
+            else device_map
+        )
+        assert_device_map(self.device_map, len(self.transformer.h))
+        self.transformer.parallelize(self.device_map)
+        self.lm_head = self.lm_head.to(self.transformer.first_device)
+        self.model_parallel = True
 
+    def deparallelize(self):
+        self.transformer.deparallelize()
+        self.transformer = self.transformer.to("cpu")
+        self.lm_head = self.lm_head.to("cpu")
+        self.model_parallel = False
+        torch.cuda.empty_cache()
+    
+    def get_output_embeddings(self):
+        return self.lm_head
+
+    def set_output_embeddings(self, new_embeddings):
+        self.lm_head = new_embeddings
+    
     def store_mel_emb(self, mel_emb):
         self.cached_mel_emb = mel_emb
 
@@ -131,6 +159,12 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
             return_dict=return_dict,
         )
         hidden_states = transformer_outputs[0]
+
+        # Set device for model parallelism
+        if self.model_parallel:
+            torch.cuda.set_device(self.transformer.first_device)
+            hidden_states = hidden_states.to(self.lm_head.weight.device)
+
         lm_logits = self.lm_head(hidden_states)
 
         if not return_dict:
