@@ -445,7 +445,7 @@ class TextToSpeech:
                     for i in range(batch.shape[0]):
                         batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
                     if cvvp_amount != 1:
-                        clvp = clvp(text_tokens.repeat(batch.shape[0], 1), batch, return_loss=False)
+                        clvp_out = clvp(text_tokens.repeat(batch.shape[0], 1), batch, return_loss=False)
                     if auto_conds is not None and cvvp_amount > 0:
                         cvvp_accumulator = 0
                         for cl in range(auto_conds.shape[1]):
@@ -454,9 +454,9 @@ class TextToSpeech:
                         if cvvp_amount == 1:
                             clip_results.append(cvvp)
                         else:
-                            clip_results.append(cvvp * cvvp_amount + clvp * (1-cvvp_amount))
+                            clip_results.append(cvvp * cvvp_amount + clvp_out * (1-cvvp_amount))
                     else:
-                        clip_results.append(clvp)
+                        clip_results.append(clvp_out)
                 clip_results = torch.cat(clip_results, dim=0)
                 samples = torch.cat(samples, dim=0)
                 best_results = samples[torch.topk(clip_results, k=k).indices]
