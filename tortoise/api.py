@@ -329,6 +329,9 @@ class TextToSpeech:
             'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 200},
             'high_quality': {'num_autoregressive_samples': 256, 'diffusion_iterations': 400},
         }
+        # Filter out 'None' parameters.
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
         settings.update(presets[preset])
         settings.update(kwargs) # allow overriding of preset settings with kwargs
         return self.tts(text, **settings)

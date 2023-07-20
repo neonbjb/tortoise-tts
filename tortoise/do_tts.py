@@ -47,12 +47,10 @@ if __name__ == '__main__':
         gen, dbg_state = tts.tts_with_preset(
             args.text, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
             preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount,
-            temperature=args.temperature
-            #num_autoregressive_samples=args.num_autoregressive_samples, temperature=args.temperature,
-            #length_penalty=args.length_penalty, repetition_penalty=args.repetition_penalty,
-            #top_p=args.top_p, max_mel_tokens=args.max_mel_tokens,
-            #diffusion_iterations=args.diffusion_iterations, cond_free=args.cond_free, cond_free_k=args.cond_free_k,
-            #diffusion_temperature=args.diffusion_temperature
+            num_autoregressive_samples=args.num_autoregressive_samples, temperature=args.temperature,
+            length_penalty=args.length_penalty, repetition_penalty=args.repetition_penalty,
+            top_p=args.top_p, max_mel_tokens=args.max_mel_tokens, diffusion_iterations=args.diffusion_iterations,
+            cond_free=args.cond_free, cond_free_k=args.cond_free_k, diffusion_temperature=args.diffusion_temperature
         )
         if isinstance(gen, list):
             for j, g in enumerate(gen):
