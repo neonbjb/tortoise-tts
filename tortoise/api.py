@@ -13,7 +13,7 @@ from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
 from tortoise.models.diffusion_decoder import DiffusionTts
 from tortoise.models.autoregressive import UnifiedVoice
 from tqdm import tqdm
-
+from transformers import TextStreamer
 from tortoise.models.arch_util import TorchMelSpectrogram
 from tortoise.models.clvp import CLVP
 from tortoise.models.cvvp import CVVP
@@ -145,12 +145,13 @@ def fix_autoregressive_output(codes, stop_token, complain=True):
     return codes
 
 
-def do_spectrogram_diffusion(diffusion_model, diffuser, latents, conditioning_latents, temperature=1, verbose=True):
+def do_spectrogram_diffusion(diffusion_model, diffuser, latents, conditioning_latents, speaking_rate = 1.0, temperature=1, verbose=True):
     """
     Uses the specified diffusion model to convert discrete codes into a spectrogram.
     """
     with torch.no_grad():
         output_seq_len = latents.shape[1] * 4 * 24000 // 22050  # This diffusion model converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
+        output_seq_len = round(output_seq_len * speaking_rate)
         output_shape = (latents.shape[0], 100, output_seq_len)
         precomputed_embeddings = diffusion_model.timestep_independent(latents, conditioning_latents, output_seq_len, False)
 
@@ -310,7 +311,7 @@ class TextToSpeech:
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
-    def tts_with_preset(self, text, preset='fast', **kwargs):
+    def tts_with_preset(self, text, speaking_rate=1.0, preset='fast', **kwargs):
         """
         Calls TTS with one of a set of preset generation parameters. Options:
             'ultra_fast': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
@@ -331,9 +332,9 @@ class TextToSpeech:
         }
         settings.update(presets[preset])
         settings.update(kwargs) # allow overriding of preset settings with kwargs
-        return self.tts(text, **settings)
+        return self.tts(text, speaking_rate=speaking_rate,**settings)
 
-    def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True, use_deterministic_seed=None,
+    def tts(self, text, speaking_rate=1.0, voice_samples=None, conditioning_latents=None, k=1, verbose=True, use_deterministic_seed=None,
             return_deterministic_state=False,
             # autoregressive generation parameters follow
             num_autoregressive_samples=512, temperature=.8, length_penalty=1, repetition_penalty=2.0, top_p=.8, max_mel_tokens=500,
@@ -392,7 +393,7 @@ class TextToSpeech:
         text_tokens = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).to(self.device)
         text_tokens = F.pad(text_tokens, (0, 1))  # This may not be necessary.
         assert text_tokens.shape[-1] < 400, 'Too much text provided. Break the text up into separate segments and re-try inference.'
-
+        streamer = TextStreamer(self.tokenizer)
         auto_conds = None
         if voice_samples is not None:
             auto_conditioning, diffusion_conditioning, auto_conds, _ = self.get_conditioning_latents(voice_samples, return_mels=True)
@@ -415,7 +416,7 @@ class TextToSpeech:
             with self.temporary_cuda(self.autoregressive
             ) as autoregressive, torch.autocast(device_type="cuda", dtype=torch.float16, enabled=self.half):
                 for b in tqdm(range(num_batches), disable=not verbose):
-                    codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
+                    codes = autoregressive.inference_speech(auto_conditioning, streamer, text_tokens,
                                                                 do_sample=True,
                                                                 top_p=top_p,
                                                                 temperature=temperature,
@@ -500,7 +501,8 @@ class TextToSpeech:
                             break
 
                     mel = do_spectrogram_diffusion(diffusion, diffuser, latents, diffusion_conditioning,
-                                                temperature=diffusion_temperature, verbose=verbose)
+                                                speaking_rate=speaking_rate, temperature=diffusion_temperature, 
+                                                verbose=verbose)
                     wav = vocoder.inference(mel)
                     wav_candidates.append(wav.cpu())
 
@@ -519,7 +521,23 @@ class TextToSpeech:
                 return res, (deterministic_seed, text, voice_samples, conditioning_latents)
             else:
                 return res
+    def tts_streamable(self, chunk_size, *args, **kwargs):
+        """
+        A modified version of the tts function that yields the output in chunks.
+        :param chunk_size: The size of the chunks in which to split the output audio.
+        :param args: The original arguments of the tts function.
+        :param kwargs: The original keyword arguments of the tts function.
+        :yield: Chunks of the generated audio.
+        """
+        # Call the original tts function and get the full audio
+        full_audio = self.tts(*args, **kwargs)
 
+        # Convert the audio tensor to a 1D numpy array
+        full_audio_np = full_audio.squeeze().cpu().numpy()
+
+        # Yield audio chunks
+        for i in range(0, len(full_audio_np), chunk_size):
+            yield full_audio_np[i:i+chunk_size]
     def deterministic_state(self, seed=None):
         """
         Sets the random seeds that tortoise uses to the current time() and returns that seed so results can be
