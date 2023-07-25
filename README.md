@@ -4,6 +4,7 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 1. Strong multi-voice capabilities.
 2. Highly realistic prosody and intonation.
+3. speaking rate control
 
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
