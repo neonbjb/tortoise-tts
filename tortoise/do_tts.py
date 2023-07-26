@@ -19,7 +19,7 @@ if __name__ == '__main__':
                                                       'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
     parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
-     parser.add_argument('--speaking_rate', type=int, help='Random seed which can be used to reproduce results.', default=1.0)
+    parser.add_argument('--speaking_rate', type=int, help='Random seed which can be used to reproduce results.', default=1.0)
     parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
     parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
