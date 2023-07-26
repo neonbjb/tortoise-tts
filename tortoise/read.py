@@ -16,6 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
                                                  'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='pat')
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/longform/')
+    parser.add_argument('--output_name', type=str, help='How to name the output file', default='combined.wav')
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='standard')
     parser.add_argument('--regenerate', type=str, help='Comma-separated list of clip numbers to re-generate, or nothing.', default=None)
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice. Only the first candidate is actually used in the final product, the others can be used manually.', default=1)
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     tts = TextToSpeech(models_dir=args.model_dir)
 
     outpath = args.output_path
+    outname = args.output_name
     selected_voices = args.voice.split(',')
     regenerate = args.regenerate
     if regenerate is not None:
@@ -74,7 +76,7 @@ if __name__ == '__main__':
 
         if args.candidates == 1:
             full_audio = torch.cat(all_parts, dim=-1)
-            torchaudio.save(os.path.join(voice_outpath, 'combined.wav'), full_audio, 24000)
+            torchaudio.save(os.path.join(voice_outpath, f"{outname}.wav"), full_audio, 24000)
 
         if args.produce_debug_state:
             os.makedirs('debug_states', exist_ok=True)
@@ -89,5 +91,5 @@ if __name__ == '__main__':
                     wav_file = os.path.join(voice_outpath, str(line), f"{candidate}.wav")
                     audio_clips.append(load_audio(wav_file, 24000))
                 audio_clips = torch.cat(audio_clips, dim=-1)
-                torchaudio.save(os.path.join(voice_outpath, f"combined_{candidate:02d}.wav"), audio_clips, 24000)
+                torchaudio.save(os.path.join(voice_outpath, f"{outname}_{candidate:02d}.wav"), audio_clips, 24000)
                 audio_clips = []
