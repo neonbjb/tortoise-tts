@@ -19,7 +19,7 @@ if __name__ == '__main__':
                                                       'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
     parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
-    parser.add_argument('--speaking_rate', type=int, help='Random seed which can be used to reproduce results.', default=1.0)
+    parser.add_argument('--speaking_rate', type=float, help='Random seed which can be used to reproduce results.', default=1.0)
     parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
     parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
@@ -35,7 +35,7 @@ if __name__ == '__main__':
             voice_sel = [selected_voice]
         voice_samples, conditioning_latents = load_voices(voice_sel)
 
-        gen, dbg_state = tts.tts_with_preset(args.text, speaking_rate=speaking_rate, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
+        gen, dbg_state = tts.tts_with_preset(args.text, speaking_rate=args.speaking_rate, k=args.candidates, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
                                   preset=args.preset, use_deterministic_seed=args.seed, return_deterministic_state=True, cvvp_amount=args.cvvp_amount)
         if isinstance(gen, list):
             for j, g in enumerate(gen):
