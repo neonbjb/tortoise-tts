@@ -64,15 +64,15 @@ if __name__ == '__main__':
             gen = tts.tts_with_preset(text, voice_samples=voice_samples, conditioning_latents=conditioning_latents,
                                       preset=args.preset, k=args.candidates, use_deterministic_seed=seed)
             if args.candidates == 1:
-                gen = gen.squeeze(0).cpu()
-                torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), gen, 24000)
+                audio_ = gen.squeeze(0).cpu()
+                torchaudio.save(os.path.join(voice_outpath, f'{j}.wav'), audio_, 24000)
             else:
                 candidate_dir = os.path.join(voice_outpath, str(j))
                 os.makedirs(candidate_dir, exist_ok=True)
                 for k, g in enumerate(gen):
                     torchaudio.save(os.path.join(candidate_dir, f'{k}.wav'), g.squeeze(0).cpu(), 24000)
-                gen = gen[0].squeeze(0).cpu()
-            all_parts.append(gen)
+                audio_ = gen[0].squeeze(0).cpu()
+            all_parts.append(audio_)
 
         if args.candidates == 1:
             full_audio = torch.cat(all_parts, dim=-1)
