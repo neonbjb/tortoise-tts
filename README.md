@@ -11,7 +11,15 @@ This repo contains all the code needed to run Tortoise TTS in inference mode.
 Manuscript: https://arxiv.org/abs/2305.07243
 
 ### Version history
+#### v2.6; 2023/7/26
+- Added speed control
+- Bug fixes
 
+#### v2.5; 2023/7/09
+- Added kv_cache support 5x faster
+- Added deepspeed support 10x faster
+- Added half precision support
+  
 #### v2.4; 2022/5/17
 - Removed CVVP model. Found that it does not, in fact, make an appreciable difference in the output.
 - Add better debugging support; existing tools now spit out debug files which can be used to reproduce bad runs.
