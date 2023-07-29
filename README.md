@@ -12,7 +12,7 @@ Manuscript: https://arxiv.org/abs/2305.07243
 
 ### Version history
 #### v2.6; 2023/7/26
-- Added speed control
+- Added speaking rate control
 - Bug fixes
 
 #### v2.5; 2023/7/09
