@@ -302,7 +302,10 @@ class DiffusionTts(nn.Module):
                 unused_params.extend(list(lyr.parameters()))
             else:
                 # First and last blocks will have autocast disabled for improved precision.
-                with autocast(x.device.type, enabled=self.enable_fp16 and i != 0):
+                if not torch.backends.mps.is_available():
+                    with autocast(x.device.type, enabled=self.enable_fp16 and i != 0):
+                        x = lyr(x, time_emb)
+                else:
                     x = lyr(x, time_emb)
 
         x = x.float()

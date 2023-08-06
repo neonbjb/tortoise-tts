@@ -47,7 +47,7 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
         self.cached_mel_emb = None
     def parallelize(self, device_map=None):
         self.device_map = (
-            get_device_map(len(self.transformer.h), range(torch.cuda.device_count()))
+            get_device_map(len(self.transformer.h), range(max(1, torch.cuda.device_count())))
             if device_map is None
             else device_map
         )
@@ -62,6 +62,8 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
         self.lm_head = self.lm_head.to("cpu")
         self.model_parallel = False
         torch.cuda.empty_cache()
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
     
     def get_output_embeddings(self):
         return self.lm_head
@@ -162,7 +164,10 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
 
         # Set device for model parallelism
         if self.model_parallel:
-            torch.cuda.set_device(self.transformer.first_device)
+            if torch.backends.mps.is_available():
+                self.to(self.transformer.first_device)
+            else:
+                torch.cuda.set_device(self.transformer.first_device)
             hidden_states = hidden_states.to(self.lm_head.weight.device)
 
         lm_logits = self.lm_head(hidden_states)
