@@ -100,7 +100,7 @@ def load_discrete_vocoder_diffuser(trained_diffusion_steps=4000, desired_diffusi
                            conditioning_free=cond_free, conditioning_free_k=cond_free_k)
 
 
-def format_conditioning(clip, cond_length=132300, device='cuda'):
+def format_conditioning(clip, cond_length=132300, device="cuda" if not torch.backends.mps.is_available() else 'mps'):
     """
     Converts the given conditioning signal to a MEL spectrogram and clips it as expected by the models.
     """
