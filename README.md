@@ -87,6 +87,27 @@ Optionally, pytorch can be installed in the base environment, so that other cond
 
 If you are on windows, you may also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
 
+## Apple Silicon
+
+On MacOS 13+ with M1/M2 chips you need to install the nighly version of pytorch, as stated in the official page you can do:
+
+```shell
+pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+```
+
+Be sure to do that after you activate the environment. If you don't use conda the commands would look like this:
+
+```shell
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install numba inflect
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+pip install transformers
+git clone https://github.com/neonbjb/tortoise-tts.git
+cd tortoise-tts
+pip install .
+```
+
 ### do_tts.py
 
 This script allows you to speak a single phrase with one or more voices.
