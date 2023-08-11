@@ -14,14 +14,16 @@ if __name__ == '__main__':
                                                  'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='random')
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='fast')
     parser.add_argument('--use_deepspeed', type=str, help='Which voice preset to use.', default=False)
-    parser.add_argument('--kv_cache', type=bool, help='If you disable this please wait for a long a time to get the output', default=True)
-    parser.add_argument('--half', type=bool, help="float16(half) precision inference if True it's faster and take less vram and ram", default=True)
+    parser.add_argument('--no-kv_cache', action='store_false', dest='kv_cache', help='If you disable this please wait for a long a time to get the output', default=True)
+    parser.add_argument('--no-half', action='store_false', dest='half', help="float16(half) precision inference if True it's faster and take less vram and ram", default=True)
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
                                                       'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
     parser.add_argument('--candidates', type=int, help='How many output candidates to produce per-voice.', default=3)
     parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
-    parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
+    parser.add_argument('--no-produce_debug_state', action='store_false', dest='produce_debug_state', help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
+
+    
     parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
     args = parser.parse_args()
