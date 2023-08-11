@@ -108,8 +108,8 @@ cd tortoise-tts
 pip install .
 ```
 
-Be aware that the code does not work with DeepSpeed, try to avoid using the flag `--use_deepspeed` in the commands below.
-Also, mixed precision is not supported on MPS so don't use the `--half` flag either.
+Be aware that DeepSpeed is disabled on Apple Silicon since it does not work. The flag `--use_deepspeed` is ignored.
+
 
 ### do_tts.py
 
