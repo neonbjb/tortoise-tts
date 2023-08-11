@@ -10,6 +10,10 @@ This repo contains all the code needed to run Tortoise TTS in inference mode.
 Manuscript: https://arxiv.org/abs/2305.07243
 
 ### Version history
+#### v2.7; 2023/7/26
+- Bug fixes
+- Added Apple Silicon Support
+- Updated Transformer version
 #### v2.6; 2023/7/26
 - Bug fixes
 
