@@ -24,7 +24,7 @@ if __name__ == '__main__':
                                                       'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
     parser.add_argument('--seed', type=int, help='Random seed which can be used to reproduce results.', default=None)
     parser.add_argument('--produce_debug_state', type=bool, help='Whether or not to produce debug_state.pth, which can aid in reproducing problems. Defaults to true.', default=True)
-    parser.add_argument('--use_deepspeed', type=bool, help='Use deepspeed for speed bump.', default=True)
+    parser.add_argument('--use_deepspeed', type=bool, help='Use deepspeed for speed bump.', default=False)
     parser.add_argument('--kv_cache', type=bool, help='If you disable this please wait for a long a time to get the output', default=True)
     parser.add_argument('--half', type=bool, help="float16(half) precision inference if True it's faster and take less vram and ram", default=True)
 

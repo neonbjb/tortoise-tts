@@ -108,6 +108,9 @@ cd tortoise-tts
 pip install .
 ```
 
+Be aware that the code does not work with DeepSpeed, try to avoid using the flag `--use_deepspeed` in the commands below.
+Also, mixed precision is not supported on MPS so don't use the `--half` flag either.
+
 ### do_tts.py
 
 This script allows you to speak a single phrase with one or more voices.
