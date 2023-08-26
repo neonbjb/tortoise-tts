@@ -380,7 +380,7 @@ class UnifiedVoice(nn.Module):
             self.ds_engine = deepspeed.init_inference(model=self.inference_model,  
                                                     mp_size=1,
                                                     replace_with_kernel_inject=True,
-                                                    dtype=torch.float16)
+                                                    dtype=torch.float32)
             self.inference_model = self.ds_engine.module.eval()
         elif use_deepspeed and torch.cuda.is_available():
             import deepspeed
