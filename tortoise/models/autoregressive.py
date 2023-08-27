@@ -509,10 +509,18 @@ class UnifiedVoice(nn.Module):
         loss_text = F.cross_entropy(text_logits, text_targets.long())
         loss_mel = F.cross_entropy(mel_logits, mel_targets.long())
         return loss_text.mean(), loss_mel.mean(), mel_logits
-
-    def inference_speech(self, speech_conditioning_latent, text_inputs, input_tokens=None, num_return_sequences=1,
-                         max_generate_length=None, typical_sampling=False, typical_mass=.9, **hf_generate_kwargs):        
-
+    
+    def prepare_inference_speech(
+            self,
+            speech_conditioning_latent,
+            text_inputs,
+            input_tokens=None,
+            num_return_sequences=1,
+            max_generate_length=None,
+            typical_sampling=False,
+            typical_mass=.9,
+            **hf_generate_kwargs
+        ):
         text_inputs = F.pad(text_inputs, (0, 1), value=self.stop_text_token)
         text_inputs, _ = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
@@ -535,6 +543,19 @@ class UnifiedVoice(nn.Module):
 
         logits_processor = LogitsProcessorList([TypicalLogitsWarper(mass=typical_mass)]) if typical_sampling else LogitsProcessorList()
         max_length = trunc_index + self.max_mel_tokens - 1  if max_generate_length is None else trunc_index + max_generate_length
+
+        return inputs, logits_processor, max_length, trunc_index
+
+    def inference_speech(
+            self,
+            inputs,
+            max_length,
+            logits_processor,
+            trunc_index,
+            num_return_sequences=1,
+            **hf_generate_kwargs
+        ):        
+
         gen = self.inference_model.generate(inputs, bos_token_id=self.start_mel_token, pad_token_id=self.stop_mel_token, eos_token_id=self.stop_mel_token,
                                             max_length=max_length, logits_processor=logits_processor,
                                             num_return_sequences=num_return_sequences, **hf_generate_kwargs)

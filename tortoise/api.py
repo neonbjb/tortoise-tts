@@ -426,31 +426,53 @@ class TextToSpeech:
             if not torch.backends.mps.is_available():
                 with self.temporary_cuda(self.autoregressive
                 ) as autoregressive, torch.autocast(device_type="cuda", dtype=torch.float16, enabled=self.half):
+                    inputs, logits_processor, max_length, trunc_index = autoregressive.prepare_inference_speech(
+                        auto_conditioning,
+                        text_tokens,
+                        num_return_sequences=self.autoregressive_batch_size,
+                        max_generate_length=max_mel_tokens,
+                        **hf_generate_kwargs
+                    )
                     for b in tqdm(range(num_batches), disable=not verbose):
-                        codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
-                                                                    do_sample=True,
-                                                                    top_p=top_p,
-                                                                    temperature=temperature,
-                                                                    num_return_sequences=self.autoregressive_batch_size,
-                                                                    length_penalty=length_penalty,
-                                                                    repetition_penalty=repetition_penalty,
-                                                                    max_generate_length=max_mel_tokens,
-                                                                    **hf_generate_kwargs)
+                        codes = autoregressive.inference_speech(
+                            inputs,
+                            logits_processor,
+                            max_length,
+                            trunc_index,
+                            do_sample=True,
+                            top_p=top_p,
+                            temperature=temperature,
+                            num_return_sequences=self.autoregressive_batch_size,
+                            length_penalty=length_penalty,
+                            repetition_penalty=repetition_penalty,
+                            **hf_generate_kwargs
+                        )
                         padding_needed = max_mel_tokens - codes.shape[1]
                         codes = F.pad(codes, (0, padding_needed), value=stop_mel_token)
                         samples.append(codes)
             else:
                 with self.temporary_cuda(self.autoregressive) as autoregressive:
+                    inputs, logits_processor, max_length, trunc_index = autoregressive.prepare_inference_speech(
+                        auto_conditioning,
+                        text_tokens,
+                        num_return_sequences=self.autoregressive_batch_size,
+                        max_generate_length=max_mel_tokens,
+                        **hf_generate_kwargs
+                    )
                     for b in tqdm(range(num_batches), disable=not verbose):
-                        codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
-                                                                    do_sample=True,
-                                                                    top_p=top_p,
-                                                                    temperature=temperature,
-                                                                    num_return_sequences=self.autoregressive_batch_size,
-                                                                    length_penalty=length_penalty,
-                                                                    repetition_penalty=repetition_penalty,
-                                                                    max_generate_length=max_mel_tokens,
-                                                                    **hf_generate_kwargs)
+                        codes = autoregressive.inference_speech(
+                            inputs,
+                            logits_processor,
+                            max_length,
+                            trunc_index,
+                            do_sample=True,
+                            top_p=top_p,
+                            temperature=temperature,
+                            num_return_sequences=self.autoregressive_batch_size,
+                            length_penalty=length_penalty,
+                            repetition_penalty=repetition_penalty,
+                            **hf_generate_kwargs
+                        )
                         padding_needed = max_mel_tokens - codes.shape[1]
                         codes = F.pad(codes, (0, padding_needed), value=stop_mel_token)
                         samples.append(codes)
