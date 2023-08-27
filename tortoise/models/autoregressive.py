@@ -549,8 +549,8 @@ class UnifiedVoice(nn.Module):
     def inference_speech(
             self,
             inputs,
-            max_length,
             logits_processor,
+            max_length,
             trunc_index,
             num_return_sequences=1,
             **hf_generate_kwargs
