@@ -13,6 +13,9 @@ if __name__ == '__main__':
     parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
                                                  'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='random')
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='fast')
+    parser.add_argument('--use_deepspeed', type=str, help='Which voice preset to use.', default=False)
+    parser.add_argument('--kv_cache', type=bool, help='If you disable this please wait for a long a time to get the output', default=True)
+    parser.add_argument('--half', type=bool, help="float16(half) precision inference if True it's faster and take less vram and ram", default=True)
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
     parser.add_argument('--model_dir', type=str, help='Where to find pretrained model checkpoints. Tortoise automatically downloads these to .models, so this'
                                                       'should only be specified if you have custom checkpoints.', default=MODELS_DIR)
@@ -22,9 +25,10 @@ if __name__ == '__main__':
     parser.add_argument('--cvvp_amount', type=float, help='How much the CVVP model should influence the output.'
                                                           'Increasing this can in some cases reduce the likelihood of multiple speakers. Defaults to 0 (disabled)', default=.0)
     args = parser.parse_args()
+    if torch.backends.mps.is_available():
+        args.use_deepspeed = False
     os.makedirs(args.output_path, exist_ok=True)
-
-    tts = TextToSpeech(models_dir=args.model_dir)
+    tts = TextToSpeech(models_dir=args.model_dir, use_deepspeed=args.use_deepspeed, kv_cache=args.kv_cache, half=args.half)
 
     selected_voices = args.voice.split(',')
     for k, selected_voice in enumerate(selected_voices):

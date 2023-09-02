@@ -4,13 +4,24 @@ Tortoise is a text-to-speech program built with the following priorities:
 
 1. Strong multi-voice capabilities.
 2. Highly realistic prosody and intonation.
-
+   
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
-I *finally* converted the "doc" to a arxiv entry: https://arxiv.org/abs/2305.07243
+Manuscript: https://arxiv.org/abs/2305.07243
 
 ### Version history
+#### v2.7; 2023/7/26
+- Bug fixes
+- Added Apple Silicon Support
+- Updated Transformer version
+#### v2.6; 2023/7/26
+- Bug fixes
 
+#### v2.5; 2023/7/09
+- Added kv_cache support 5x faster
+- Added deepspeed support 10x faster
+- Added half precision support
+  
 #### v2.4; 2022/5/17
 - Removed CVVP model. Found that it does not, in fact, make an appreciable difference in the output.
 - Add better debugging support; existing tools now spit out debug files which can be used to reproduce bad runs.
@@ -45,28 +56,65 @@ Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
 
 ## Usage guide
 
-### Colab
-
-The original colab no longer works by a combination of Google's tendency to forward-break things and Python's package management system. I do not intend to keep fixing it so it has been removed. Apologies!
-
 ### Local Installation
 
 If you want to use this on your own computer, you must have an NVIDIA GPU.
 
-First, install pytorch using these instructions: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/).
 On Windows, I **highly** recommend using the Conda installation path. I have been told that if you do not do this, you
 will spend a lot of time chasing dependency problems.
 
-Next, install TorToiSe and it's dependencies:
+First, install miniconda: https://docs.conda.io/en/latest/miniconda.html
+
+Then run the following commands, using anaconda prompt as the terminal (or any other terminal configured to work with conda)
+
+This will:
+1. create conda environment with minimal dependencies specified
+1. activate the environment
+1. install pytorch with the command provided here: https://pytorch.org/get-started/locally/
+1. clone tortoise-tts
+1. change the current directory to tortoise-tts
+1. run tortoise python setup install script
 
 ```shell
+conda create --name tortoise python=3.9 numba inflect
+conda activate tortoise
+conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
+conda install transformers=4.29.2
 git clone https://github.com/neonbjb/tortoise-tts.git
 cd tortoise-tts
-python -m pip install -r ./requirements.txt
 python setup.py install
 ```
 
-If you are on windows, you will also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
+Optionally, pytorch can be installed in the base environment, so that other conda environments can use it too. To do this, simply send the `conda install pytorch...` line before activating the tortoise environment.
+
+> **Note:** When you want to use tortoise-tts, you will always have to ensure the `tortoise` conda environment is activated.
+
+If you are on windows, you may also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
+
+## Apple Silicon
+
+On MacOS 13+ with M1/M2 chips you need to install the nighly version of pytorch, as stated in the official page you can do:
+
+```shell
+pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+```
+
+Be sure to do that after you activate the environment. If you don't use conda the commands would look like this:
+
+```shell
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install numba inflect
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
+pip install transformers
+git clone https://github.com/neonbjb/tortoise-tts.git
+cd tortoise-tts
+pip install .
+```
+
+Be aware that DeepSpeed is disabled on Apple Silicon since it does not work. The flag `--use_deepspeed` is ignored.
+You may need to prepend `PYTORCH_ENABLE_MPS_FALLBACK=1` to the commands below to make them work since MPS does not support all the operations in Pytorch.
+
 
 ### do_tts.py
 
@@ -100,20 +148,41 @@ tts = api.TextToSpeech()
 pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
 ```
 
+To use deepspeed:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(use_deepspeed=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
+
+To use kv cache:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(kv_cache=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
+
+To run model in float16:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(half=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
+for Faster runs use all three:
+
+```python
+reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
+tts = api.TextToSpeech(use_deepspeed=True, kv_cache=True, half=True)
+pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
+```
 ## Voice customization guide
 
 Tortoise was specifically trained to be a multi-speaker model. It accomplishes this by consulting reference clips.
 
 These reference clips are recordings of a speaker that you provide to guide speech generation. These clips are used to determine many properties of the output, such as the pitch and tone of the voice, speaking speed, and even speaking defects like a lisp or stuttering. The reference clip is also used to determine non-voice related aspects of the audio output like volume, background noise, recording quality and reverb.
-
-### Random voice
-
-I've included a feature which randomly generates a voice. These voices don't actually exist and will be random every time you run
-it. The results are quite fascinating and I recommend you play around with it!
-
-You can use the random voice by passing in 'random' as the voice name. Tortoise will take care of the rest.
-
-For the those in the ML space: this is created by projecting a random vector onto the voice conditioning latent space.
 
 ### Provided voices
 
@@ -197,13 +266,6 @@ Alternatively, use the api.TextToSpeech.get_conditioning_latents() to fetch the 
 After you've played with them, you can use them to generate speech by creating a subdirectory in voices/ with a single
 ".pth" file containing the pickled conditioning latents as a tuple (autoregressive_latent, diffusion_latent).
 
-### Send me feedback!
-
-Probabilistic models like Tortoise are best thought of as an "augmented search" - in this case, through the space of possible
-utterances of a specific string of text. The impact of community involvement in perusing these spaces (such as is being done with
-GPT-3 or CLIP) has really surprised me. If you find something neat that you can do with Tortoise that isn't documented here,
-please report it to me! I would be glad to publish it to this page.
-
 ## Tortoise-detect
 
 Out of concerns that this model might be misused, I've built a classifier that tells the likelihood that an audio clip
@@ -266,12 +328,6 @@ I want to mention here
 that I think Tortoise could be a **lot** better. The three major components of Tortoise are either vanilla Transformer Encoder stacks
 or Decoder stacks. Both of these types of models have a rich experimental history with scaling in the NLP realm. I see no reason
 to believe that the same is not true of TTS.
-
-The largest model in Tortoise v2 is considerably smaller than GPT-2 large. It is 20x smaller that the original DALLE transformer.
-Imagine what a TTS model trained at or near GPT-3 or DALLE scale could achieve.
-
-If you are an ethical organization with computational resources to spare interested in seeing what this model could do
-if properly scaled out, please reach out to me! I would love to collaborate on this.
 
 ## Acknowledgements
 

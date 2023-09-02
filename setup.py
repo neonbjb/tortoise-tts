@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setuptools.setup(
     name="TorToiSe",
     packages=setuptools.find_packages(),
-    version="2.4.2",
+    version="2.7.0",
     author="James Betker",
     author_email="james@adamant.ai",
     description="A high quality multi-voice text-to-speech library",
@@ -27,7 +27,7 @@ setuptools.setup(
         'unidecode',
         'scipy',
         'librosa',
-        'transformers',
+        'transformers==4.31.0',
         'tokenizers',
     ],
     classifiers=[
