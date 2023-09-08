@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(
     description='TorToiSe is a text-to-speech program that is capable of synthesizing speech '
                 'in multiple voices with realistic prosody and intonation.')
 
+
 parser.add_argument(
     'text', type=str, nargs='*',
     help='Text to speak. If omitted, text is read from stdin.')
@@ -48,6 +49,9 @@ output_group.add_argument(
 output_group.add_argument(
     '-O, --output-dir', type=str, metavar='OUTPUT_DIR', dest='output_dir',
     help='Save the audio to a directory as individual segments.')
+
+# NEW : Custom filename arguments
+parser.add_argument('-fn', '--filename', default=None, help='Custom filename prefix for the generated audio')
 
 multi_output_group = parser.add_argument_group('multi-output options (requires --output-dir)')
 multi_output_group.add_argument(
@@ -226,7 +230,11 @@ for voice_idx, voice in enumerate(selected_voices):
     audio_parts = []
     voice_samples, conditioning_latents = load_voices(voice, extra_voice_dirs)
     for text_idx, text in enumerate(texts):
-        clip_name = f'{"-".join(voice)}_{text_idx:02d}'
+        if args.filename:                                                   # Custom
+            clip_name = f'{args.filename}_{"-".join(voice)}_{text_idx:02d}' # Filename
+        else:                                                               # Argument
+            clip_name = f'{"-".join(voice)}_{text_idx:02d}'
+
         if args.output_dir:
             first_clip = os.path.join(args.output_dir, f'{clip_name}_00.wav')
             if (args.skip_existing or (regenerate_clips and text_idx not in regenerate_clips)) and os.path.exists(first_clip):
