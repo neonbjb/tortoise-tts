@@ -9,6 +9,12 @@ import time
 import torch
 import torchaudio
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(script_dir)
+
+tortoise_dir = os.path.join(parent_dir, 'tortoise')
+sys.path.append(tortoise_dir)
+
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import get_voices, load_voices, load_audio
 from tortoise.utils.text import split_and_recombine_text
@@ -50,7 +56,7 @@ output_group.add_argument(
     '-O, --output-dir', type=str, metavar='OUTPUT_DIR', dest='output_dir',
     help='Save the audio to a directory as individual segments.')
 
-# NEW : Custom filename arguments
+#Name the sounds (not from original tortoise)
 parser.add_argument('-fn', '--filename', default=None, help='Custom filename prefix for the generated audio')
 
 multi_output_group = parser.add_argument_group('multi-output options (requires --output-dir)')
@@ -230,9 +236,9 @@ for voice_idx, voice in enumerate(selected_voices):
     audio_parts = []
     voice_samples, conditioning_latents = load_voices(voice, extra_voice_dirs)
     for text_idx, text in enumerate(texts):
-        if args.filename:                                                   # Custom
-            clip_name = f'{args.filename}_{"-".join(voice)}_{text_idx:02d}' # Filename
-        else:                                                               # Argument
+        if args.filename:                                                   # NOT FROM THE ORIGINAL
+            clip_name = f'{args.filename}_{"-".join(voice)}_{text_idx:02d}' # TORTOISE, ADDED FOR
+        else:                                                               # CHANGE NAMES
             clip_name = f'{"-".join(voice)}_{text_idx:02d}'
 
         if args.output_dir:
