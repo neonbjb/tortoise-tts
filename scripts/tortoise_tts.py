@@ -9,12 +9,6 @@ import time
 import torch
 import torchaudio
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(script_dir)
-
-tortoise_dir = os.path.join(parent_dir, 'tortoise')
-sys.path.append(tortoise_dir)
-
 from tortoise.api import MODELS_DIR, TextToSpeech
 from tortoise.utils.audio import get_voices, load_voices, load_audio
 from tortoise.utils.text import split_and_recombine_text
