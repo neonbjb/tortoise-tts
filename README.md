@@ -136,7 +136,7 @@ Be sure to do that after you activate the environment. If you don't use conda th
 ```shell
 python3.10 -m venv .venv
 source .venv/bin/activate
-pip install numba inflect
+pip install numba inflect psutil
 pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
 pip install transformers
 git clone https://github.com/neonbjb/tortoise-tts.git
