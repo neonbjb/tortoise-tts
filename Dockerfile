@@ -10,12 +10,11 @@ RUN apt-get update && \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-ENV HOME "/root"
-ENV CONDA_DIR "${HOME}/miniconda"
+ENV HOME="/root"
+ENV CONDA_DIR="${HOME}/miniconda"
 ENV PATH="$CONDA_DIR/bin":$PATH
 ENV CONDA_AUTO_UPDATE_CONDA=false
 ENV PIP_DOWNLOAD_CACHE="$HOME/.pip/cache"
-ENV TORTOISE_MODELS_DIR
 
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda3.sh \
     && bash /tmp/miniconda3.sh -b -p "${CONDA_DIR}" -f -u \
