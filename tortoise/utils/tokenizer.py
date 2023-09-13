@@ -170,13 +170,14 @@ DEFAULT_VOCAB_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '
 
 
 class VoiceBpeTokenizer:
-    def __init__(self, vocab_file=DEFAULT_VOCAB_FILE):
-        if vocab_file is not None:
-            self.tokenizer = Tokenizer.from_file(vocab_file)
-
-    def preprocess_text(self, txt):
-        txt = english_cleaners(txt)
-        return txt
+    def __init__(self, vocab_file=None, use_basic_cleaners=False):
+        self.tokenizer = Tokenizer.from_file(
+          DEFAULT_VOCAB_FILE if vocab_file is None else vocab_file
+        )
+        if use_basic_cleaners:
+            self.preprocess_text = basic_cleaners
+        else:
+            self.preprocess_text = english_cleaners
 
     def encode(self, txt):
         txt = self.preprocess_text(txt)

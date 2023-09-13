@@ -207,7 +207,9 @@ class TextToSpeech:
     """
 
     def __init__(self, autoregressive_batch_size=None, models_dir=MODELS_DIR, 
-                 enable_redaction=True, kv_cache=False, use_deepspeed=False, half=False, device=None):
+                 enable_redaction=True, kv_cache=False, use_deepspeed=False, half=False, device=None,
+                 tokenizer_vocab_file=None, tokenizer_basic=False):
+
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -228,7 +230,10 @@ class TextToSpeech:
         if self.enable_redaction:
             self.aligner = Wav2VecAlignment()
 
-        self.tokenizer = VoiceBpeTokenizer()
+        self.tokenizer = VoiceBpeTokenizer(
+            vocab_file=tokenizer_vocab_file,
+            use_basic_cleaners=tokenizer_basic,
+        )
         self.half = half
         if os.path.exists(f'{models_dir}/autoregressive.ptt'):
             # Assume this is a traced directory.
