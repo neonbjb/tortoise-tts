@@ -13,8 +13,9 @@ Manuscript: https://arxiv.org/abs/2305.07243
 Please duplicate space if you don't want to wait in a queue.
 https://huggingface.co/spaces/Manmay/tortoise-tts
 
-### Version history
-### v2.8; 2023/9/13
+## Version history
+
+#### v2.8; 2023/9/13
 - Added custom tokenizer for non-english models
 #### v2.7; 2023/7/26
 - Bug fixes
