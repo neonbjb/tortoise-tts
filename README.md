@@ -8,10 +8,9 @@ Tortoise is a text-to-speech program built with the following priorities:
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
 Manuscript: https://arxiv.org/abs/2305.07243
-## Huggingface space.
+## Huggingface space
 
-- Please duplicate space if you don't want to wait in a queue.
-
+Please duplicate space if you don't want to wait in a queue.
 https://huggingface.co/spaces/Manmay/tortoise-tts
 
 ### Version history
