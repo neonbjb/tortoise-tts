@@ -8,13 +8,21 @@ Tortoise is a text-to-speech program built with the following priorities:
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
 Manuscript: https://arxiv.org/abs/2305.07243
-## Huggingface space
+## Hugging Face space
 
-Please duplicate space if you don't want to wait in a queue.
+A live demo is hosted on Hugging Face Spaces. If you'd like to avoid a queue, please duplicate the Space and add a GPU. Please note that CPU-only spaces do not work for this demo.
+
 https://huggingface.co/spaces/Manmay/tortoise-tts
-## Install via pip 
+
+## Install via pip
+```bash
+pip install tortoise-tts
 ```
-pip install tortoise-tts==3.0.0
+
+If you would like to install the latest development version, you can also install it directly from the git repository:
+
+```bash
+pip install git+https://github.com/neonbjb/tortoise-tts
 ```
 
 ## What's in a name?
@@ -29,11 +37,11 @@ well..... not so slow anymore now we can get a **0.25-0.3 RTF** on 4GB vram and 
 
 See [this page](http://nonint.com/static/tortoise_v2_examples.html) for a large list of example outputs.
 
-Cool application of Tortoise+GPT-3 (not by me): https://twitter.com/lexman_ai
+A cool application of Tortoise + GPT-3 (not affiliated with this repository): https://twitter.com/lexman_ai. Unfortunately, this proejct seems no longer to be active.
 
 ## Usage guide
 
-### Local Installation
+### Local installation
 
 If you want to use this on your own computer, you must have an NVIDIA GPU.
 
@@ -102,7 +110,7 @@ time python tortoise/do_tts.py \
 
 ## Apple Silicon
 
-On MacOS 13+ with M1/M2 chips you need to install the nighly version of pytorch, as stated in the official page you can do:
+On macOS 13+ with M1/M2 chips you need to install the nighly version of PyTorch, as stated in the official page you can do:
 
 ```shell
 pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu
@@ -211,5 +219,9 @@ credit a few of the amazing folks in the community that have helped make this ha
 ## Notice
 
 Tortoise was built entirely by me using my own hardware. My employer was not involved in any facet of Tortoise's development.
+
+## License
+
+Tortoise TTS is licensed under the Apache 2.0 license.
 
 If you use this repo or the ideas therein for your research, please cite it! A bibtex entree can be found in the right pane on GitHub.
