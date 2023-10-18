@@ -162,6 +162,13 @@ This script allows you to speak a single phrase with one or more voices.
 ```shell
 python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast
 ```
+### faster inference read.py
+
+This script provides tools for reading large amounts of text.
+
+```shell
+python tortoise/read_fast.py --textfile <your text to be read> --voice random
+```
 
 ### read.py
 
