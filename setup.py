@@ -29,7 +29,7 @@ setuptools.setup(
         'librosa',
         'transformers==4.31.0',
         'tokenizers',
-        'deepspeed==0.8.3',
+        # 'deepspeed==0.8.3',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

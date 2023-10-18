@@ -38,6 +38,7 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
         self.transformer = gpt
         self.text_pos_embedding = text_pos_emb
         self.embeddings = embeddings
+        self.final_norm = norm
         self.lm_head = nn.Sequential(norm, linear)
         self.kv_cache = kv_cache
         
@@ -509,7 +510,28 @@ class UnifiedVoice(nn.Module):
         loss_text = F.cross_entropy(text_logits, text_targets.long())
         loss_mel = F.cross_entropy(mel_logits, mel_targets.long())
         return loss_text.mean(), loss_mel.mean(), mel_logits
-
+    def compute_embeddings(
+        self,
+        cond_latents,
+        text_inputs,
+    ):
+        text_inputs = F.pad(text_inputs, (0, 1), value=self.stop_text_token)
+        text_inputs = F.pad(text_inputs, (1, 0), value=self.start_text_token)
+        emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
+        conds = cond_latents.unsqueeze(1)
+        emb = torch.cat([conds, emb], dim=1)
+        self.inference_model.store_mel_emb(emb)
+        gpt_inputs = torch.full(
+            (
+                emb.shape[0],
+                emb.shape[1] + 1,  # +1 for the start_mel_token
+            ),
+            fill_value=1,
+            dtype=torch.long,
+            device=text_inputs.device,
+        )
+        gpt_inputs[:, -1] = self.start_mel_token
+        return gpt_inputs
     def inference_speech(self, speech_conditioning_latent, text_inputs, input_tokens=None, num_return_sequences=1,
                          max_generate_length=None, typical_sampling=False, typical_mass=.9, **hf_generate_kwargs):        
 
@@ -540,7 +562,16 @@ class UnifiedVoice(nn.Module):
                                             num_return_sequences=num_return_sequences, **hf_generate_kwargs)
         return gen[:, trunc_index:]
 
-
+    def get_generator(self, fake_inputs, **hf_generate_kwargs):
+        return self.inference_model.generate_stream(
+            fake_inputs,
+            bos_token_id=self.start_mel_token,
+            pad_token_id=self.stop_mel_token,
+            eos_token_id=self.stop_mel_token,
+            max_length=500,
+            do_stream=True,
+            **hf_generate_kwargs,
+        )
 if __name__ == '__main__':
     gpt = UnifiedVoice(model_dim=256, heads=4, train_solo_embeddings=True, use_mel_codes_as_input=True, max_conditioning_inputs=4)
     l = gpt(torch.randn(2, 3, 80, 800),
