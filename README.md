@@ -14,7 +14,8 @@ Please duplicate space if you don't want to wait in a queue.
 https://huggingface.co/spaces/Manmay/tortoise-tts
 
 ## Version history
-
+#### v3.0; 2023/10/18
+- Added fast inference for tortoise with hifidecoder(inspired by xtts by [coquiTTS](https://github.com/coqui-ai/TTS) 🐸, check their multi-lingual model)
 #### v2.8; 2023/9/13
 - Added custom tokenizer for non-english models
 #### v2.7; 2023/7/26
