@@ -12,6 +12,10 @@ Manuscript: https://arxiv.org/abs/2305.07243
 
 Please duplicate space if you don't want to wait in a queue.
 https://huggingface.co/spaces/Manmay/tortoise-tts
+## Install via pip 
+```
+pip install tortoise-tts==3.0.0
+```
 
 ## Version history
 #### v3.0.0; 2023/10/18
