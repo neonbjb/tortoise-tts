@@ -27,9 +27,10 @@ def load_wav_to_torch(full_path):
 
 
 def load_audio(audiopath, sampling_rate):
-    if audiopath[-4:] == '.wav':
+    extension = os.path.splitext(audiopath)[1].casefold()
+    if extension == '.wav':
         audio, lsr = load_wav_to_torch(audiopath)
-    elif audiopath[-4:] == '.mp3':
+    elif extension == '.mp3':
         audio, lsr = librosa.load(audiopath, sr=sampling_rate)
         audio = torch.FloatTensor(audio)
     else:
