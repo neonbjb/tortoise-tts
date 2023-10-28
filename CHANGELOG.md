@@ -1,6 +1,6 @@
-## Version history
+## Changelog
 #### v3.0.0; 2023/10/18
-- Added fast inference for tortoise with hifidecoder(inspired by xtts by [coquiTTS](https://github.com/coqui-ai/TTS) 🐸, check their multi-lingual model)
+- Added fast inference for tortoise with HiFi Decoder (inspired by xtts by [coquiTTS](https://github.com/coqui-ai/TTS) 🐸, check out their multilingual model for noncommercial uses)
 #### v2.8.0; 2023/9/13
 - Added custom tokenizer for non-english models
 #### v2.7.0; 2023/7/26
