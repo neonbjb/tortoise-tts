@@ -1,4 +1,4 @@
-## Voice customization guide
+## Voice Customization Guide
 
 Tortoise was specifically trained to be a multi-speaker model. It accomplishes this by consulting reference clips.
 
