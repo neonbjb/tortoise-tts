@@ -218,7 +218,7 @@ credit a few of the amazing folks in the community that have helped make this ha
 
 ## Notice
 
-Tortoise was built entirely by me using my own hardware. My employer was not involved in any facet of Tortoise's development.
+Tortoise was built entirely by the author (James Betker) using their own hardware. Their employer was not involved in any facet of Tortoise's development.
 
 ## License
 
