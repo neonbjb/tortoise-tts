@@ -67,13 +67,34 @@ class ResBlock1(torch.nn.Module):
         self.convs2 = nn.ModuleList(
             [
                 weight_norm(
-                    Conv1d(channels, channels, kernel_size, 1, dilation=1, padding=get_padding(kernel_size, 1))
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
                 ),
                 weight_norm(
-                    Conv1d(channels, channels, kernel_size, 1, dilation=1, padding=get_padding(kernel_size, 1))
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
                 ),
                 weight_norm(
-                    Conv1d(channels, channels, kernel_size, 1, dilation=1, padding=get_padding(kernel_size, 1))
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
                 ),
             ]
         )
@@ -197,7 +218,9 @@ class HifiganGenerator(torch.nn.Module):
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_factors)
         # initial upsampling layers
-        self.conv_pre = weight_norm(Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
+        self.conv_pre = weight_norm(
+            Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3)
+        )
         resblock = ResBlock1 if resblock_type == "1" else ResBlock2
         # upsampling layers
         self.ups = nn.ModuleList()
@@ -217,10 +240,14 @@ class HifiganGenerator(torch.nn.Module):
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2 ** (i + 1))
-            for _, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+            for _, (k, d) in enumerate(
+                zip(resblock_kernel_sizes, resblock_dilation_sizes)
+            ):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer
-        self.conv_post = weight_norm(Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias))
+        self.conv_post = weight_norm(
+            Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias)
+        )
         if cond_channels > 0:
             self.cond_layer = nn.Conv1d(cond_channels, upsample_initial_channel, 1)
 
@@ -230,9 +257,9 @@ class HifiganGenerator(torch.nn.Module):
         if not conv_post_weight_norm:
             remove_weight_norm(self.conv_post)
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if torch.backends.mps.is_available():
-            self.device = torch.device('mps')
+            self.device = torch.device("mps")
 
     def forward(self, x, g=None):
         """
@@ -281,17 +308,17 @@ class HifiganGenerator(torch.nn.Module):
         # c = c.to(self.conv_pre.weight.device)
         # c = torch.nn.functional.pad(c, (self.inference_padding, self.inference_padding), "replicate")
         up_1 = torch.nn.functional.interpolate(
-                c.transpose(1,2),
-                scale_factor=[1024 / 256],
-                mode="linear",
-            )
+            c.transpose(1, 2),
+            scale_factor=[1024 / 256],
+            mode="linear",
+        )
         up_2 = torch.nn.functional.interpolate(
             up_1,
             scale_factor=[24000 / 22050],
             mode="linear",
         )
         g = g.unsqueeze(0)
-        return self.forward(up_2.to(self.device), g.transpose(1,2))
+        return self.forward(up_2.to(self.device), g.transpose(1, 2))
 
     def remove_weight_norm(self):
         print("Removing weight norm...")

@@ -1,7 +1,13 @@
 import torch
 import torch.nn as nn
 
-from tortoise.models.arch_util import Upsample, Downsample, normalization, zero_module, AttentionBlock
+from tortoise.models.arch_util import (
+    Upsample,
+    Downsample,
+    normalization,
+    zero_module,
+    AttentionBlock,
+)
 
 
 class ResBlock(nn.Module):
@@ -49,7 +55,9 @@ class ResBlock(nn.Module):
             nn.SiLU(),
             nn.Dropout(p=dropout),
             zero_module(
-                nn.Conv1d(self.out_channels, self.out_channels, kernel_size, padding=padding)
+                nn.Conv1d(
+                    self.out_channels, self.out_channels, kernel_size, padding=padding
+                )
             ),
         )
 
@@ -76,38 +84,44 @@ class ResBlock(nn.Module):
 
 
 class AudioMiniEncoder(nn.Module):
-    def __init__(self,
-                 spec_dim,
-                 embedding_dim,
-                 base_channels=128,
-                 depth=2,
-                 resnet_blocks=2,
-                 attn_blocks=4,
-                 num_attn_heads=4,
-                 dropout=0,
-                 downsample_factor=2,
-                 kernel_size=3):
+    def __init__(
+        self,
+        spec_dim,
+        embedding_dim,
+        base_channels=128,
+        depth=2,
+        resnet_blocks=2,
+        attn_blocks=4,
+        num_attn_heads=4,
+        dropout=0,
+        downsample_factor=2,
+        kernel_size=3,
+    ):
         super().__init__()
-        self.init = nn.Sequential(
-            nn.Conv1d(spec_dim, base_channels, 3, padding=1)
-        )
+        self.init = nn.Sequential(nn.Conv1d(spec_dim, base_channels, 3, padding=1))
         ch = base_channels
         res = []
         self.layers = depth
         for l in range(depth):
             for r in range(resnet_blocks):
-                res.append(ResBlock(ch, dropout, do_checkpoint=False, kernel_size=kernel_size))
-            res.append(Downsample(ch, use_conv=True, out_channels=ch*2, factor=downsample_factor))
+                res.append(
+                    ResBlock(ch, dropout, do_checkpoint=False, kernel_size=kernel_size)
+                )
+            res.append(
+                Downsample(
+                    ch, use_conv=True, out_channels=ch * 2, factor=downsample_factor
+                )
+            )
             ch *= 2
         self.res = nn.Sequential(*res)
         self.final = nn.Sequential(
-            normalization(ch),
-            nn.SiLU(),
-            nn.Conv1d(ch, embedding_dim, 1)
+            normalization(ch), nn.SiLU(), nn.Conv1d(ch, embedding_dim, 1)
         )
         attn = []
         for a in range(attn_blocks):
-            attn.append(AttentionBlock(embedding_dim, num_attn_heads, do_checkpoint=False))
+            attn.append(
+                AttentionBlock(embedding_dim, num_attn_heads, do_checkpoint=False)
+            )
         self.attn = nn.Sequential(*attn)
         self.dim = embedding_dim
 
@@ -138,8 +152,12 @@ class AudioMiniEncoderWithClassifierHead(nn.Module):
                 oh_labels = nn.functional.one_hot(labels, num_classes=self.num_classes)
                 zeros_indices = (labels == 0).unsqueeze(-1)
                 # Distribute 20% of the probability mass on all classes when zero is specified, to compensate for dataset noise.
-                zero_extra_mass = torch.full_like(oh_labels, dtype=torch.float, fill_value=.2/(self.num_classes-1))
-                zero_extra_mass[:, 0] = -.2
+                zero_extra_mass = torch.full_like(
+                    oh_labels,
+                    dtype=torch.float,
+                    fill_value=0.2 / (self.num_classes - 1),
+                )
+                zero_extra_mass[:, 0] = -0.2
                 zero_extra_mass = zero_extra_mass * zeros_indices
                 oh_labels = oh_labels + zero_extra_mass
             else:
