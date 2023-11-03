@@ -8,11 +8,12 @@ Tortoise is a text-to-speech program built with the following priorities:
 This repo contains all the code needed to run Tortoise TTS in inference mode.
 
 Manuscript: https://arxiv.org/abs/2305.07243
-## Hugging Face space
+
+## Live Demo
 
 A live demo is hosted on Hugging Face Spaces. If you'd like to avoid a queue, please duplicate the Space and add a GPU. Please note that CPU-only spaces do not work for this demo.
 
-https://huggingface.co/spaces/Manmay/tortoise-tts
+[Live Demo](https://huggingface.co/spaces/Manmay/tortoise-tts)
 
 ## Install via pip
 ```bash
@@ -33,20 +34,19 @@ sampling rates. On a K80, expect to generate a medium sized sentence every 2 min
 
 well..... not so slow anymore now we can get a **0.25-0.3 RTF** on 4GB vram and with streaming we can get < **500 ms** latency !!! 
 
-## Demos
+## Examples
 
 See [this page](http://nonint.com/static/tortoise_v2_examples.html) for a large list of example outputs.
 
 A cool application of Tortoise + GPT-3 (not affiliated with this repository): https://twitter.com/lexman_ai. Unfortunately, this proejct seems no longer to be active.
 
-## Usage guide
+## Usage Guide
 
-### Local installation
+### Local Installation
 
-If you want to use this on your own computer, you must have an NVIDIA GPU.
+If you'd like to run this locally, a Nvidia GPU is highly recommended, however MPS (Apple Silicon) computers are now supported.
 
-On Windows, I **highly** recommend using the Conda installation path. I have been told that if you do not do this, you
-will spend a lot of time chasing dependency problems.
+On Windows, I **highly** recommend using the Conda installation path. I have been told that if you do not do this, you will spend a lot of time chasing dependency problems.
 
 First, install miniconda: https://docs.conda.io/en/latest/miniconda.html
 
@@ -130,24 +130,17 @@ pip install .
 ```
 
 Be aware that DeepSpeed is disabled on Apple Silicon since it does not work. The flag `--use_deepspeed` is ignored.
-You may need to prepend `PYTORCH_ENABLE_MPS_FALLBACK=1` to the commands below to make them work since MPS does not support all the operations in Pytorch.
 
+You may also need to prepend `PYTORCH_ENABLE_MPS_FALLBACK=1` to the commands below to make them work since MPS does not support all the operations in PyTorch, however we have extensively tested Tortoise on Apple Silicon hardware and have not encountered any issues without this flag.
 
-### do_tts.py
+### Read Single Phrase (`do_tts.py`)
 
 This script allows you to speak a single phrase with one or more voices.
 ```shell
 python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast
 ```
-### faster inference read.py
 
-This script provides tools for reading large amounts of text.
-
-```shell
-python tortoise/read_fast.py --textfile <your text to be read> --voice random
-```
-
-### read.py
+### Read Long Text (`read.py`)
 
 This script provides tools for reading large amounts of text.
 
@@ -162,7 +155,17 @@ output that as well.
 Sometimes Tortoise screws up an output. You can re-generate any bad clips by re-running `read.py` with the --regenerate
 argument.
 
-### API
+### Read Long Text w/ Faster Implementation (`read_fast.py`)
+
+This script provides tools for reading large amounts of text.
+
+```shell
+python tortoise/read_fast.py --textfile <your text to be read> --voice random
+```
+
+
+
+### Programatic API
 
 Tortoise can be used programmatically, like so:
 
@@ -172,7 +175,7 @@ tts = api.TextToSpeech()
 pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
 ```
 
-To use deepspeed:
+To use DeepSpeed:
 
 ```python
 reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
@@ -180,7 +183,7 @@ tts = api.TextToSpeech(use_deepspeed=True)
 pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
 ```
 
-To use kv cache:
+To use KV Cache:
 
 ```python
 reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
@@ -188,14 +191,14 @@ tts = api.TextToSpeech(kv_cache=True)
 pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
 ```
 
-To run model in float16:
+To run model in `float16`:
 
 ```python
 reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
 tts = api.TextToSpeech(half=True)
 pcm_audio = tts.tts_with_preset("your text here", voice_samples=reference_clips, preset='fast')
 ```
-for Faster runs use all three:
+For faster inference combine all three:
 
 ```python
 reference_clips = [utils.audio.load_audio(p, 22050) for p in clips_paths]
@@ -219,6 +222,8 @@ credit a few of the amazing folks in the community that have helped make this ha
 ## Notice
 
 Tortoise was built entirely by the author (James Betker) using their own hardware. Their employer was not involved in any facet of Tortoise's development.
+
+Tortoise is no longer maintained by James Betker but is now primarily maintained by [Manmay Nakhashi](https://github.com/manmay-nakhashi).
 
 ## License
 
