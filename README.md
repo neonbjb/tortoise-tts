@@ -53,12 +53,12 @@ First, install miniconda: https://docs.conda.io/en/latest/miniconda.html
 Then run the following commands, using anaconda prompt as the terminal (or any other terminal configured to work with conda)
 
 This will:
-1. create conda environment with minimal dependencies specified
-1. activate the environment
-1. install pytorch with the command provided here: https://pytorch.org/get-started/locally/
-1. clone tortoise-tts
-1. change the current directory to tortoise-tts
-1. run tortoise python setup install script
+1. Create a Conda environment with minimal dependencies specified
+2. Activate the environment
+3. Install pytorch with the command provided here: https://pytorch.org/get-started/locally/
+4. Clone tortoise-tts
+5. Change the current directory to tortoise-tts
+6. Run tortoise python setup install script
 
 ```shell
 conda create --name tortoise python=3.9 numba inflect
