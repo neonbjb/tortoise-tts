@@ -16,7 +16,7 @@ from tqdm import tqdm
 from tortoise.models.arch_util import TorchMelSpectrogram
 from tortoise.models.clvp import CLVP
 from tortoise.models.cvvp import CVVP
-from tortoise.models.hifigan_decoder import HifiganGenerator
+from .models.hifigan_decoder import HifiganGenerator
 from tortoise.models.random_latent_generator import RandomLatentConverter
 from tortoise.models.vocoder import UnivNetGenerator
 from tortoise.utils.audio import wav_to_univnet_mel, denormalize_tacotron_mel
