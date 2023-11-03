@@ -362,7 +362,7 @@ class TextToSpeech:
             if verbose:
                 print("Generating autoregressive samples..")
             with torch.autocast(
-                    device_type="cuda" , dtype=torch.float16, enabled=self.half
+                    device_type="cuda" if not torch.backends.mps.is_available() else 'mps', dtype=torch.float16, enabled=self.half
                 ):
                 fake_inputs = self.autoregressive.compute_embeddings(
                     auto_conditioning,
@@ -391,7 +391,7 @@ class TextToSpeech:
             while not is_end:
                 try:
                     with torch.autocast(
-                        device_type="cuda", dtype=torch.float16, enabled=self.half
+                        device_type="cuda" if not torch.backends.mps.is_available() else 'mps', dtype=torch.float16, enabled=self.half
                     ):
                         codes, latent = next(gpt_generator)
                         all_latents += [latent]
@@ -470,7 +470,7 @@ class TextToSpeech:
             if verbose:
                 print("Generating autoregressive samples..")
             with torch.autocast(
-                    device_type="cuda" , dtype=torch.float16, enabled=self.half
+                    device_type="cuda" if not torch.backends.mps.is_available() else 'mps', dtype=torch.float16, enabled=self.half
                 ):
                 codes = self.autoregressive.inference_speech(auto_conditioning, text_tokens,
                                                             top_k=50,
