@@ -152,7 +152,9 @@ def pick_best_batch_size_for_gpu():
     if torch.cuda.is_available():
         _, available = torch.cuda.mem_get_info()
         availableGb = available / (1024 ** 3)
-        if availableGb > 14:
+        if availableGb > 40:
+            return 32
+        elif availableGb > 14:
             return 16
         elif availableGb > 10:
             return 8
@@ -162,7 +164,9 @@ def pick_best_batch_size_for_gpu():
         import psutil
         available = psutil.virtual_memory().total
         availableGb = available / (1024 ** 3)
-        if availableGb > 14:
+        if availableGb > 40:
+            return 32
+        elif availableGb > 14:
             return 16
         elif availableGb > 10:
             return 8
@@ -193,9 +197,11 @@ class TextToSpeech:
         self.models_dir = models_dir
         self.autoregressive_batch_size = pick_best_batch_size_for_gpu() if autoregressive_batch_size is None else autoregressive_batch_size
         self.enable_redaction = enable_redaction
-        self.device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
+        self.device = 'cpu'
+        if torch.cuda.is_available():
+            self.device = 'cuda'
         if torch.backends.mps.is_available():
-            self.device = torch.device('mps')
+            self.device = 'mps'
         if self.enable_redaction:
             self.aligner = Wav2VecAlignment()
 
