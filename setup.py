@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setuptools.setup(
     name="tortoise-tts",
     packages=setuptools.find_packages(),
-    version="3.0.1",
+    version="3.0.2",
     author="James Betker",
     author_email="james@adamant.ai",
     description="A high quality multi-voice text-to-speech library",
