@@ -403,7 +403,7 @@ class TextToSpeech:
             if not torch.backends.mps.is_available():
                 with self.temporary_cuda(self.autoregressive
                 ) as autoregressive, torch.autocast(device_type="cuda", dtype=torch.float16, enabled=self.half):
-                    for b in tqdm(range(num_batches), disable=not verbose):
+                    for b in (tqdm(range(num_batches)) if verbose else range(num_batches)):
                         codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
                                                                     do_sample=True,
                                                                     top_p=top_p,
