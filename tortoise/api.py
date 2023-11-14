@@ -418,7 +418,7 @@ class TextToSpeech:
                         samples.append(codes)
             else:
                 with self.temporary_cuda(self.autoregressive) as autoregressive:
-                    for b in tqdm(range(num_batches), disable=not verbose):
+                    for b in (tqdm(range(num_batches)) if verbose else range(num_batches)):
                         codes = autoregressive.inference_speech(auto_conditioning, text_tokens,
                                                                     do_sample=True,
                                                                     top_p=top_p,
@@ -447,7 +447,8 @@ class TextToSpeech:
                             print("Computing best candidates using CLVP")
                         else:
                             print(f"Computing best candidates using CLVP {((1-cvvp_amount) * 100):2.0f}% and CVVP {(cvvp_amount * 100):2.0f}%")
-                    for batch in tqdm(samples, disable=not verbose):
+                    # for batch in tqdm(samples, disable=not verbose):
+                    for batch in (tqdm(range(samples)) if verbose else range(samples)):
                         for i in range(batch.shape[0]):
                             batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
                         if cvvp_amount != 1:
@@ -477,7 +478,7 @@ class TextToSpeech:
                             print("Computing best candidates using CLVP")
                         else:
                             print(f"Computing best candidates using CLVP {((1-cvvp_amount) * 100):2.0f}% and CVVP {(cvvp_amount * 100):2.0f}%")
-                    for batch in tqdm(samples, disable=not verbose):
+                    for batch in (tqdm(range(samples)) if verbose else range(samples)):
                         for i in range(batch.shape[0]):
                             batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
                         if cvvp_amount != 1:
