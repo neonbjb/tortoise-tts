@@ -297,7 +297,7 @@ class TextToSpeech:
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
-    def tts_with_preset(self, text, preset='fast', **kwargs):
+    def tts_with_preset(self, text, preset='fast', tqdm=tqdm, **kwargs):
         """
         Calls TTS with one of a set of preset generation parameters. Options:
             'ultra_fast': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
@@ -318,7 +318,7 @@ class TextToSpeech:
         }
         settings.update(presets[preset])
         settings.update(kwargs) # allow overriding of preset settings with kwargs
-        return self.tts(text, **settings)
+        return self.tts(text, tqdm=tqdm, **settings)
 
     def tts(self, text, voice_samples=None, conditioning_latents=None, k=1, verbose=True, use_deterministic_seed=None,
             return_deterministic_state=False,
