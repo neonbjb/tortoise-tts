@@ -254,7 +254,7 @@ class TextToSpeech:
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0]))
 
-    def tts_with_preset(self, text, preset='fast', **kwargs):
+    def tts_with_preset(self, text, preset='fast', tqdm=tqdm, **kwargs):
         """
         Calls TTS with one of a set of preset generation parameters. Options:
             'ultra_fast': Produces speech at a speed which belies the name of this repo. (Not really, but it's definitely fastest).
@@ -275,7 +275,7 @@ class TextToSpeech:
         }
         settings.update(presets[preset])
         settings.update(kwargs) # allow overriding of preset settings with kwargs
-        for audio_frame in self.tts(text, **settings):
+        for audio_frame in self.tts(text, tqdm=tqdm, **settings):
             yield audio_frame
     # taken from here https://github.com/coqui-ai/TTS/blob/d21f15cc850788f9cdf93dac0321395138665287/TTS/tts/models/xtts.py#L666
     def handle_chunks(self, wav_gen, wav_gen_prev, wav_overlap, overlap_len):
@@ -409,6 +409,7 @@ class TextToSpeech:
             top_p=.8, max_mel_tokens=500,
             # CVVP parameters follow
             cvvp_amount=.0,
+            tqdm=tqdm,
             **hf_generate_kwargs):
         """
         Produces an audio clip of the given text being spoken with the given reference voice.
