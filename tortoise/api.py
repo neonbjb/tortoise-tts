@@ -277,30 +277,47 @@ class TextToSpeech:
         :param voice_samples: List of 2 or more ~10 second reference clips, which should be torch tensors containing 22.05kHz waveform data.
         """
         with torch.no_grad():
-            voice_samples = [v.to(self.device) for v in voice_samples]
+            device = self.device
+            if not torch.cuda.is_available():
+                print("CUDA is not available, using CPU to process latents")
+                device = torch.device('cpu')
+                use_cpu = True
+
+            voice_samples = [v.to(device) for v in voice_samples]
 
             auto_conds = []
             if not isinstance(voice_samples, list):
                 voice_samples = [voice_samples]
             for vs in voice_samples:
-                auto_conds.append(format_conditioning(vs, device=self.device))
+                if use_cpu:
+                    auto_conds.append(format_conditioning(vs, device="cpu"))
+                else:
+                    auto_conds.append(format_conditioning(vs, device=self.device))
             auto_conds = torch.stack(auto_conds, dim=1)
-            self.autoregressive = self.autoregressive.to(self.device)
+            self.autoregressive = self.autoregressive.to(device)
             auto_latent = self.autoregressive.get_conditioning(auto_conds)
-            self.autoregressive = self.autoregressive.cpu()
+            if not use_cpu:
+                self.autoregressive = self.autoregressive.cpu()
 
             diffusion_conds = []
             for sample in voice_samples:
                 # The diffuser operates at a sample rate of 24000 (except for the latent inputs)
                 sample = torchaudio.functional.resample(sample, 22050, 24000)
                 sample = pad_or_truncate(sample, 102400)
-                cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
+                if use_cpu:
+                    cond_mel = wav_to_univnet_mel(sample.to(device), do_normalization=False, device=device)
+                else:
+                    cond_mel = wav_to_univnet_mel(sample.to(self.device), do_normalization=False, device=self.device)
                 diffusion_conds.append(cond_mel)
             diffusion_conds = torch.stack(diffusion_conds, dim=1)
 
-            self.diffusion = self.diffusion.to(self.device)
-            diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
-            self.diffusion = self.diffusion.cpu()
+            if use_cpu:
+                diffusion_conds = diffusion_conds.to(device)
+                diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
+            else:
+                self.diffusion = self.diffusion.to(self.device)
+                diffusion_latent = self.diffusion.get_conditioning(diffusion_conds)
+                self.diffusion = self.diffusion.cpu()
 
         if return_mels:
             return auto_latent, diffusion_latent, auto_conds, diffusion_conds
@@ -395,7 +412,6 @@ class TextToSpeech:
                  Sample rate is 24kHz.
         """
         deterministic_seed = self.deterministic_state(seed=use_deterministic_seed)
-
         text_tokens = torch.IntTensor(self.tokenizer.encode(text)).unsqueeze(0).to(self.device)
         text_tokens = F.pad(text_tokens, (0, 1))  # This may not be necessary.
         assert text_tokens.shape[-1] < 400, 'Too much text provided. Break the text up into separate segments and re-try inference.'
@@ -409,7 +425,6 @@ class TextToSpeech:
             auto_conditioning, diffusion_conditioning = self.get_random_conditioning_latents()
         auto_conditioning = auto_conditioning.to(self.device)
         diffusion_conditioning = diffusion_conditioning.to(self.device)
-
         diffuser = load_discrete_vocoder_diffuser(desired_diffusion_steps=diffusion_iterations, cond_free=cond_free, cond_free_k=cond_free_k)
 
         with torch.no_grad():

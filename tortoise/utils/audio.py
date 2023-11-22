@@ -105,7 +105,10 @@ def load_voice(voice, extra_voice_dirs=[]):
     voices = get_voices(extra_voice_dirs)
     paths = voices[voice]
     if len(paths) == 1 and paths[0].endswith('.pth'):
-        return None, torch.load(paths[0])
+        if torch.cuda.is_available():
+            return None, torch.load(paths[0])
+        else:
+            return None, torch.load(paths[0], map_location='cpu')
     else:
         conds = []
         for cond_path in paths:
@@ -123,6 +126,7 @@ def load_voices(voices, extra_voice_dirs=[]):
                 print("Cannot combine a random voice with a non-random voice. Just using a random voice.")
             return None, None
         clip, latent = load_voice(voice, extra_voice_dirs)
+        print ("voice is loaded")
         if latent is None:
             assert len(latents) == 0, "Can only combine raw audio voices or latent voices, not both. Do it yourself if you want this."
             clips.extend(clip)
