@@ -1,4 +1,4 @@
-import torch
+import torch, torch_directml
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -208,10 +208,16 @@ class LVCBlock(torch.nn.Module):
         x = x.unfold(4, kernel_size, 1)  # (batch, in_channels, kernel_length, dilation, _, kernel_size)
 
         o = torch.einsum('bildsk,biokl->bolsd', x, kernel)
-        o = o.to(memory_format=torch.channels_last_3d)
-        bias = bias.unsqueeze(-1).unsqueeze(-1).to(memory_format=torch.channels_last_3d)
-        o = o + bias
-        o = o.contiguous().view(batch, out_channels, -1)
+
+        if torch_directml.is_available():
+            o = o + bias.unsqueeze(-1).unsqueeze(-1)
+            o = o.contiguous().view(batch, out_channels, -1)
+
+        else:
+            o = o.to(memory_format=torch.channels_last_3d)
+            bias = bias.unsqueeze(-1).unsqueeze(-1).to(memory_format=torch.channels_last_3d)
+            o = o + bias
+            o = o.contiguous().view(batch, out_channels, -1)
 
         return o
 
