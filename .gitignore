@@ -133,3 +133,6 @@ dmypy.json
 .custom/*
 results/*
 debug_states/*
+
+# Ignore docker data files
+docker_data
