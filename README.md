@@ -108,7 +108,7 @@ time python tortoise/do_tts.py \
     --text "Time flies like an arrow; fruit flies like a bananna."
 ```
 
-## Apple Silicon
+### Apple Silicon
 
 On macOS 13+ with M1/M2 chips you need to install the nighly version of PyTorch, as stated in the official page you can do:
 
