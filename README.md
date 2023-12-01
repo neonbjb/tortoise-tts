@@ -37,7 +37,7 @@ well..... not so slow anymore now we can get a **0.25-0.3 RTF** on 4GB vram and 
 
 See [this page](http://nonint.com/static/tortoise_v2_examples.html) for a large list of example outputs.
 
-A cool application of Tortoise + GPT-3 (not affiliated with this repository): https://twitter.com/lexman_ai. Unfortunately, this proejct seems no longer to be active.
+A cool application of Tortoise + GPT-3 (not affiliated with this repository): https://twitter.com/lexman_ai. Unfortunately, this project seems no longer to be active.
 
 ## Usage guide
 
