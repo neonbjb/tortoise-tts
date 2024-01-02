@@ -386,6 +386,7 @@ class TextToSpeech:
             auto_conditioning, diffusion_conditioning = conditioning_latents
         else:
             auto_conditioning, diffusion_conditioning = self.get_random_conditioning_latents()
+        debug_conditioning = (auto_conditioning, diffusion_conditioning)
         auto_conditioning = auto_conditioning.to(self.device)
         diffusion_conditioning = diffusion_conditioning.to(self.device)
 
@@ -581,7 +582,7 @@ class TextToSpeech:
                 res = wav_candidates[0]
 
             if return_deterministic_state:
-                return res, (deterministic_seed, text, voice_samples, conditioning_latents)
+                return res, (deterministic_seed, text, voice_samples, conditioning_latents, debug_conditioning)
             else:
                 return res
     def deterministic_state(self, seed=None):
