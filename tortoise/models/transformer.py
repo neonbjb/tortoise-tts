@@ -3,7 +3,7 @@ from functools import partial
 import torch
 import torch.nn.functional as F
 from einops import rearrange
-from rotary_embedding_torch import RotaryEmbedding, broadcat
+from rotary_embedding_torch import RotaryEmbedding
 from torch import nn
 
 
