@@ -181,9 +181,13 @@ class TacotronSTFT(torch.nn.Module):
         return mel_output
 
 
-def wav_to_univnet_mel(wav, do_normalization=False, device='cuda' if not torch.backends.mps.is_available() else 'mps'):
-    stft = TacotronSTFT(1024, 256, 1024, 100, 24000, 0, 12000)
-    stft = stft.to(device)
+def wav_to_univnet_mel(wav, do_normalization=False,
+                       device='cuda' if not torch.backends.mps.is_available() else 'mps',
+                       stft=None):
+    # Don't require stft to be passed, but use it if it is.
+    if stft is None:
+        stft = TacotronSTFT(1024, 256, 1024, 100, 24000, 0, 12000)
+        stft = stft.to(device)
     mel = stft.mel_spectrogram(wav)
     if do_normalization:
         mel = normalize_tacotron_mel(mel)
