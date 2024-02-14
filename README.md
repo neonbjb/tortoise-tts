@@ -45,7 +45,7 @@ A cool application of Tortoise + GPT-3 (not affiliated with this repository): ht
 
 If you want to use this on your own computer, you must have an NVIDIA GPU.
 
-On Windows, I **highly** recommend using the Conda installation path. I have been told that if you do not do this, you
+On Windows, I **highly** recommend using the Conda installation method. I have been told that if you do not do this, you
 will spend a lot of time chasing dependency problems.
 
 First, install miniconda: https://docs.conda.io/en/latest/miniconda.html
