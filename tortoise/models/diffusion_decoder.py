@@ -219,14 +219,21 @@ class DiffusionTts(nn.Module):
         }
         return groups
 
-    def get_conditioning(self, conditioning_input):
+    def get_conditioning(self, conditioning_input, return_average=True):
         speech_conditioning_input = conditioning_input.unsqueeze(1) if len(
             conditioning_input.shape) == 3 else conditioning_input
         conds = []
         for j in range(speech_conditioning_input.shape[1]):
-            conds.append(self.contextual_embedder(speech_conditioning_input[:, j]))
-        conds = torch.cat(conds, dim=-1)
-        conds = conds.mean(dim=-1)
+            diff_context = self.contextual_embedder(speech_conditioning_input[:, j])
+            if not return_average:
+                # We must still average across the last dim per sample (we don't average cross all samples)
+                diff_context = diff_context.mean(dim=-1)
+            conds.append(diff_context)
+        if return_average:
+            conds = torch.cat(conds, dim=-1)
+            conds = conds.mean(dim=-1)
+        else:
+            conds = torch.stack(conds,dim=1)
         return conds
 
     def timestep_independent(self, aligned_conditioning, conditioning_latent, expected_seq_len, return_code_pred):

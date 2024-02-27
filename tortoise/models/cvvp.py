@@ -108,6 +108,9 @@ class CVVP(nn.Module):
             mel_input,
             return_loss=False
     ):
+
+        #print(f'MEL COND SHAPE:{mel_cond.shape}')
+        #print(f'MEL IN SHAPE: {mel_input.shape}')
         cond_emb = self.cond_emb(mel_cond).permute(0, 2, 1)
         enc_cond = self.conditioning_transformer(cond_emb)
         cond_latents = self.to_conditioning_latent(enc_cond)

@@ -8,7 +8,7 @@ import numpy as np
 from scipy.io.wavfile import read
 
 from tortoise.utils.stft import STFT
-
+from tortoise.utils.misc_helpers import Timer
 
 BUILTIN_VOICES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../voices')
 
