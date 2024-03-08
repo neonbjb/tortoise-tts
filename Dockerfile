@@ -28,7 +28,7 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 RUN conda create --name tortoise python=3.9 numba inflect \
     && conda activate tortoise \
-    && conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia \
-    && conda install transformers=4.29.2 \
+    && conda install -y pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia \
+    && conda install -y transformers=4.29.2 \
     && cd /app \
     && python setup.py install
