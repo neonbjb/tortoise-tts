@@ -81,5 +81,9 @@ if __name__ == '__main__':
             audio_generator = tts.tts_stream(text, voice_samples=voice_samples, use_deterministic_seed=seed)
             for wav_chunk in audio_generator:
                 audio_queue.put(wav_chunk)
+            end_time = time()  # Measure end time
+            elapsed_time = end_time - start_time  # Calculate elapsed time
+            print(f"Time taken to generate audio: {elapsed_time:.2f} seconds")  # Print elapsed time
+            
     audio_queue.put(None)
     playback_thread.join()
