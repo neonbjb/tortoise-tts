@@ -13,7 +13,7 @@ if __name__ == '__main__':
     parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
                                                  'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='random')
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='fast')
-    parser.add_argument('--use_deepspeed', type=str, help='Which voice preset to use.', default=False)
+    parser.add_argument('--use_deepspeed', type=str, help='Use deepspeed for speed bump.', default=False)
     parser.add_argument('--kv_cache', type=bool, help='If you disable this please wait for a long a time to get the output', default=True)
     parser.add_argument('--half', type=bool, help="float16(half) precision inference if True it's faster and take less vram and ram", default=True)
     parser.add_argument('--output_path', type=str, help='Where to store outputs.', default='results/')
