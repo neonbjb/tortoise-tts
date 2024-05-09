@@ -129,8 +129,10 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
             return_dict if return_dict is not None else self.config.use_return_dict
         )
 
+
         # Create embedding
         mel_len = self.cached_mel_emb.shape[1]
+
         if input_ids.shape[1] != 1:
             text_inputs = input_ids[:, mel_len:]
             text_emb = self.embeddings(text_inputs)
@@ -147,6 +149,8 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
             emb = emb + self.text_pos_embedding.get_fixed_embedding(
                 attention_mask.shape[1] - mel_len, attention_mask.device
             )
+
+
         transformer_outputs = self.transformer(
             inputs_embeds=emb,
             past_key_values=past_key_values,
@@ -159,8 +163,9 @@ class GPT2InferenceModel(GPT2PreTrainedModel):
             use_cache=use_cache,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
+            return_dict=return_dict
         )
+
         hidden_states = transformer_outputs[0]
 
         # Set device for model parallelism
@@ -441,15 +446,17 @@ class UnifiedVoice(nn.Module):
         else:
             return first_logits
 
-    def get_conditioning(self, speech_conditioning_input):
+    def get_conditioning(self, speech_conditioning_input, return_average=True):
         speech_conditioning_input = speech_conditioning_input.unsqueeze(1) if len(
             speech_conditioning_input.shape) == 3 else speech_conditioning_input
         conds = []
         for j in range(speech_conditioning_input.shape[1]):
             conds.append(self.conditioning_encoder(speech_conditioning_input[:, j]))
         conds = torch.stack(conds, dim=1)
-        conds = conds.mean(dim=1)
+        if return_average:
+            conds = conds.mean(dim=1)
         return conds
+
 
     def forward(self, speech_conditioning_latent, text_inputs, text_lengths, mel_codes, wav_lengths, types=None, text_first=True, raw_mels=None, return_attentions=False,
                 return_latent=False, clip_inputs=True):
@@ -485,7 +492,11 @@ class UnifiedVoice(nn.Module):
         text_inputs = F.pad(text_inputs, (0,1), value=self.stop_text_token)
         mel_codes = F.pad(mel_codes, (0,1), value=self.stop_mel_token)
 
-        conds = speech_conditioning_latent.unsqueeze(1)
+        if speech_conditioning_latent.dim() == 2:
+            conds = speech_conditioning_latent.unsqueeze(1)
+        else:
+            conds = speech_conditioning_latent
+
         text_inputs, text_targets = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
         mel_codes, mel_targets = self.build_aligned_inputs_and_targets(mel_codes, self.start_mel_token, self.stop_mel_token)
@@ -532,18 +543,38 @@ class UnifiedVoice(nn.Module):
         )
         gpt_inputs[:, -1] = self.start_mel_token
         return gpt_inputs
-    def inference_speech(self, speech_conditioning_latent, text_inputs, input_tokens=None, num_return_sequences=1,
+    def inference_speech(self, speech_conditioning_latents, text_inputs, input_tokens=None, num_return_sequences=1,
                          max_generate_length=None, typical_sampling=False, typical_mass=.9, **hf_generate_kwargs):        
 
         text_inputs = F.pad(text_inputs, (0, 1), value=self.stop_text_token)
         text_inputs, _ = self.build_aligned_inputs_and_targets(text_inputs, self.start_text_token, self.stop_text_token)
         text_emb = self.text_embedding(text_inputs) + self.text_pos_embedding(text_inputs)
 
-        conds = speech_conditioning_latent.unsqueeze(1)
-        emb = torch.cat([conds, text_emb], dim=1)
+        # Optionally expand the speech conditioning latent for concatenation to text embedding.
+        # Allow for different speech conditioning latents to be passed per sample.
+        if speech_conditioning_latents.dim() == 2:
+            conds = speech_conditioning_latents.unsqueeze(1)
+            emb = torch.cat([conds, text_emb], dim=1)
+
+        else:
+            assert speech_conditioning_latents.shape[1] == num_return_sequences, \
+                ("If the number of speech conditioning latents passed is > 1, they must be equal to the "
+                 "autoregressive batch size")
+            conds = speech_conditioning_latents
+
+            # Here, we have num_return_sequences unique VQ mels (different conditional VQ mel for each)
+            emb = torch.cat([torch.swapaxes(conds,0,1),
+                             text_emb.repeat(num_return_sequences,1,1)], dim=1)
+
+
         self.inference_model.store_mel_emb(emb)
 
-        fake_inputs = torch.full((emb.shape[0], conds.shape[1] + emb.shape[1],), fill_value=1, dtype=torch.long,
+
+        # TODO: Resolve below adjustment. When might emb.shape != 1?
+        # fake_inputs = torch.full((emb.shape[0], conds.shape[1] + emb.shape[1],), fill_value=1, dtype=torch.long,
+        #                          device=text_inputs.device)
+
+        fake_inputs = torch.full((1, 1 + emb.shape[1],), fill_value=1, dtype=torch.long,
                                  device=text_inputs.device)
         fake_inputs[:, -1] = self.start_mel_token
         trunc_index = fake_inputs.shape[1]
@@ -554,12 +585,19 @@ class UnifiedVoice(nn.Module):
             fake_inputs = fake_inputs.repeat(num_return_sequences, 1)
             input_tokens = input_tokens.repeat(num_return_sequences // input_tokens.shape[0], 1)
             inputs = torch.cat([fake_inputs, input_tokens], dim=1)
-
         logits_processor = LogitsProcessorList([TypicalLogitsWarper(mass=typical_mass)]) if typical_sampling else LogitsProcessorList()
         max_length = trunc_index + self.max_mel_tokens - 1  if max_generate_length is None else trunc_index + max_generate_length
+
+        # Pre-expansion of inputs - this simply expands inputs into the number of input sequences
+        inputs = self.inference_model._expand_inputs_for_generation(expand_size=num_return_sequences,
+                                                                        input_ids=inputs,
+                                                                        **hf_generate_kwargs)[0]
+
+        #print(f'GENERATE KWARGS: {hf_generate_kwargs}')
         gen = self.inference_model.generate(inputs, bos_token_id=self.start_mel_token, pad_token_id=self.stop_mel_token, eos_token_id=self.stop_mel_token,
                                             max_length=max_length, logits_processor=logits_processor,
-                                            num_return_sequences=num_return_sequences, **hf_generate_kwargs)
+                                            num_return_sequences=1, **hf_generate_kwargs)
+
         return gen[:, trunc_index:]
 
     def get_generator(self, fake_inputs, **hf_generate_kwargs):
