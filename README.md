@@ -139,6 +139,13 @@ This script allows you to speak a single phrase with one or more voices.
 ```shell
 python tortoise/do_tts.py --text "I'm going to speak this" --voice random --preset fast
 ```
+### do socket streaming
+```socket server
+python tortoise/socket_server.py 
+```
+will listen at port 5000
+
+
 ### faster inference read.py
 
 This script provides tools for reading large amounts of text.
