@@ -114,7 +114,7 @@ def load_voice(voice, extra_voice_dirs=[]):
         conds = []
         for cond_path in paths:
             if not cond_path.endswith('.pth'):
-                c = load_audio(cond_path, 24000)
+                c = load_audio(cond_path, 22050)
                 conds.append(c)
 
         if not pth_files:
