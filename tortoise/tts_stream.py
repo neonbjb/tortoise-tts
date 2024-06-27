@@ -11,13 +11,19 @@ from utils.text import split_and_recombine_text
 import sounddevice as sd
 import queue
 import threading
+import pydub  # Using pydub for audio playback
+
+
 def play_audio(audio_queue):
-    while True:
-        chunk = audio_queue.get()
-        if chunk is None:
-            break
-        sd.play(chunk.cpu().numpy(), samplerate=24000)
-        sd.wait()
+  while True:
+    chunk = audio_queue.get()
+    if chunk is None:
+      break
+    # Convert PyTorch tensor to NumPy array and then to a WAV audio segment
+    audio_data = chunk.cpu().numpy().tobytes()
+    sound = pydub.AudioSegment(audio_data, frame_rate=24000, channels=1, sample_width=2)
+    # Play the audio segment
+    pydub.playback.play(sound)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -81,5 +87,9 @@ if __name__ == '__main__':
             audio_generator = tts.tts_stream(text, voice_samples=voice_samples, use_deterministic_seed=seed)
             for wav_chunk in audio_generator:
                 audio_queue.put(wav_chunk)
+            end_time = time()  # Measure end time
+            elapsed_time = end_time - start_time  # Calculate elapsed time
+            print(f"Time taken to generate audio: {elapsed_time:.2f} seconds")  # Print elapsed time
+            
     audio_queue.put(None)
     playback_thread.join()
