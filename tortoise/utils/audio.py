@@ -97,6 +97,9 @@ def get_voices(extra_voice_dirs=[]):
                 voices[sub] = list(glob(f'{subj}/*.wav')) + list(glob(f'{subj}/*.mp3')) + list(glob(f'{subj}/*.pth'))
     return voices
 
+def save_pth(conds, save_path):
+    torch.save(conds, save_path)
+
 
 def load_voice(voice, extra_voice_dirs=[]):
     if voice == 'random':
@@ -104,13 +107,20 @@ def load_voice(voice, extra_voice_dirs=[]):
 
     voices = get_voices(extra_voice_dirs)
     paths = voices[voice]
+    pth_files = [p for p in paths if p.endswith('.pth')]
     if len(paths) == 1 and paths[0].endswith('.pth'):
         return None, torch.load(paths[0])
     else:
         conds = []
         for cond_path in paths:
-            c = load_audio(cond_path, 22050)
-            conds.append(c)
+            if not cond_path.endswith('.pth'):
+                c = load_audio(cond_path, 24000)
+                conds.append(c)
+
+        if not pth_files:
+            pth_save_path = os.path.join(os.path.dirname(paths[0]), f"{voice}.pth")
+            save_pth(conds, pth_save_path)
+
         return conds, None
 
 
