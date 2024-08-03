@@ -10,8 +10,9 @@ from utils.audio import load_voices
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--text', type=str, help='Text to speak.', default="The expressiveness of autoregressive transformers is literally nuts! I absolutely adore them.")
-    parser.add_argument('--voice', type=str, help='Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
-                                                 'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.', default='random')
+    parser.add_argument('--voice', type=str, help="""
+        Selects the voice to use for generation. See options in voices/ directory (and add your own!) '
+        'Use the & character to join two voices together. Use a comma to perform inference on multiple voices.""", default='random')
     parser.add_argument('--preset', type=str, help='Which voice preset to use.', default='fast')
     parser.add_argument('--use_deepspeed', type=str, help='Use deepspeed for speed bump.', default=False)
     parser.add_argument('--kv_cache', type=bool, help='If you disable this please wait for a long a time to get the output', default=True)

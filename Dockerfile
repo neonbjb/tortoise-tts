@@ -45,3 +45,6 @@ RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoi
 
 # Default command
 CMD ["/bin/bash"]
+
+# Default entrypoint
+ENTRYPOINT ["python", "tortoise/do_tts.py"]
