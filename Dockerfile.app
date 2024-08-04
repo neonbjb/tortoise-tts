@@ -42,12 +42,16 @@ RUN conda create --name tortoise python=3.9 numba inflect -y && \
 RUN echo "conda activate tortoise" >> ~/.bashrc
 
 FROM conda AS runner
+
 # Install the application
 WORKDIR /app
 RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && python setup.py install"
 
-# Provide default CMD if no arguments are passed
-CMD ["--help"]
+# Install FastAPI and Uvicorn
+RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && pip install fastapi uvicorn"
 
-# Default entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && python tortoise/do_tts.py"]
+# Copy the FastAPI app
+COPY app /app/api
+
+# Default command to run the FastAPI app
+CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
