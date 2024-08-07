@@ -3,7 +3,6 @@ rotary_embedding_torch
 transformers==4.31.0
 tokenizers
 inflect
-# progressbar2
 einops==0.4.1
 unidecode
 scipy
@@ -24,3 +23,6 @@ hjson
 psutil
 sounddevice
 spacy==3.7.5
+# for api
+uvicorn==0.30.5
+google_auth_oauthlib

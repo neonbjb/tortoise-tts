@@ -25,6 +25,8 @@ def main(args):
     # if torch.backends.mps.is_available():
     #     args.use_deepspeed = False
     os.makedirs(args.output_path, exist_ok=True)
+    if not args.autoregressive_batch_size:
+        args.autoregressive_batch_size = pick_best_batch_size_for_gpu()
     tts = TextToSpeech(
         models_dir=args.model_dir, autoregressive_batch_size=args.autoregressive_batch_size, use_deepspeed=args.use_deepspeed, kv_cache=args.kv_cache, half=args.half)
 
@@ -43,15 +45,18 @@ def main(args):
         )
         if isinstance(gen, list):
             for j, g in enumerate(gen):
+                output_path = os.path.join(args.output_path, f'{selected_voice}_{k}_{j}.wav')
                 torchaudio.save(
-                    os.path.join(args.output_path, f'{selected_voice}_{k}_{j}.wav'), g.squeeze(0).cpu(), 24000
+                    output_path, g.squeeze(0).cpu(), 24000
                 )
         else:
-            torchaudio.save(os.path.join(args.output_path, f'{selected_voice}_{k}.wav'), gen.squeeze(0).cpu(), 24000)
+            output_path = os.path.join(args.output_path, f'{selected_voice}_{k}.wav')
+            torchaudio.save(output_path, gen.squeeze(0).cpu(), 24000)
         print(f"Audio saved to {args.output_path} as {selected_voice}_{k}.wav")
         if args.produce_debug_state:
             os.makedirs('debug_states', exist_ok=True)
             torch.save(dbg_state, f'debug_states/do_tts_debug_{selected_voice}.pth')
+        return output_path
             
 if __name__ == '__main__':
     """
@@ -75,7 +80,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--voice', type=str, help="Selects the voice to use for generation. See options in voices/ directory (and add your own!) Use the & character to join two voices together. Use a comma to perform inference on multiple voices.", default='random')
     parser.add_argument(
-        '--preset', type=str, help='Which voice preset to use.', default='fast')
+        '--preset', type=str, help="""Which voice preset to use. Available presets = {
+            'ultra_fast': {'num_autoregressive_samples': 16, 'diffusion_iterations': 30, 'cond_free': False},
+            'fast': {'num_autoregressive_samples': 96, 'diffusion_iterations': 80},
+            'standard': {'num_autoregressive_samples': 256, 'diffusion_iterations': 200},
+            'high_quality': {'num_autoregressive_samples': 256, 'diffusion_iterations': 400}
+            }""", choices=['ultra_fast', 'fast', 'standard', 'high_quality'], default='fast')
     parser.add_argument(
         '--use_deepspeed', action=argparse.BooleanOptionalAction, type=bool, help='Use deepspeed for speed bump.', default=False)
     parser.add_argument(

@@ -6,7 +6,6 @@ from urllib import request
 
 import torch
 import torch.nn.functional as F
-import progressbar
 import torchaudio
 import numpy as np
 from tortoise.models.classifier import AudioMiniEncoderWithClassifierHead
