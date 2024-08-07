@@ -1,0 +1,1 @@
+docker build -f Dockerfile.app . -t tts:app

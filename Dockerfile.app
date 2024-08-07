@@ -54,4 +54,5 @@ RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoi
 COPY app /app/api
 
 # Default command to run the FastAPI app
-CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["uvicorn", "app.api:app"]
+CMD ["--host", "0.0.0.0", "--port", "8000"]

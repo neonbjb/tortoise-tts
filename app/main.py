@@ -15,6 +15,8 @@ from app.models.tts import TTSArgs
 from app.services.oauth import get_current_user
 from app.utils import pick_max_worker_function
 from app.services.auth import get_current_username
+
+from tortoise.utils.audio import BUILTIN_VOICES_DIR
 from tortoise.do_tts import main as tts_main
 
 dotenv.load_dotenv()
@@ -74,8 +76,12 @@ app = FastAPI(lifespan=lifespan)
 async def home():
     return JSONResponse(content={"message": "Hello, FiCast-TTS! Check the docs at /docs."})
 
-@app.post("/transcribe", dependencies=[Depends(get_current_username)])
-async def transcribe(request: TranscriptionRequest):
+@app.get("/voices")
+async def available_voices():
+    return JSONResponse(content={"message": os.listdir(BUILTIN_VOICES_DIR)})
+
+@app.post("/tts", dependencies=[Depends(get_current_username)])
+async def text_to_speech(request: TranscriptionRequest):
     try:
         args = TTSArgs(
             text=request.text,
