@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+      {
+          "name": "Python: tortoise/do_tts.py",
+          "type": "debugpy",
+          "request": "launch",
+          "program": "${workspaceFolder}/tortoise/do_tts.py",
+          "env": {
+              "PYTHONPATH": "${workspaceFolder}"
+          },
+          "args": [
+              "text='this is a test'"
+          ]
+      }
+  ]
+}

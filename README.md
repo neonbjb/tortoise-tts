@@ -94,6 +94,11 @@ docker run --gpus all \
     -v /root:/work \
     -it tts
 ```
+(new version: current version has `ENTRYPOINT python tortoise/do_tts.py` already!)
+```
+
+```
+If the docker container is 
 This gives you an interactive terminal in an environment that's ready to do some tts. Now you can explore the different interfaces that tortoise exposes for tts.
 
 For example:

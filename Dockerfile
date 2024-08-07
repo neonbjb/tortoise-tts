@@ -41,13 +41,15 @@ RUN conda create --name tortoise python=3.9 numba inflect -y && \
 # Set conda environment to be activated by default in future RUN instructions
 RUN echo "conda activate tortoise" >> ~/.bashrc
 
-FROM conda AS runner
+FROM conda_base AS runner
+
 # Install the application
 WORKDIR /app
 RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && python setup.py install"
 
+# Default entrypoint
+RUN chmod +x /app/scripts/docker-entrypoint.sh
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
+
 # Provide default CMD if no arguments are passed
 CMD ["--help"]
-
-# Default entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && python tortoise/do_tts.py"]

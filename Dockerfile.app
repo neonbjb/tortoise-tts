@@ -41,7 +41,7 @@ RUN conda create --name tortoise python=3.9 numba inflect -y && \
 # Set conda environment to be activated by default in future RUN instructions
 RUN echo "conda activate tortoise" >> ~/.bashrc
 
-FROM conda AS runner
+FROM conda_base AS runner
 
 # Install the application
 WORKDIR /app

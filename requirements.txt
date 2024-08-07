@@ -3,13 +3,13 @@ rotary_embedding_torch
 transformers==4.31.0
 tokenizers
 inflect
-progressbar
+# progressbar2
 einops==0.4.1
 unidecode
 scipy
 librosa==0.9.1
 ffmpeg
-numpy
+numpy==1.24.1
 numba
 torchaudio
 threadpoolctl
