@@ -5,11 +5,7 @@ from enum import Enum
 from tortoise.do_tts import pick_best_batch_size_for_gpu
 from tortoise.api import MODELS_DIR
 
-class Presets(str, Enum):
-    ULTRA_FAST='ultra_fast'
-    FAST='fast'
-    STANDARD='standard'
-    HIGH_QUALITY='high_quality'
+from .request import Presets
 
 class TTSArgs(BaseModel):
     text: str

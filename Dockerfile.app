@@ -48,11 +48,10 @@ WORKDIR /app
 RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && python setup.py install"
 
 # Install FastAPI and Uvicorn
-RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && pip install fastapi uvicorn"
+RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && pip install -r requirements.txt"
 
-# Copy the FastAPI app
-COPY app /app/api
+# Default entrypoint
+RUN chmod +x /app/scripts/tts_app-entrypoint.sh
+ENTRYPOINT ["/app/scripts/tts_app-entrypoint.sh"]
 
-# Default command to run the FastAPI app
-ENTRYPOINT ["uvicorn", "app.api:app"]
 CMD ["--host", "0.0.0.0", "--port", "8000"]

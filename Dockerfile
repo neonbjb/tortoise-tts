@@ -45,11 +45,11 @@ FROM conda_base AS runner
 
 # Install the application
 WORKDIR /app
-RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && python setup.py install"
+RUN bash -c "source ${CONDA_DIR}/etc/profile.d/conda.sh && conda activate tortoise && pip install -r requirements.txt && python setup.py install"
 
 # Default entrypoint
-RUN chmod +x /app/scripts/docker-entrypoint.sh
-ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
+RUN chmod +x /app/scripts/tts-entrypoint.sh
+ENTRYPOINT ["/app/scripts/tts-entrypoint.sh"]
 
 # Provide default CMD if no arguments are passed
 CMD ["--help"]
