@@ -78,7 +78,7 @@ async def home():
 
 @app.get("/voices")
 async def available_voices():
-    return JSONResponse(content={"message": os.listdir(BUILTIN_VOICES_DIR)})
+    return JSONResponse(content={"voices": os.listdir(BUILTIN_VOICES_DIR)})
 
 @app.post("/tts", dependencies=[Depends(get_current_username)])
 async def text_to_speech(request: TranscriptionRequest):
@@ -86,7 +86,6 @@ async def text_to_speech(request: TranscriptionRequest):
         args = TTSArgs(
             text=request.text,
             voice=request.voice,
-            output_path=request.output_path,
             preset=request.preset
         )
 
