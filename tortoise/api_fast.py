@@ -137,7 +137,10 @@ def classify_audio_clip(clip):
     classifier = AudioMiniEncoderWithClassifierHead(2, spec_dim=1, embedding_dim=512, depth=5, downsample_factor=4,
                                                     resnet_blocks=2, attn_blocks=4, num_attn_heads=4, base_channels=32,
                                                     dropout=0, kernel_size=5, distribute_zero_label=False)
-    classifier.load_state_dict(torch.load(get_model_path('classifier.pth'), map_location=torch.device('cpu')))
+    # Use the get_model_path function to get the model's path
+    model_path = get_model_path('classifier.pth')
+    # Load the model state dictionary using the path returned
+    classifier.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     clip = clip.cpu().unsqueeze(0)
     results = F.softmax(classifier(clip), dim=-1)
     return results[0][0]

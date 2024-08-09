@@ -29,3 +29,5 @@ google_auth_oauthlib==1.2.1
 python-dotenv==1.0.1
 fastapi==0.112.0
 beartype==0.18.5
+PyJWT==2.9.0
+python-multipart==0.0.9

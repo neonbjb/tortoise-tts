@@ -1,6 +1,6 @@
 import os
 
-def pick_max_worker_function():
+def pick_max_worker():
     # Determine the number of CPU cores
     cpu_count = os.cpu_count()
     if cpu_count is None:

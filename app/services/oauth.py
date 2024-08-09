@@ -18,7 +18,6 @@ def get_authenticated_service():
         CLIENT_SECRETS_FILE, SCOPES,
         redirect_uri=REDIRECT_URI
     )
-    
     # Tell the user to go to the authorization URL.
     auth_url, _ = flow.authorization_url(prompt='consent')
     print('Please go to this URL: {}'.format(auth_url))

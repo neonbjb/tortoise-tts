@@ -16,20 +16,15 @@ from tortoise.utils.audio import load_voices
 
 # Configure logging to print to the console
 # Load logging configuration
-with open("logging_conf.yml", 'r') as file:
-    config = yaml.safe_load(file.read())
-    logging.config.dictConfig(config)
 logger = logging.getLogger(__name__)
 
-def main(args):
-    # if torch.backends.mps.is_available():
-    #     args.use_deepspeed = False
-    os.makedirs(args.output_path, exist_ok=True)
-    if not args.autoregressive_batch_size:
-        args.autoregressive_batch_size = pick_best_batch_size_for_gpu()
+def _initialized_tts(args):
     tts = TextToSpeech(
-        models_dir=args.model_dir, autoregressive_batch_size=args.autoregressive_batch_size, use_deepspeed=args.use_deepspeed, kv_cache=args.kv_cache, half=args.half)
+        models_dir=args.model_dir, autoregressive_batch_size=args.autoregressive_batch_size, use_deepspeed=args.use_deepspeed, kv_cache=args.kv_cache, 
+        half=args.half)
+    return tts
 
+def infer_voice(tts: TextToSpeech, args: argparse.Namespace):
     selected_voices = args.voice.split(',')
     for k, selected_voice in tqdm(enumerate(selected_voices), desc="generating using selected voice"):
         if '&' in selected_voice:
@@ -57,6 +52,15 @@ def main(args):
             os.makedirs('debug_states', exist_ok=True)
             torch.save(dbg_state, f'debug_states/do_tts_debug_{selected_voice}.pth')
         return output_path
+    
+def main(args):
+    if torch.backends.mps.is_available():
+        args.use_deepspeed = False
+    os.makedirs(args.output_path, exist_ok=True)
+    if not args.autoregressive_batch_size:
+        args.autoregressive_batch_size = pick_best_batch_size_for_gpu()
+    tts = _initialized_tts(args)
+    return infer_voice(tts, args)
             
 if __name__ == '__main__':
     """
