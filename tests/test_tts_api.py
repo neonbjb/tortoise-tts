@@ -26,7 +26,8 @@ def basic_auth(username, password):
 def task_id():
     with patch('app.main.text_to_speech') as mock_tts:
         mock_tts.return_value = {
-            "task_id": "mock_task_id", "status": "queued"}
+            "task_id": "mock_task_id", 
+            "status": "queued"}
         request_data = {
             "text": "Hello, how are you?",
             "voice": "random",

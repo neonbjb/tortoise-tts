@@ -5,10 +5,11 @@ import asyncio
 import dotenv
 import logging
 import time
+from tenacity import RetryError, retry, stop_after_delay, wait_fixed
 from datetime import timedelta
 
 import concurrent.futures
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Request, requests, status
 from fastapi.responses import FileResponse, JSONResponse
 from contextlib import asynccontextmanager
 from beartype import beartype
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 # Create the ThreadPoolExecutor with the determined number of max workers
 executor = concurrent.futures.ThreadPoolExecutor(
     max_workers=int(os.getenv("MAX_WORKERS", pick_max_worker())))
-TASK_TIMEOUT = int(os.getenv("TASK_TIMEOUT", 60*30))  # 30 minutes
+TASK_TIMEOUT = int(os.getenv("TASK_TIMEOUT", 60*3))  # 3  minutes
 
 # Dictionary to store task information
 tasks = {}
@@ -113,6 +114,10 @@ async def home():
     return JSONResponse(content={
         "message": "Hello, FiCast-TTS! Check the docs at /docs."})
 
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
+
 @app.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if verify_user(form_data.username, form_data.password):
@@ -181,31 +186,43 @@ async def task_status(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
+@retry(stop=stop_after_delay(TASK_TIMEOUT), wait=wait_fixed(5), reraise=True)
+async def check_task_status(task_id: str):
+    current_task = tasks.get(task_id)
+    if not current_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if current_task["status"] == "failed":
+        raise HTTPException(status_code=500, detail=f"Task failed: {current_task.get('error', 'Unknown error')}")
+    if current_task["status"] != "completed":
+        raise Exception("Task not completed yet")  # Raise an exception to trigger a retry
+    return current_task
+        
 @app.get("/task-result/{task_id}", dependencies=[Depends(get_current_user)])
-async def wait_for_result(task_id: str):
+async def wait_for_result(task_id: str, request: Request):
+    """
+    Waits for the task to complete and returns the result file if successful.
+    
+    Args:
+        task_id (str): The ID of the task to wait for.
+        
+    Returns:
+        FileResponse: The response containing the result file.
+    
+    Raises:
+        HTTPException: If the task is not found, fails, or times out.
+    """
     try:
-        task = tasks.get(task_id)
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
-        start_time = time.time()
-        while task["status"] != "completed":
-            if task["status"] == "failed":
-                raise HTTPException(
-                    status_code=500, detail=f"Task failed: {task.get('error', 'Unknown error')}")
-            elif time.time() - start_time > TASK_TIMEOUT:
-                raise HTTPException(status_code=408, detail="Task did not complete within the timeout")
-            await asyncio.sleep(5)
-            task = tasks.get(task_id)
-
+        task = await check_task_status(task_id)
         output_path = task["result"]
         if not os.path.isfile(output_path):
             raise HTTPException(status_code=404, detail=f"File not found: {output_path}")
-        # Expected output
         return FileResponse(
             output_path, 
             filename=os.path.basename(output_path), 
-            media_type="audio/wav")
-    
+            media_type="audio/wav"
+        )
+    except RetryError:
+        raise HTTPException(status_code=408, detail="Task timed out")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     

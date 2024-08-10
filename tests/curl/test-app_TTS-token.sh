@@ -8,3 +8,4 @@ response=$(curl -X POST "http://127.0.0.1:42110/tts" \
          }')
 TASK_ID=$(echo $response | jq -r .task_id)
 echo $TASK_ID
+

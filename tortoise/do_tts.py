@@ -1,4 +1,5 @@
 import argparse
+from functools import lru_cache
 import logging
 import logging.config
 import os, sys
@@ -24,6 +25,12 @@ def _initialized_tts(args):
         half=args.half)
     return tts
 
+@lru_cache(maxsize=None)
+def load_voices_cached(voices_tuple):
+    voices = list(voices_tuple)  # Convert tuple back to list for original function
+    return load_voices(voices_tuple)
+
+
 def infer_voice(tts: TextToSpeech, args: argparse.Namespace):
     selected_voices = args.voice.split(',')
     for k, selected_voice in tqdm(enumerate(selected_voices), desc="generating using selected voice"):
@@ -31,7 +38,8 @@ def infer_voice(tts: TextToSpeech, args: argparse.Namespace):
             voice_sel = selected_voice.split('&')
         else:
             voice_sel = [selected_voice]
-        voice_samples, conditioning_latents = load_voices(voice_sel)
+        # Convert list to tuple to make it hashable for caching
+        voice_samples, conditioning_latents = load_voices_cached(tuple(voice_sel))
 
         gen, dbg_state = tts.tts_with_preset(
             args.text, k=args.candidates, voice_samples=voice_samples, 
