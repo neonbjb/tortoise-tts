@@ -10,8 +10,8 @@ RUN apt-get update && \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-ENV HOME "/root"
-ENV CONDA_DIR "${HOME}/miniconda"
+ENV HOME="/root"
+ENV CONDA_DIR="${HOME}/miniconda"
 ENV PATH="$CONDA_DIR/bin":$PATH
 ENV CONDA_AUTO_UPDATE_CONDA=false
 ENV PIP_DOWNLOAD_CACHE="$HOME/.pip/cache"
