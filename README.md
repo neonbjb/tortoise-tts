@@ -45,8 +45,8 @@ A cool application of Tortoise + GPT-3 (not affiliated with this repository): ht
 
 If you want to use this on your own computer, you must have an NVIDIA GPU.
 
-On Windows, I **highly** recommend using the Conda installation method. I have been told that if you do not do this, you
-will spend a lot of time chasing dependency problems.
+> [!TIP]
+> On Windows, I **highly** recommend using the Conda installation method. I have been told that if you do not do this, you will spend a lot of time chasing dependency problems.
 
 First, install miniconda: https://docs.conda.io/en/latest/miniconda.html
 
@@ -72,7 +72,8 @@ python setup.py install
 
 Optionally, pytorch can be installed in the base environment, so that other conda environments can use it too. To do this, simply send the `conda install pytorch...` line before activating the tortoise environment.
 
-> **Note:** When you want to use tortoise-tts, you will always have to ensure the `tortoise` conda environment is activated.
+> [!NOTE]  
+> When you want to use tortoise-tts, you will always have to ensure the `tortoise` conda environment is activated.
 
 If you are on windows, you may also need to install pysoundfile: `conda install -c conda-forge pysoundfile`
 
