@@ -28,8 +28,6 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    if torch.backends.mps.is_available():
-        args.use_deepspeed = False
     tts = TextToSpeech(models_dir=args.model_dir, use_deepspeed=args.use_deepspeed, kv_cache=args.kv_cache, half=args.half)
 
     outpath = args.output_path
